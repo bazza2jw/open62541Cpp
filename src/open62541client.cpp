@@ -336,7 +336,7 @@ bool Open62541::Client::addVariable(NodeId &parent, const std::string &childName
                                            parent,
                                            NodeId::Organizes,
                                            qn,
-                                           NodeId::Null, // no variable type
+                                           UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), // no variable type
                                            var_attr,
                                            newNode.isNull()?nullptr:newNode.ref());
 
@@ -344,5 +344,39 @@ bool Open62541::Client::addVariable(NodeId &parent, const std::string &childName
     return lastOK();
 }
 
+
+/*!
+ * \brief Open62541::Client::addProperty
+ * \param parent
+ * \param key
+ * \param value
+ * \param nodeId
+ * \param newNode
+ * \return
+ */
+bool Open62541::Client::addProperty(NodeId &parent,
+                 const std::string &key,
+                 Variant &value,
+                 NodeId &nodeId,
+                 NodeId &newNode,
+                 int nameSpaceIndex )
+{
+    WriteLock l(_mutex);
+    if (nameSpaceIndex == 0) nameSpaceIndex = parent.nameSpaceIndex(); // inherit parent by default
+    VariableAttributes var_attr;
+    QualifiedName qn(nameSpaceIndex, key);
+    var_attr.setDisplayName(key);
+    var_attr.setDescription(key);
+    var_attr.setValue(value);
+    _lastError = UA_Client_addVariableNode(_client,
+                                           nodeId, // Assign new/random NodeID
+                                           parent,
+                                           UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY),
+                                           qn,
+                                           UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), // no variable type
+                                           var_attr,
+                                           newNode.isNull()?nullptr:newNode.ref());
+    return lastOK();
+}
 
 

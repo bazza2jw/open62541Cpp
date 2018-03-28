@@ -408,7 +408,43 @@ bool Open62541::Server::addVariable(NodeId &parent,  const std::string &childNam
 }
 
 
+/*!
+ * \brief Open62541::Server::addProperty
+ * \param parent
+ * \param key
+ * \param value
+ * \param nodeId
+ * \param newNode
+ * \param c
+ * \param nameSpaceIndex
+ * \return
+ */
+bool Open62541::Server::addProperty(NodeId &parent,
+                 const std::string &key,
+                 Variant &value,
+                 NodeId &nodeId,
+                 NodeId &newNode,
+                 NodeContext *c,
+                 int nameSpaceIndex)
+{
 
+    VariableAttributes var_attr;
+    var_attr.setDefault();
+    QualifiedName qn(nameSpaceIndex, key);
+    var_attr.setDisplayName(key);
+    var_attr.setDescription(key);
+    var_attr.get().accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
+    var_attr.setValue(value);
+    _lastError = UA_Server_addVariableNode(_server, nodeId,
+                                          parent,
+                                          UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY),
+                                          qn,
+                                          UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),
+                                          var_attr,
+                                          c,
+                                          newNode.isNull() ? nullptr : newNode.ref());
+   return lastOK();
+}
 
 
 

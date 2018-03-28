@@ -1319,6 +1319,22 @@ namespace Open62541 {
                 return lastOK();
             }
 
+
+            /*!
+             * \brief addProperty
+             * \param parent
+             * \param key
+             * \param value
+             * \param nodeId
+             * \param newNode
+             * \return
+             */
+            bool addProperty(NodeId &parent,
+                             const std::string &key,
+                             Variant &value,
+                             NodeId &nodeId,
+                             NodeId &newNode = NodeId::Null, int nameSpaceIndex = 0 );
+
             //
             // Async services
             //

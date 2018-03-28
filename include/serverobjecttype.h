@@ -14,7 +14,7 @@ class  UA_EXPORT  ServerObjectType {
         std::string _name;
 
         NodeId _typeId;
-        int _nameSpace = 1;
+        int _nameSpace = 2;
     public:
         /*!
             \brief ServerObjectType
@@ -101,6 +101,17 @@ class  UA_EXPORT  ServerObjectType {
             }
             UAPRINTLASTERROR(_server.lastError())
             return false;
+        }
+
+        /*!
+         * \brief setMandatory
+         * \param n1
+         * \return
+         */
+        bool setMandatory(NodeId &n1)
+        {
+            return _server.addReference(n1,Open62541::NodeId::HasModellingRule,Open62541::ExpandedNodeId::ModellingRuleMandatory,true)
+                    == UA_STATUSCODE_GOOD;
         }
 
         /*!

@@ -24,7 +24,9 @@ Open62541::NodeId   Open62541::NodeId::HasSubType(0, UA_NS0ID_HASSUBTYPE);
 Open62541::NodeId   Open62541::NodeId::HasModellingRule(0, UA_NS0ID_HASMODELLINGRULE);
 Open62541::NodeId   Open62541::NodeId::ModellingRuleMandatory(0, UA_NS0ID_MODELLINGRULE_MANDATORY);
 Open62541::NodeId   Open62541::NodeId::HasComponent(0, UA_NS0ID_HASCOMPONENT);
-Open62541::NodeId   Open62541::NodeId::BaseDataVariableType(0,UA_NS0ID_BASEDATAVARIABLETYPE);
+Open62541::NodeId   Open62541::NodeId::BaseDataVariableType(0,UA_NS0ID_HASPROPERTY);
+Open62541::NodeId   Open62541::NodeId::HasProperty(0,UA_NS0ID_BASEDATAVARIABLETYPE);
+
 Open62541::ExpandedNodeId   Open62541::ExpandedNodeId::ModellingRuleMandatory(UA_EXPANDEDNODEID_NUMERIC(0, UA_NS0ID_MODELLINGRULE_MANDATORY));
 
 //

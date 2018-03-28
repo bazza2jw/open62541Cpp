@@ -257,6 +257,8 @@ namespace Open62541 {
             static NodeId  ModellingRuleMandatory;
             static NodeId  HasComponent;
             static NodeId  BaseDataVariableType;
+            static NodeId  HasProperty;
+
             //
             UA_TYPE_DEF(NodeId)
             //

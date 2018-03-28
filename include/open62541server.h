@@ -446,7 +446,18 @@ namespace Open62541 {
                              NodeContext *c = nullptr,
                              int nameSpaceIndex = 0);
 
-            template<typename T> bool addVariable (NodeId &parent,  const std::string &childName,
+            template<typename T>
+            /*!
+             * \brief addVariable
+             * \param parent
+             * \param childName
+             * \param nodeId
+             * \param c
+             * \param newNode
+             * \param nameSpaceIndex
+             * \return
+             */
+            bool addVariable (NodeId &parent,  const std::string &childName,
                                                    NodeId &nodeId, const std::string &c,
                                                    NodeId &newNode = NodeId::Null,
                                                    int nameSpaceIndex = 0)
@@ -459,6 +470,49 @@ namespace Open62541 {
                 }
                 return false;
             }
+
+            template <typename T>
+            /*!
+             * \brief addProperty
+             * \param parent
+             * \param key
+             * \param value
+             * \param nodeId
+             * \param newNode
+             * \param c
+             * \param nameSpaceIndex
+             * \return
+             */
+            bool addProperty(NodeId &parent,
+                             const std::string &key,
+                             const T &value,
+                             NodeId &nodeId  = NodeId::Null,
+                             NodeId &newNode = NodeId::Null,
+                             NodeContext *c = nullptr,
+                             int nameSpaceIndex = 0 )
+            {
+                Variant v(value);
+                return addProperty(parent,key,v,nodeId,newNode,c,nameSpaceIndex);
+            }
+
+            /*!
+             * \brief addProperty
+             * \param parent
+             * \param key
+             * \param value
+             * \param nodeId
+             * \param newNode
+             * \param c
+             * \param nameSpaceIndex
+             * \return
+             */
+            bool addProperty(NodeId &parent,
+                             const std::string &key,
+                             Variant &value,
+                             NodeId &nodeId  = NodeId::Null,
+                             NodeId &newNode = NodeId::Null,
+                             NodeContext *c = nullptr,
+                             int nameSpaceIndex = 0 );
 
             /*!
                 \brief variable
