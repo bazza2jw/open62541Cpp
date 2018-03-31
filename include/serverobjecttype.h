@@ -1,3 +1,14 @@
+/*
+ * Copyright (C) 2017 -  B. J. Hill
+ *
+ * This file is part of open62541 C++ classes. open62541 C++ classes are free software: you can
+ * redistribute it and/or modify it under the terms of the Mozilla Public
+ * License v2.0 as stated in the LICENSE file provided with open62541.
+ *
+ * open62541 C++ classes are distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE.
+ */
 #ifndef SERVEROBJECTTYPE_H
 #define SERVEROBJECTTYPE_H
 #include "open62541server.h"
@@ -74,11 +85,11 @@ class  UA_EXPORT  ServerObjectType {
             \return
         */
         template<typename T> bool addObjectTypeVariable(const std::string &n, NodeId &parent,
-                                                        NodeId &nodeId,
+                                                        NodeId &nodeId = NodeId::Null,
                                                         NodeContext *context = nullptr,
                                                         NodeId &requestNodeId = NodeId::Null, // usually want auto generated ids
                                                         bool mandatory = true) {
-            T a = T();
+            T a;
             Variant value(a);
             //
             VariableAttributes var_attr;
@@ -88,15 +99,27 @@ class  UA_EXPORT  ServerObjectType {
             var_attr.get().accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
             var_attr.setValue(value);
             var_attr.get().dataType = value.get().type->typeId;
+            //
             QualifiedName qn(_nameSpace,n.c_str());
-            if (_server.addVariableNode(requestNodeId, parent, NodeId::HasComponent, qn,
-                                        NodeId::BaseDataVariableType, var_attr, nodeId,context)) {
+            //
+            NodeId newNode;
+            newNode.notNull();
+            //
+            if (_server.addVariableNode(requestNodeId,
+                                        parent,
+                                        NodeId::HasComponent,
+                                        qn,
+                                        NodeId::BaseDataVariableType,
+                                        var_attr,
+                                        newNode,
+                                        context)) {
                 if (mandatory) {
-                    return _server.addReference(nodeId.isNull()?requestNodeId:nodeId,
+                    return _server.addReference(newNode,
                                                 NodeId::HasModellingRule,
                                                 ExpandedNodeId::ModellingRuleMandatory,
                                                 true);
                 }
+                if(!nodeId.isNull()) nodeId = newNode;
                 return true;
             }
             UAPRINTLASTERROR(_server.lastError())

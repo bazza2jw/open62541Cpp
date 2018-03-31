@@ -24,8 +24,8 @@ Open62541::NodeId   Open62541::NodeId::HasSubType(0, UA_NS0ID_HASSUBTYPE);
 Open62541::NodeId   Open62541::NodeId::HasModellingRule(0, UA_NS0ID_HASMODELLINGRULE);
 Open62541::NodeId   Open62541::NodeId::ModellingRuleMandatory(0, UA_NS0ID_MODELLINGRULE_MANDATORY);
 Open62541::NodeId   Open62541::NodeId::HasComponent(0, UA_NS0ID_HASCOMPONENT);
-Open62541::NodeId   Open62541::NodeId::BaseDataVariableType(0,UA_NS0ID_HASPROPERTY);
-Open62541::NodeId   Open62541::NodeId::HasProperty(0,UA_NS0ID_BASEDATAVARIABLETYPE);
+Open62541::NodeId   Open62541::NodeId::HasProperty(0,UA_NS0ID_HASPROPERTY);
+Open62541::NodeId   Open62541::NodeId::BaseDataVariableType(0,UA_NS0ID_BASEDATAVARIABLETYPE);
 
 Open62541::ExpandedNodeId   Open62541::ExpandedNodeId::ModellingRuleMandatory(UA_EXPANDEDNODEID_NUMERIC(0, UA_NS0ID_MODELLINGRULE_MANDATORY));
 
@@ -105,7 +105,7 @@ std::string Open62541::toString(const UA_NodeId &n) {
         case UA_NODEIDTYPE_STRING:
             return ret + std::string((const char *)(n.identifier.string.data), n.identifier.string.length);
         case UA_NODEIDTYPE_GUID: {
-            char b[36];
+            char b[45];
             int l = sprintf(b, "%08X:%04X:%04X[%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X]",
                             n.identifier.guid.data1,
                             n.identifier.guid.data2,

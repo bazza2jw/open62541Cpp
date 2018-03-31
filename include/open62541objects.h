@@ -646,6 +646,16 @@ namespace Open62541 {
     class  UA_EXPORT  VariableTypeAttributes : public TypeBase<UA_VariableTypeAttributes> {
         public:
             UA_TYPE_DEF(VariableTypeAttributes)
+            void setDefault()
+            {
+                *this = UA_VariableTypeAttributes_default;
+            }
+            void setDisplayName(const std::string &s) {
+                get().displayName = UA_LOCALIZEDTEXT_ALLOC("en_US", s.c_str());
+            }
+            void setDescription(const std::string &s) {
+                get().description = UA_LOCALIZEDTEXT_ALLOC("en_US", s.c_str());
+            }
     };
     /*!
         \brief The MethodAttributes class
