@@ -14,87 +14,76 @@
 #include <open62541objects.h>
 namespace Open62541
 {
-// browsing object
+
 /*!
-    \brief The ServerBrowser class
+    \brief The ServerNodeTree class
 */
-class  UA_EXPORT  ServerBrowser {
-        Server &_server;
-        // browser call back
-        std::vector<BrowseItem> _list;
-        //
-        static UA_StatusCode browseIter(UA_NodeId childId, UA_Boolean isInverse, UA_NodeId referenceTypeId, void *handle);
-        //
+class  UA_EXPORT  ServerNodeTree : public UANodeTree {
+        Server &_server;  // server
+        int _nameSpace = 2; // sname space index we create nodes in
     public:
-        /*!
-            \brief ServerBrowser
-            \param c
-        */
-        ServerBrowser(Server &c) : _server(c) {}
-        /*!
-            \brief ~ServerBrowser
-        */
-        virtual ~ServerBrowser() {}
-        /*!
-            \brief browse
-            \param start
-        */
-        void browse(UA_NodeId start) {
-            _list.clear();
-            {
-                //WriteLock ll(_server.mutex());
-                UA_Server_forEachChildNodeCall(_server.server(), start, browseIter, (void *) this);
-            }
-        }
-        /*!
-            \brief process
-            \param childId
-            \param referenceTypeId
-        */
-        virtual void process(UA_NodeId childId,  UA_NodeId referenceTypeId) {
-            std::string s;
-            int i;
-            NodeId n(childId);
-            if (_server.browseName(n, s, i)) {
-                _list.push_back(BrowseItem(s, i, childId, referenceTypeId));
-            }
 
-        }
-        std::vector<BrowseItem> &list() {
-            return _list;
-        }
         /*!
-            \brief print
-            \param os
+            \brief setNameSpace
+            \param i
+            \return
         */
-        void print(std::ostream &os) {
-            for (BrowseItem &i : _list) {
-                std::string s;
-                int j;
-                NodeId n(i.childId);
-                if (_server.browseName(n, s, j)) {
-                    os << toString(i.childId) << " ns:" << i.nameSpace
-                       << ": "  << i.name  << " Ref:"
-                       << toString(i.referenceTypeId) << std::endl;
-                }
-            }
-
+        void setNameSpace(int i) {
+            _nameSpace = i;
         }
         /*!
-            \brief find
+            \brief nameSpace
+            \return
+        */
+        int nameSpace() const {
+            return _nameSpace;
+        }
+        /*!
+            \brief ServerNodeTree
+            \param s
+            \param parent
+            \param ns
+        */
+        ServerNodeTree(Server &s, NodeId &parent, int ns = 2)
+            : UANodeTree(parent), _server(s), _nameSpace(ns) {}
+        // client and server have different methods - TO DO unify client and server - and template
+        // only deal with value nodes and folders - for now
+
+        /*!
+            \brief addFolderNode
+            \param parent
             \param s
             \return
         */
-        int find(const std::string &s) {
-            int ret = -1;
-            for (int i = 0; i < int(_list.size()); i++) {
-                BrowseItem &b = _list[i];
-                if (b.name == s)
-                    return i;
-            }
-            return ret;
+        virtual bool addFolderNode(NodeId &parent, const std::string &s, NodeId &no) {
+            NodeId ni(_nameSpace, 0);
+            return _server.addFolder(parent, s, ni, no, _nameSpace);
+        }
+        /*!
+            \brief addValueNode
+            \return
+        */
+        virtual bool addValueNode(NodeId &parent, const std::string &s, NodeId &no, Variant &v) {
+            NodeId ni(_nameSpace, 0);
+            return _server.addVariable(parent, s, v, ni, no, _nameSpace);
+        }
+        /*!
+            \brief getValue
+            \return
+        */
+        virtual bool getValue(NodeId &n, Variant &v) {
+            return _server.readValue(n, v);
+        }
+        /*!
+            \brief setValue
+            \return
+        */
+        virtual bool setValue(NodeId &n, Variant &v) {
+            _server.writeValue(n, v);
+            return _server.lastOK();
         }
 };
+
 
 }
 #endif // SERVERNODETREE_H

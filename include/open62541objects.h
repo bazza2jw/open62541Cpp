@@ -873,27 +873,61 @@ namespace Open62541 {
     */
     class  UA_EXPORT  UANodeTree : public PropertyTree<std::string, NodeId> {
 
+            NodeId _parent; // note parent node
         public:
-            UANodeTree(NodeId &p) {
+            /*!
+             * \brief UANodeTree
+             * \param p
+             */
+            UANodeTree(NodeId &p): _parent(p) {
                 root().setData(p);
             }
+
+            /*!
+             * \brief parent
+             * \return
+             */
+            NodeId & parent() { return  _parent;}
             //
             // client and server have different methods - TO DO unify client and server - and template
             // only deal with value nodes and folders - for now
+            /*!
+             * \brief addFolderNode
+             * \return
+             */
             virtual bool addFolderNode(NodeId &/*parent*/, const std::string &/*s*/, NodeId &/*newNode*/) {
                 return false;
             }
+            /*!
+             * \brief addValueNode
+             * \return
+             */
             virtual bool addValueNode(NodeId &/*parent*/, const std::string &/*s*/, NodeId &/*newNode*/, Variant &/*v*/) {
                 return false;
             }
+            /*!
+             * \brief getValue
+             * \return
+             */
             virtual bool getValue(NodeId &, Variant &) {
                 return false;
             }
+            /*!
+             * \brief setValue
+             * \return
+             */
             virtual bool setValue(NodeId &, Variant &) {
                 return false;
             }
             //
 
+            /*!
+             * \brief createPathFolders
+             * \param p
+             * \param n
+             * \param level
+             * \return
+             */
             bool createPathFolders(UAPath &p, UANode *n, int level = 0) {
                 bool ret = false;
                 if (!n->hasChild(p[level])) {
@@ -1004,6 +1038,12 @@ namespace Open62541 {
                 return ret;
             } // get a node if it exists
 
+            /*!
+             * \brief printNode
+             * \param n
+             * \param os
+             * \param level
+             */
             void printNode(UANode *n, std::ostream &os = std::cerr, int level = 0);
 
     };
