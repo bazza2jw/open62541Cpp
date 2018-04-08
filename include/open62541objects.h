@@ -456,6 +456,14 @@ namespace Open62541 {
             }
 
             /*!
+             * \brief Variant
+             * \param t
+             */
+            Variant(UA_DateTime t): TypeBase(UA_Variant_new()) {
+                UA_Variant_setScalarCopy((UA_Variant *)ref(), &t, &UA_TYPES[UA_TYPES_DATETIME]);
+            }
+
+            /*!
                 cast to a type supported by UA
             */
             template<typename T> T value() {

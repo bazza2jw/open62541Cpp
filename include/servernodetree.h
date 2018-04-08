@@ -65,7 +65,7 @@ class  UA_EXPORT  ServerNodeTree : public UANodeTree {
         */
         virtual bool addValueNode(NodeId &parent, const std::string &s, NodeId &no, Variant &v) {
             NodeId ni(_nameSpace, 0);
-            return _server.addVariable(parent, s, v, ni, no, _nameSpace);
+            return _server.addVariable(parent, s, v, ni, no, nullptr,_nameSpace);
         }
         /*!
             \brief getValue
