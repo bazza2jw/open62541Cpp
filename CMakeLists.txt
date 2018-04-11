@@ -23,6 +23,18 @@ set(LIB_SOURCES
         #src/clientsubscription.cpp
         )
 
+set (Boost_USE_STATIC_LIBS OFF) # enable dynamic linking
+find_package(Boost COMPONENTS REQUIRED system thread)
+include_directories(${Boost_INCLUDE_DIR})
+
+include_directories(
+        ./include
+)
+
+add_library(Open62541Cpp SHARED ${LIB_SOURCES})
+
+install(TARGETS Open62541Cpp DESTINATION bin)
+
 set(LIB_HEADERS
         include/open62541client.h
         include/open62541objects.h
@@ -44,17 +56,5 @@ set(LIB_HEADERS
         #include/monitoreditem.h
         #include/clientsubscription.h
         )
-
-set (Boost_USE_STATIC_LIBS OFF) # enable dynamic linking
-find_package(Boost COMPONENTS REQUIRED system thread)
-include_directories(${Boost_INCLUDE_DIR})
-
-include_directories(
-        ./include
-)
-
-add_library(Open62541Cpp SHARED ${LIB_SOURCES})
-
-install(TARGETS Open62541Cpp DESTINATION lib)
 
 install(FILES ${LIB_HEADERS} DESTINATION include)
