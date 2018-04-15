@@ -2,7 +2,7 @@
 unix {
     options = $$find(QMAKESPEC, "rpi")
     count(options,1) {
-        INSTALLBASE = $$[QT_SYSROOT]/usr/local
+        INSTALLBASE = /opt/RPiSysroot2/usr/local/AMPI
         message("Raspberry Pi Build")
         LIBS += -L$$[QT_SYSROOT]/usr/local/lib -L$$[QT_SYSROOT]/lib/arm-linux-gnueabihf -L$$[QT_SYSROOT]/usr/lib/arm-linux-gnueabihf
         LIBS += -lboost_system -lboost_thread

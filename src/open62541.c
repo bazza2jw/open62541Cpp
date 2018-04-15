@@ -939,8 +939,8 @@ UA_atomic_subSize(volatile size_t *addr, size_t decrease) {
  * up to that point. */
 size_t UA_readNumber(u8 *buf, size_t buflen, u32 *number);
 
-#define MIN(A,B) (A > B ? B : A)
-#define MAX(A,B) (A > B ? A : B)
+#define UA_MIN(A,B) (A > B ? B : A)
+#define UA_MAX(A,B) (A > B ? A : B)
 
 #ifdef UA_DEBUG_DUMP_PKGS
 void UA_EXPORT UA_dump_hex_pkg(UA_Byte* buffer, size_t bufferLen);
@@ -34853,7 +34853,7 @@ void Service_FindServersOnNetwork(UA_Server *server, UA_Session *session,
     if(request->startingRecordId < server->serverOnNetworkRecordIdCounter)
         recordCount = server->serverOnNetworkRecordIdCounter - request->startingRecordId;
     if(request->maxRecordsToReturn && recordCount > request->maxRecordsToReturn)
-        recordCount = MIN(recordCount, request->maxRecordsToReturn);
+        recordCount = UA_MIN(recordCount, request->maxRecordsToReturn);
     if(recordCount == 0) {
         response->serversSize = 0;
         return;
@@ -35203,7 +35203,7 @@ UA_Discovery_addRecord(UA_Server *server, const UA_String *servername,
     }
 
     /* The first 63 characters of the hostname (or less) */
-    size_t maxHostnameLen = MIN(hostnameLen, 63);
+    size_t maxHostnameLen = UA_MIN(hostnameLen, 63);
     char localDomain[65];
     memcpy(localDomain, hostname->data, maxHostnameLen);
     localDomain[maxHostnameLen] = '.';

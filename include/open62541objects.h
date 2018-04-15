@@ -413,10 +413,14 @@ namespace Open62541 {
                 UA_Variant_setScalarCopy((UA_Variant *)ref(), &ss, &UA_TYPES[UA_TYPES_STRING]);
             }
 
+            Variant (UA_UInt64 v) : TypeBase(UA_Variant_new())
+            {
+              UA_Variant_setScalarCopy((UA_Variant *)ref(), &v, &UA_TYPES[UA_TYPES_UINT64]);
+            }
+
             Variant(UA_String &v) : TypeBase(UA_Variant_new()) {
                 UA_Variant_setScalarCopy((UA_Variant *)ref(), &v, &UA_TYPES[UA_TYPES_STRING]);
             }
-
 
             Variant(const char *v) : TypeBase(UA_Variant_new()) {
                 UA_String ss = UA_STRING((char *)v);
