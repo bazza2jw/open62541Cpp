@@ -1,14 +1,14 @@
 /*
- * Copyright (C) 2017 -  B. J. Hill
- *
- * This file is part of open62541 C++ classes. open62541 C++ classes are free software: you can
- * redistribute it and/or modify it under the terms of the Mozilla Public
- * License v2.0 as stated in the LICENSE file provided with open62541.
- *
- * open62541 C++ classes are distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
- * A PARTICULAR PURPOSE.
- */
+    Copyright (C) 2017 -  B. J. Hill
+
+    This file is part of open62541 C++ classes. open62541 C++ classes are free software: you can
+    redistribute it and/or modify it under the terms of the Mozilla Public
+    License v2.0 as stated in the LICENSE file provided with open62541.
+
+    open62541 C++ classes are distributed in the hope that it will be useful, but WITHOUT ANY
+    WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+    A PARTICULAR PURPOSE.
+*/
 #ifndef OPEN62541SERVER_H
 #define OPEN62541SERVER_H
 #include "open62541objects.h"
@@ -43,18 +43,20 @@ namespace Open62541 {
             // Lifecycle call backs
             /* Can be NULL. May replace the nodeContext */
             static UA_StatusCode constructor(UA_Server *server,
-                                         const UA_NodeId *sessionId, void *sessionContext,
-                                         const UA_NodeId *nodeId, void **nodeContext);
+                                             const UA_NodeId *sessionId, void *sessionContext,
+                                             const UA_NodeId *nodeId, void **nodeContext);
 
-            /* Can be NULL. The context cannot be replaced since the node is destroyed
-             * immediately afterwards anyway. */
+            /*  Can be NULL. The context cannot be replaced since the node is destroyed
+                immediately afterwards anyway. */
             static void destructor(UA_Server *server,
-                               const UA_NodeId *sessionId, void *sessionContext,
-                               const UA_NodeId *nodeId, void *nodeContext);
+                                   const UA_NodeId *sessionId, void *sessionContext,
+                                   const UA_NodeId *nodeId, void *nodeContext);
 
             // Map of servers key by UA_Server pointer
-            typedef std::map<UA_Server*, Server *> ServerMap;
+            typedef std::map<UA_Server *, Server *> ServerMap;
             static ServerMap _serverMap;
+
+            std::map<UA_UInt64,std::string> _discoveryList; // set of discovery servers this server has registered with
 
         protected:
             UA_StatusCode _lastError = 0;
@@ -63,8 +65,8 @@ namespace Open62541 {
                 \brief Server
                 \param p
             */
-            Server(int p = 4840) :_config(UA_ServerConfig_new_default()), _port(p) {
-                _config->nodeLifecycle.constructor= constructor; // set up the node global lifecycle
+            Server(int p = 4840, UA_ByteString *certificate = nullptr ) : _config(UA_ServerConfig_new_minimal(p,certificate)), _port(p) {
+                _config->nodeLifecycle.constructor = constructor; // set up the node global lifecycle
                 _config->nodeLifecycle.destructor = destructor;
 
             }
@@ -72,27 +74,153 @@ namespace Open62541 {
             virtual ~Server() {
                 // possible abnormal exit
                 if (_server) {
-                    WriteLock l(_mutex);
-                    if (_running) UA_Server_run_shutdown(_server);
-                    UA_Server_delete(_server);
-                    _serverMap.erase(_server);
+                   WriteLock l(_mutex);
+                   terminate();
                 }
-                _server = nullptr;
-
-                if(_config) UA_ServerConfig_delete(_config);
+                if (_config) UA_ServerConfig_delete(_config);
             }
 
             /*!
-             * \brief findServer
+                \brief setServerUri
+                \param s
+            */
+            void setServerUri(const std::string &s) {
+                UA_String_deleteMembers(&_config->applicationDescription.applicationUri);
+                _config->applicationDescription.applicationUri = UA_String_fromChars(s.c_str());
+            }
+
+            /*!
+             * \brief setMdnsServerName
              * \param s
+             */
+            void setMdnsServerName(const std::string &s)
+            {
+              _config->mdnsServerName = UA_String_fromChars(s.c_str());
+            }
+
+            /*!
+                \brief findServer
+                \param s
+                \return
+            */
+            static Server *findServer(UA_Server *s) {
+                return _serverMap[s];
+            }
+            //
+            // Discovery
+            //
+            /*!
+                \brief registerDiscovery
+                \param discoveryServerUrl
+                \param semaphoreFilePath
+                \return
+            */
+            bool registerDiscovery(const std::string &discoveryServerUrl,  const std::string &semaphoreFilePath = "") {
+                _lastError = UA_Server_register_discovery(server(),
+                                                          discoveryServerUrl.c_str(),
+                                                          (semaphoreFilePath.empty()) ? nullptr : semaphoreFilePath.c_str());
+                return lastOK();
+            }
+
+            /*!
+                \brief unregisterDiscovery
+                \return
+            */
+            bool unregisterDiscovery(const std::string &discoveryServerUrl) {
+                _lastError = UA_Server_unregister_discovery(server(), discoveryServerUrl.c_str());
+                return lastOK();
+            }
+            /*!
+             * \brief unregisterDiscovery
+             * \param periodicCallbackId
              * \return
              */
-            static Server * findServer(UA_Server *s)
+            bool unregisterDiscovery(UA_UInt64 &periodicCallbackId)
             {
-                return _serverMap[s];
+                bool ret = unregisterDiscovery(_discoveryList[periodicCallbackId]);
+                _discoveryList.erase(periodicCallbackId);
+                return ret;
+            }
+
+            /*!
+                \brief addPeriodicServerRegister
+                \param discoveryServerUrl
+                \param intervalMs
+                \param delayFirstRegisterMs
+                \param periodicCallbackId
+                \return
+            */
+            bool  addPeriodicServerRegister(const std::string &discoveryServerUrl,
+                                                    UA_UInt64 &periodicCallbackId,
+                                                    UA_UInt32 intervalMs = 600 * 1000, // default to 10 minutes
+                                                    UA_UInt32 delayFirstRegisterMs = 1000) {
+                _lastError = UA_Server_addPeriodicServerRegisterCallback(server(),
+                                                                         discoveryServerUrl.c_str(),
+                                                                         intervalMs,
+                                                                         delayFirstRegisterMs,
+                                                                         &periodicCallbackId);
+                //
+                if(lastOK())
+                {
+                  _discoveryList[periodicCallbackId]  = discoveryServerUrl;
+                }
+                //
+                return lastOK();
             }
 
 
+            /*!
+                \brief registerServer
+            */
+            virtual void registerServer(const UA_RegisteredServer * /*registeredServer*/) {
+                OPEN62541_TRC
+            }
+
+            /*!
+                \brief registerServerCallback
+                \param registeredServer
+                \param data
+            */
+            static void registerServerCallback(const UA_RegisteredServer *registeredServer, void *data);
+            /*!
+                \brief setRegisterServerCallback
+            */
+            void setRegisterServerCallback() {
+                UA_Server_setRegisterServerCallback(server(), registerServerCallback, (void *)(this));
+            }
+
+            /*!
+                \brief serverOnNetwork
+                \param serverOnNetwork
+                \param isServerAnnounce
+                \param isTxtReceived
+            */
+            virtual void serverOnNetwork(const UA_ServerOnNetwork */*serverOnNetwork*/,
+                                         UA_Boolean /*isServerAnnounce*/,
+                                         UA_Boolean /*isTxtReceived*/) {
+                OPEN62541_TRC
+
+            }
+
+            /*!
+                \brief serverOnNetworkCallback
+                \param serverNetwork
+                \param isServerAnnounce
+                \param isTxtReceived
+                \param data
+            */
+            static void serverOnNetworkCallback(const UA_ServerOnNetwork *serverNetwork,
+                                                UA_Boolean isServerAnnounce,
+                                                UA_Boolean isTxtReceived,
+                                                void *data);
+            #ifdef UA_ENABLE_DISCOVERY_MULTICAST
+            /*!
+                \brief setServerOnNetworkCallback
+            */
+            void setServerOnNetworkCallback() {
+                UA_Server_setServerOnNetworkCallback(server(), serverOnNetworkCallback, (void *)(this));
+            }
+            #endif
             /*!
                 \brief start
                 \param iterate
@@ -110,6 +238,11 @@ namespace Open62541 {
                 \brief process
             */
             virtual void process() {} // called between server loop iterations - hook thread event processing
+
+            /*!
+             * \brief terminate
+             */
+            virtual void terminate(); // called before server is closed
             //
             /*!
                 \brief lastError
@@ -150,34 +283,32 @@ namespace Open62541 {
 
 
             /*!
-             * \brief getNodeContext
-             * \param n
-             * \param c
-             * \return
-             */
-            bool getNodeContext(NodeId &n, NodeContext * &c)
-            {
+                \brief getNodeContext
+                \param n
+                \param c
+                \return
+            */
+            bool getNodeContext(NodeId &n, NodeContext *&c) {
                 void *p = (void *)(c);
-                _lastError = UA_Server_getNodeContext(_server, n.get(),&p);
+                _lastError = UA_Server_getNodeContext(_server, n.get(), &p);
                 return lastOK();
             }
 
             /*!
-             * \brief findContext
-             * \return
-             */
-            static NodeContext * findContext(const std::string &s);
+                \brief findContext
+                \return
+            */
+            static NodeContext *findContext(const std::string &s);
 
             /* Careful! The user has to ensure that the destructor callbacks still work. */
             /*!
-             * \brief setNodeContext
-             * \param n
-             * \param c
-             * \return
-             */
-            bool setNodeContext(NodeId &n, const NodeContext * c)
-            {
-                _lastError = UA_Server_setNodeContext(_server,n.get(), (void *)(c));
+                \brief setNodeContext
+                \param n
+                \param c
+                \return
+            */
+            bool setNodeContext(NodeId &n, const NodeContext *c) {
+                _lastError = UA_Server_setNodeContext(_server, n.get(), (void *)(c));
                 return lastOK();
             }
 
@@ -279,19 +410,19 @@ namespace Open62541 {
                 return ret;
             }
             //
-            UA_ServerConfig   & serverConfig() {
+            UA_ServerConfig    &serverConfig() {
                 return *_config;
             }
             //
 
             /*!
-             * \brief addServerMethod
-             * \param parent
-             * \param nodeId
-             * \param newNode
-             * \param nameSpaceIndex
-             * \return
-             */
+                \brief addServerMethod
+                \param parent
+                \param nodeId
+                \param newNode
+                \param nameSpaceIndex
+                \return
+            */
             bool addServerMethod(ServerMethod *method, const std::string &browseName,
                                  NodeId &parent,  NodeId &nodeId,
                                  NodeId &newNode,  int nameSpaceIndex = 0) {
@@ -309,18 +440,18 @@ namespace Open62541 {
                 {
                     WriteLock l(mutex());
                     _lastError = UA_Server_addMethodNode(_server,
-                                            nodeId,
-                                            parent,
-                                            NodeId::HasOrderedComponent,
-                                            qn,
-                                            attr,
-                                            ServerMethod::methodCallback,
-                                            method->in().size() - 1,
-                                            method->in().data(),
-                                            method->out().size() - 1,
-                                            method->out().data(),
-                                            (void *)(method), // method context is reference to the call handler
-                                            newNode.isNull() ? nullptr : newNode.ref());
+                                                         nodeId,
+                                                         parent,
+                                                         NodeId::HasOrderedComponent,
+                                                         qn,
+                                                         attr,
+                                                         ServerMethod::methodCallback,
+                                                         method->in().size() - 1,
+                                                         method->in().data(),
+                                                         method->out().size() - 1,
+                                                         method->out().data(),
+                                                         (void *)(method), // method context is reference to the call handler
+                                                         newNode.isNull() ? nullptr : newNode.ref());
 
                 }
                 return lastOK();
@@ -338,13 +469,13 @@ namespace Open62541 {
             }
 
             /*!
-             * \brief addRepeatedCallback
-             * \param id
-             * \param interval
-             * \param f
-             */
+                \brief addRepeatedCallback
+                \param id
+                \param interval
+                \param f
+            */
             void addRepeatedCallback(const std::string &id, int interval, SeverRepeatedCallbackFunc f) {
-                auto p = new SeverRepeatedCallback(*this,interval,f);
+                auto p = new SeverRepeatedCallback(*this, interval, f);
                 _callbacks[id] = SeverRepeatedCallbackRef(p);
             }
 
@@ -448,71 +579,68 @@ namespace Open62541 {
 
             template<typename T>
             /*!
-             * \brief addVariable
-             * \param parent
-             * \param childName
-             * \param nodeId
-             * \param c
-             * \param newNode
-             * \param nameSpaceIndex
-             * \return
-             */
-            bool addVariable (NodeId &parent,  const std::string &childName,
-                                                   NodeId &nodeId, const std::string &c,
-                                                   NodeId &newNode = NodeId::Null,
-                                                   int nameSpaceIndex = 0)
-            {
+                \brief addVariable
+                \param parent
+                \param childName
+                \param nodeId
+                \param c
+                \param newNode
+                \param nameSpaceIndex
+                \return
+            */
+            bool addVariable(NodeId &parent,  const std::string &childName,
+                             NodeId &nodeId, const std::string &c,
+                             NodeId &newNode = NodeId::Null,
+                             int nameSpaceIndex = 0) {
                 NodeContext *cp = findContext(c);
-                if(cp)
-                {
+                if (cp) {
                     Variant v(T());
-                    return  addVariable(parent, childName, v, nodeId,  newNode,cp, nameSpaceIndex);
+                    return  addVariable(parent, childName, v, nodeId,  newNode, cp, nameSpaceIndex);
                 }
                 return false;
             }
 
             template <typename T>
             /*!
-             * \brief addProperty
-             * \param parent
-             * \param key
-             * \param value
-             * \param nodeId
-             * \param newNode
-             * \param c
-             * \param nameSpaceIndex
-             * \return
-             */
+                \brief addProperty
+                \param parent
+                \param key
+                \param value
+                \param nodeId
+                \param newNode
+                \param c
+                \param nameSpaceIndex
+                \return
+            */
             bool addProperty(NodeId &parent,
                              const std::string &key,
                              const T &value,
                              NodeId &nodeId  = NodeId::Null,
                              NodeId &newNode = NodeId::Null,
                              NodeContext *c = nullptr,
-                             int nameSpaceIndex = 0 )
-            {
+                             int nameSpaceIndex = 0) {
                 Variant v(value);
-                return addProperty(parent,key,v,nodeId,newNode,c,nameSpaceIndex);
+                return addProperty(parent, key, v, nodeId, newNode, c, nameSpaceIndex);
             }
 
             /*!
-             * \brief addProperty
-             * \param parent
-             * \param key
-             * \param value
-             * \param nodeId
-             * \param newNode
-             * \param c
-             * \param nameSpaceIndex
-             * \return
-             */
+                \brief addProperty
+                \param parent
+                \param key
+                \param value
+                \param nodeId
+                \param newNode
+                \param c
+                \param nameSpaceIndex
+                \return
+            */
             bool addProperty(NodeId &parent,
                              const std::string &key,
                              Variant &value,
                              NodeId &nodeId  = NodeId::Null,
                              NodeId &newNode = NodeId::Null,
                              NodeContext *c = nullptr,
-                             int nameSpaceIndex = 0 );
+                             int nameSpaceIndex = 0);
 
             /*!
                 \brief variable
@@ -545,7 +673,7 @@ namespace Open62541 {
                 \param ret
                 \return
             */
-            bool call(CallMethodRequest & request, CallMethodResult &ret) {
+            bool call(CallMethodRequest &request, CallMethodResult &ret) {
                 WriteLock l(_mutex);
                 ret.get() = UA_Server_call(_server, request);
                 return ret.get().statusCode == UA_STATUSCODE_GOOD;
@@ -1007,7 +1135,7 @@ namespace Open62541 {
                                                        typeDefinition,
                                                        attr,
                                                        nc,
-                                                       outNewNodeId.isNull()?nullptr:outNewNodeId.ref());
+                                                       outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
 
                 return lastOK();
             }
@@ -1043,7 +1171,7 @@ namespace Open62541 {
                                                             typeDefinition,
                                                             attr,
                                                             instantiationCallback,
-                                                            outNewNodeId.isNull()?nullptr:outNewNodeId.ref());
+                                                            outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
                 return lastOK();
             }
 
@@ -1077,7 +1205,7 @@ namespace Open62541 {
                                                      typeDefinition,
                                                      attr,
                                                      instantiationCallback,
-                                                     outNewNodeId.isNull()?nullptr:outNewNodeId.ref());
+                                                     outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
                 return lastOK();
             }
 
@@ -1107,7 +1235,7 @@ namespace Open62541 {
                                                          browseName,
                                                          attr,
                                                          instantiationCallback,
-                                                         outNewNodeId.isNull()?nullptr:outNewNodeId.ref());
+                                                         outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
                 return lastOK();
             }
 
@@ -1139,7 +1267,7 @@ namespace Open62541 {
                                                    browseName,
                                                    attr,
                                                    instantiationCallback,
-                                                   outNewNodeId.isNull()?nullptr:outNewNodeId.ref());
+                                                   outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
                 return lastOK();
             }
 
@@ -1172,7 +1300,7 @@ namespace Open62541 {
                                                             browseName,
                                                             attr,
                                                             instantiationCallback,
-                                                            outNewNodeId.isNull()?nullptr:outNewNodeId.ref());
+                                                            outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
                 return lastOK();
             }
 
@@ -1205,7 +1333,7 @@ namespace Open62541 {
                                                        browseName,
                                                        attr,
                                                        instantiationCallback,
-                                                       outNewNodeId.isNull()?nullptr:outNewNodeId.ref());
+                                                       outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
                 return lastOK();
             }
 
@@ -1243,7 +1371,7 @@ namespace Open62541 {
                                                                  attr,
                                                                  dataSource,
                                                                  instantiationCallback,
-                                                                 outNewNodeId.isNull()?nullptr:outNewNodeId.ref());
+                                                                 outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
 
                 return lastOK();
 
@@ -1264,12 +1392,11 @@ namespace Open62541 {
             }
 
             /*!
-             * \brief markMandatory
-             * \param nodeId
-             * \return
-             */
-            bool markMandatory(NodeId &nodeId)
-            {
+                \brief markMandatory
+                \param nodeId
+                \return
+            */
+            bool markMandatory(NodeId &nodeId) {
                 return addReference(nodeId, NodeId::HasModellingRule, ExpandedNodeId::ModellingRuleMandatory, true);
             }
 
@@ -1301,7 +1428,7 @@ namespace Open62541 {
                 \param nodeId
                 \return
             */
-            bool addInstance(const std::string &n, NodeId &requestedNewNodeId,NodeId &parent,
+            bool addInstance(const std::string &n, NodeId &requestedNewNodeId, NodeId &parent,
                              NodeId &typeId, NodeId &nodeId = NodeId::Null, NodeContext *context = nullptr) {
                 ObjectAttributes oAttr;
                 oAttr.setDefault();

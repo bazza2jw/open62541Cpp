@@ -42,15 +42,19 @@ namespace Open62541 {
 
 
 
-
+    // dictionary of subscriptions associated with a Client
+    typedef std::shared_ptr<ClientSubscription> ClientSubscriptionRef;
+    typedef std::map<UA_UInt32, ClientSubscriptionRef> ClientSubscriptionMap;
     /*!
         \brief The Client class
     */
+
     class Client {
             UA_ClientConfig _config = UA_ClientConfig_default;
             UA_Client *_client = nullptr;
             ReadWriteMutex _mutex;
             //
+            ClientSubscriptionMap _subscriptions;
 
 
         protected:
@@ -59,9 +63,7 @@ namespace Open62541 {
 
         private:
             // Call Backs
-            static void  subscriptionInactivityCallback(UA_Client *client, UA_UInt32 subId, void *subContext);
             static void  stateCallback(UA_Client *client, UA_ClientState clientState);
-            static void  deleteSubscriptionCallback(UA_Client *client, UA_UInt32 subscriptionId, void *subscriptionContext);
         public:
 
             Client() {
@@ -87,49 +89,121 @@ namespace Open62541 {
                 if (_client)  disconnect();
             }
 
+            /*!
+                \brief runAsync
+                \param interval
+            */
+            void runAsync(int interval) {
+                UA_Client_runAsync(_client, interval);
+            }
+            /*!
+                \brief getContext
+                \return
+            */
+            void *getContext() {
+                return UA_Client_getContext(client());
+            }
 
             /*!
-                \brief subscriptionInactivity
-                \param subId
+                \brief subscriptionInactivityCallback
+                \param client
+                \param subscriptionId
                 \param subContext
             */
-            virtual void subscriptionInactivity(UA_UInt32 /*subId*/, void */*subContext*/) {
+            static  void subscriptionInactivityCallback(UA_Client *client, UA_UInt32 subscriptionId, void *subContext);
+            /*!
+                \brief subscriptionInactivity
+                \param subscriptionId
+                \param subContext
+            */
+            virtual void subscriptionInactivity(UA_UInt32 /*subscriptionId*/, void */*subContext*/) {}
 
+            /*!
+                \brief subscriptions
+                \return
+            */
+            ClientSubscriptionMap &subscriptions() {
+                return  _subscriptions;
             }
+            /*!
+                \brief addSubscription
+                \param newId receives Id of created subscription
+                \return true on success
+            */
+            bool addSubscription(UA_UInt32 &newId, CreateSubscriptionRequest *settings = nullptr) {
+                //
+                ClientSubscriptionRef c(new ClientSubscription(*this));
+                //
+                if (settings) {
+                    c->settings() = *settings; // assign settings across
+                }
+                //
+                if (c->create()) {
+                    newId = c->id();
+                    subscriptions()[newId] = c;
+                    return true;
+                }
+                //
+                return false;
+            }
+
+            /*!
+                \brief removeSubscription
+                \param Id
+                \return
+            */
+            bool removeSubscription(UA_UInt32 Id) {
+                subscriptions().erase(Id); // remove from dictionary implicit delete
+                return true;
+            }
+
+            /*!
+                \brief subscription
+                \param Id
+                \return
+            */
+            ClientSubscription *subscription(UA_UInt32 Id) {
+                if (subscriptions().find(Id) != subscriptions().end()) {
+                    ClientSubscriptionRef &c = subscriptions()[Id];
+                    return c.get();
+                }
+                return nullptr;
+            }
+
 
             /*!
                 \brief stateDisconnected
             */
             virtual void stateDisconnected() {
-
+                OPEN62541_TRC;
             }
 
             /*!
                 \brief stateConnected
             */
             virtual void stateConnected() {
-
+                OPEN62541_TRC;
             }
 
             /*!
                 \brief stateSecureChannel
             */
             virtual void stateSecureChannel() {
-
+                OPEN62541_TRC;
             }
 
             /*!
                 \brief stateSession
             */
             virtual void stateSession() {
-
+                OPEN62541_TRC;
             }
 
             /*!
                 \brief stateSessionRenewed
             */
             virtual void stateSessionRenewed() {
-
+                OPEN62541_TRC;
             }
 
             /*!
@@ -156,15 +230,70 @@ namespace Open62541 {
                 }
             }
 
-            /*!
-                \brief deleteSubscriptionCallback
-                \param subscriptionId
-                \param subscriptionContext
-            */
-            void deleteSubscription(UA_UInt32 /*subscriptionId*/, void */*subscriptionContext*/) {
 
+            /*!
+                \brief getEndpoints
+                Retrive end points
+                \param serverUrl
+                \param list
+                \return
+            */
+            bool getEndpoints(const std::string &serverUrl, EndpointDescriptionArray &list) {
+                WriteLock l(_mutex);
+                size_t endpointDescriptionsSize = 0;
+                UA_EndpointDescription *endpointDescriptions = nullptr;
+                _lastError = UA_Client_getEndpoints(_client, serverUrl.c_str(),
+                                                    &endpointDescriptionsSize,
+                                                    &endpointDescriptions);
+                if (lastOK()) {
+                    // copy list so it is managed by the caller
+                    list.setList(endpointDescriptionsSize, endpointDescriptions);
+                }
+                return lastOK();
             }
 
+            /*!
+                \brief findServers
+                \param serverUrl
+                \param serverUris
+                \param localeIds
+                \param registeredServers
+                \return
+            */
+            bool findServers(const std::string &serverUrl,
+                             StringArray &serverUris,
+                             StringArray &localeIds,
+                             ApplicationDescriptionArray &registeredServers) {
+                WriteLock l(_mutex);
+                _lastError = UA_Client_findServers(_client, serverUrl.c_str(),
+                                                   serverUris.length(), serverUris.data(),
+                                                   localeIds.length(), localeIds.data(),
+                                                   registeredServers.lengthRef(),
+                                                   registeredServers.dataRef());
+                UAPRINTLASTERROR(_lastError)
+                return lastOK();
+            }
+
+            /*!
+                \brief findServersOnNetwork
+                \param serverUrl
+                \param startingRecordId
+                \param maxRecordsToReturn
+                \param serverCapabilityFilter
+                \param serverOnNetwork
+                \return
+            */
+            bool findServersOnNetwork(const std::string &serverUrl, unsigned startingRecordId,
+                                      unsigned maxRecordsToReturn, StringArray &serverCapabilityFilter,
+                                      ServerOnNetworkArray &serverOnNetwork) {
+                WriteLock l(_mutex);
+                _lastError =
+                    UA_Client_findServersOnNetwork(_client, serverUrl.c_str(),
+                                                   startingRecordId,  maxRecordsToReturn,
+                                                   serverCapabilityFilter.length(), serverCapabilityFilter.data(),
+                                                   serverOnNetwork.lengthRef(), serverOnNetwork.dataRef());
+                return lastOK();
+            }
             /*!
                 \brief readAttribute
                 \param nodeId
@@ -1321,25 +1450,43 @@ namespace Open62541 {
 
 
             /*!
-             * \brief addProperty
-             * \param parent
-             * \param key
-             * \param value
-             * \param nodeId
-             * \param newNode
-             * \return
-             */
+                \brief addProperty
+                \param parent
+                \param key
+                \param value
+                \param nodeId
+                \param newNode
+                \return
+            */
             bool addProperty(NodeId &parent,
                              const std::string &key,
                              Variant &value,
                              NodeId &nodeId,
-                             NodeId &newNode = NodeId::Null, int nameSpaceIndex = 0 );
+                             NodeId &newNode = NodeId::Null, int nameSpaceIndex = 0);
 
             //
             // Async services
             //
+            /*!
+                \brief asyncServiceCallback
+                \param client
+                \param userdata
+                \param requestId
+                \param response
+                \param responseType
+            */
+            static void asyncServiceCallback(UA_Client *client, void *userdata,
+                                             UA_UInt32 requestId, void *response,
+                                             const UA_DataType *responseType);
 
-
+            /*!
+                \brief asyncService
+                \param userdata
+                \param requestId
+                \param response
+                \param responseType
+            */
+            virtual void asyncService(void */*userdata*/, UA_UInt32 /*requestId*/, void */*response*/, const UA_DataType */*responseType*/) {}
     };
 
 

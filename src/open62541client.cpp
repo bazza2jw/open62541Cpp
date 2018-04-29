@@ -13,19 +13,40 @@
 #include "clientbrowser.h"
 
 /*!
- * \brief Open62541::Client::subscriptionInactivityCallback
+ * \brief subscriptionInactivityCallback
  * \param client
- * \param subId
+ * \param subscriptionId
  * \param subContext
  */
-void  Open62541::Client::subscriptionInactivityCallback (UA_Client *client, UA_UInt32 subId, void *subContext)
+void Open62541::Client::subscriptionInactivityCallback(UA_Client *client, UA_UInt32 subscriptionId, void *subContext)
 {
     Client *p =   (Client *)(UA_Client_getContext(client));
     if(p)
     {
-        p->subscriptionInactivity(subId,subContext);
+        p->subscriptionInactivity(subscriptionId, subContext);
     }
 }
+
+
+/*!
+ * \brief Open62541::Client::asyncServiceCallback
+ * \param client
+ * \param userdata
+ * \param requestId
+ * \param response
+ * \param responseType
+ */
+void  Open62541::Client::asyncServiceCallback(UA_Client *client, void *userdata,
+                                 UA_UInt32 requestId, void *response,
+                                 const UA_DataType *responseType)
+{
+    Client *p =   (Client *)(UA_Client_getContext(client));
+    if(p)
+    {
+       p->asyncService(userdata, requestId, response, responseType);
+    }
+}
+
 
 /*!
  * \brief Open62541::Client::stateCallback
@@ -41,21 +62,6 @@ void  Open62541::Client::stateCallback (UA_Client *client, UA_ClientState client
     }
 }
 
-/*!
- * \brief Open62541::Client::deleteSubscriptionCallback
- * \param client
- * \param subscriptionId
- * \param subscriptionContext
- */
-void  Open62541::Client::deleteSubscriptionCallback(UA_Client *client, UA_UInt32 subscriptionId, void *subscriptionContext)
-{
-    Client *p =   (Client *)(UA_Client_getContext(client));
-    if(p)
-    {
-        p->deleteSubscription(subscriptionId,subscriptionContext);
-    }
-}
-
 
 /*!
     \brief Open62541::Client::deleteTree
@@ -68,7 +74,6 @@ bool Open62541::Client::deleteTree(NodeId &nodeId) {
     for (auto i = m.begin(); i != m.end(); i++) {
         UA_NodeId &ni =  i->second;
         if (ni.namespaceIndex > 0) { // namespace 0 appears to be reserved
-            //std::cerr  << "Delete " << i->first << std::endl;
             WriteLock l(_mutex);
             UA_Client_deleteNode(_client, i->second, true);
         }

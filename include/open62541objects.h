@@ -16,12 +16,15 @@
 // get rid of template not exported warnings - warning is meaningless as it cannot be fixed
 #pragma warning(disable:4251)
 #endif
-
+//
 #include "open62541.h"
+#include "trace.h"
+//
 #include <string>
 #if defined(__GNUC__)
 #include <error.h>
 #endif
+//
 #include <map>
 #include <vector>
 #include <stdexcept>
@@ -93,6 +96,109 @@ namespace Open62541 {
 
 #define UA_TYPE_DEF(T) UA_TYPE_BASE(T,UA_##T)
 
+
+    template <typename T, const int I>
+    /*!
+           \brief The Array class
+           This is for allocated arrays of UA_ objects
+           simple lifecycle management.
+           Uses UA_array_new and UA_array_delete
+           rather than new and delete
+           Also deals with array sreturned from UA_ functions
+    */
+    class UA_EXPORT Array {
+            size_t _length = 0;
+            T *_data = nullptr;
+        public:
+            Array() {}
+            Array(T *data, size_t len)
+                : _data(data), _length(len) {
+            }
+
+            Array(size_t n) {
+                allocate(n);
+            }
+
+            ~Array() {
+                clear();
+            }
+
+            /*!
+                \brief allocate
+                \param len
+            */
+            void allocate(size_t len) {
+                clear();
+                _data = (T *)(UA_Array_new(len, &UA_TYPES[I]));
+                _length = len;
+            }
+
+            /*!
+                \brief release
+                detach and transfer ownership to the caller - no longer managed
+            */
+            void release() {
+                _length = 0;
+                _data = nullptr;
+            }
+
+            /*!
+                \brief clear
+            */
+            void clear() {
+                if (_length && _data) {
+                    UA_Array_delete(_data, _length, &UA_TYPES[I]);
+                }
+                _length = 0;
+                _data = nullptr;
+            }
+
+            /*!
+                \brief at
+                \return
+            */
+            T &at(size_t i) const {
+                if (!_data || (i >= _length)) throw std::exception();
+                return _data[i];
+            }
+
+            /*!
+                \brief setList
+                \param len
+                \param data
+            */
+            void setList(size_t len, T *data) {
+                clear();
+                _length = len;
+                _data = data;
+            }
+
+            // Accessors
+            size_t length() const {
+                return _length;
+            }
+            T *data() const {
+                return _data;
+            }
+            //
+            size_t *lengthRef()  {
+                return &_length;
+            }
+            T **dataRef()  {
+                return &_data;
+            }
+            //
+            operator T *() {
+                return _data;
+            }
+            //
+    };
+
+    //
+    // typedef basic array types
+    typedef Array<UA_String, UA_TYPES_STRING> StringArray;
+    typedef Array<UA_NodeId, UA_TYPES_NODEID> NodeIdArray;
+
     // none heap allocation - no delete
     /*!
         \brief toUA_String
@@ -105,6 +211,7 @@ namespace Open62541 {
         r.data = (UA_Byte *)(s.c_str());
         return r;
     }
+
 
     /*!
         \brief fromStdString
@@ -413,9 +520,8 @@ namespace Open62541 {
                 UA_Variant_setScalarCopy((UA_Variant *)ref(), &ss, &UA_TYPES[UA_TYPES_STRING]);
             }
 
-            Variant (UA_UInt64 v) : TypeBase(UA_Variant_new())
-            {
-              UA_Variant_setScalarCopy((UA_Variant *)ref(), &v, &UA_TYPES[UA_TYPES_UINT64]);
+            Variant(UA_UInt64 v) : TypeBase(UA_Variant_new()) {
+                UA_Variant_setScalarCopy((UA_Variant *)ref(), &v, &UA_TYPES[UA_TYPES_UINT64]);
             }
 
             Variant(UA_String &v) : TypeBase(UA_Variant_new()) {
@@ -460,9 +566,9 @@ namespace Open62541 {
             }
 
             /*!
-             * \brief Variant
-             * \param t
-             */
+                \brief Variant
+                \param t
+            */
             Variant(UA_DateTime t): TypeBase(UA_Variant_new()) {
                 UA_Variant_setScalarCopy((UA_Variant *)ref(), &t, &UA_TYPES[UA_TYPES_DATETIME]);
             }
@@ -501,6 +607,8 @@ namespace Open62541 {
 
 
     };
+
+    typedef Array<UA_Variant, UA_TYPES_VARIANT> VariantArray;
 
     /*!
         \brief The QualifiedName class
@@ -655,11 +763,13 @@ namespace Open62541 {
             }
     };
 
+    /*!
+        \brief The VariableTypeAttributes class
+    */
     class  UA_EXPORT  VariableTypeAttributes : public TypeBase<UA_VariableTypeAttributes> {
         public:
             UA_TYPE_DEF(VariableTypeAttributes)
-            void setDefault()
-            {
+            void setDefault() {
                 *this = UA_VariableTypeAttributes_default;
             }
             void setDisplayName(const std::string &s) {
@@ -888,58 +998,60 @@ namespace Open62541 {
             NodeId _parent; // note parent node
         public:
             /*!
-             * \brief UANodeTree
-             * \param p
-             */
+                \brief UANodeTree
+                \param p
+            */
             UANodeTree(NodeId &p): _parent(p) {
                 root().setData(p);
             }
 
             /*!
-             * \brief parent
-             * \return
-             */
-            NodeId & parent() { return  _parent;}
+                \brief parent
+                \return
+            */
+            NodeId &parent() {
+                return  _parent;
+            }
             //
             // client and server have different methods - TO DO unify client and server - and template
             // only deal with value nodes and folders - for now
             /*!
-             * \brief addFolderNode
-             * \return
-             */
+                \brief addFolderNode
+                \return
+            */
             virtual bool addFolderNode(NodeId &/*parent*/, const std::string &/*s*/, NodeId &/*newNode*/) {
                 return false;
             }
             /*!
-             * \brief addValueNode
-             * \return
-             */
+                \brief addValueNode
+                \return
+            */
             virtual bool addValueNode(NodeId &/*parent*/, const std::string &/*s*/, NodeId &/*newNode*/, Variant &/*v*/) {
                 return false;
             }
             /*!
-             * \brief getValue
-             * \return
-             */
+                \brief getValue
+                \return
+            */
             virtual bool getValue(NodeId &, Variant &) {
                 return false;
             }
             /*!
-             * \brief setValue
-             * \return
-             */
+                \brief setValue
+                \return
+            */
             virtual bool setValue(NodeId &, Variant &) {
                 return false;
             }
             //
 
             /*!
-             * \brief createPathFolders
-             * \param p
-             * \param n
-             * \param level
-             * \return
-             */
+                \brief createPathFolders
+                \param p
+                \param n
+                \param level
+                \return
+            */
             bool createPathFolders(UAPath &p, UANode *n, int level = 0) {
                 bool ret = false;
                 if (!n->hasChild(p[level])) {
@@ -1051,23 +1163,165 @@ namespace Open62541 {
             } // get a node if it exists
 
             /*!
-             * \brief printNode
-             * \param n
-             * \param os
-             * \param level
-             */
+                \brief printNode
+                \param n
+                \param os
+                \param level
+            */
             void printNode(UANode *n, std::ostream &os = std::cerr, int level = 0);
 
     };
+    //
+
+    class UA_EXPORT CreateMonitoredItemsRequest : public TypeBase<UA_CreateMonitoredItemsRequest> {
+        public:
+            UA_TYPE_DEF(CreateMonitoredItemsRequest)
+    };
 
 
+    // used for select clauses in event filtering
+    /*!
+        \brief SimpleAttributeOperandArray
+    */
+    typedef Array<UA_SimpleAttributeOperand, UA_TYPES_SIMPLEATTRIBUTEOPERAND> SimpleAttributeOperandArray;
+    typedef Array<UA_QualifiedName, UA_TYPES_QUALIFIEDNAME> QualifiedNameArray;
+    /*!
+        \brief The EventSelectClause class
+    */
+    class UA_EXPORT EventSelectClauseArray : public SimpleAttributeOperandArray {
+        public:
+            /*!
+                \brief EventSelectClause
+                \param n
+            */
+            EventSelectClauseArray(size_t n) : SimpleAttributeOperandArray(n) {
+                for (size_t i = 0; i < n; i++) {
+                    at(i).attributeId =  UA_ATTRIBUTEID_VALUE;
+                    at(i).typeDefinitionId = UA_NODEID_NUMERIC(0, UA_NS0ID_BASEEVENTTYPE);
+                }
+            }
+            /*!
+                \brief setBrowsePath
+                \param i
+                \param path
+            */
+            void setBrowsePath(size_t i, UAPath &path) {
+                if (i < length()) {
+                    // allocate array
+                    QualifiedNameArray bp(path.size());
+                    // set from the path
+                    for (size_t i = 0; i < bp.length(); i++) {
+                        // populate
+                        const std::string &s = path[i];
+                        bp.at(i) = UA_QUALIFIEDNAME_ALLOC(0, s.c_str());
+                    }
+                    //
+                    at(i).browsePath =    bp.data();
+                    at(i).browsePathSize = bp.length();
+                    bp.release();
+                    //
+                }
+            }
+            /*!
+                \brief setBrowsePath
+                \param i
+                \param path
+            */
+            void setBrowsePath(size_t i, const std::string &s) {
+                UAPath path;
+                path.toList(s);
+                setBrowsePath(i, path);
+            }
+
+    };
+
+    /*!
+        \brief UAPathArray
+        Events work with sets of browse paths
+    */
+    typedef std::vector<UAPath> UAPathArray;
+    /*!
+        \brief The EventFilter class
+    */
+    class UA_EXPORT EventFilter : public TypeBase<UA_EventFilter> {
+        public:
+            UA_TYPE_DEF(EventFilter)
+    };
+
+    /*!
+        \brief The EventFilterSelect class
+    */
+    class UA_EXPORT EventFilterSelect : public EventFilter {
+            EventSelectClauseArray _selectClause; // these must have the life time of the monitored event
+        public:
+            EventFilterSelect() = default;
+            /*!
+                \brief EventFilter
+                \param i
+            */
+            EventFilterSelect(size_t i) : _selectClause(i) {
+
+            }
+            /*!
+                \brief selectClause
+                \return
+            */
+            EventSelectClauseArray &selectClause() {
+                return _selectClause;
+            }
+
+            /*!
+             */
+            ~EventFilterSelect()
+            {
+                _selectClause.clear();
+            }
+
+
+            /*!
+                \brief setBrowsePaths
+                \param a
+            */
+            void setBrowsePaths(UAPathArray &a) {
+                //UAPath has all the vector stuff and can parse string paths
+                if (a.size()) {
+                    if (a.size() == _selectClause.length()) {
+                        for (size_t i = 0; i < a.size(); i++) {
+                            _selectClause.setBrowsePath(i, a[i]); // setup a set of browse paths
+                        }
+                    }
+                }
+            }
+
+    };
+
+    class UA_EXPORT RegisteredServer : public TypeBase<UA_RegisteredServer> {
+        public:
+            UA_TYPE_DEF(RegisteredServer)
+    };
+
+    typedef std::unique_ptr<EventFilterSelect> EventFilterRef;
+
+    /*!
+        \brief EndpointDescriptionArray
+    */
+    typedef Array<UA_EndpointDescription, UA_TYPES_ENDPOINTDESCRIPTION> EndpointDescriptionArray;
+    /*!
+        \brief ApplicationDescriptionArray
+    */
+    typedef Array<UA_ApplicationDescription, UA_TYPES_APPLICATIONDESCRIPTION> ApplicationDescriptionArray;
+    /*!
+        \brief ServerOnNetworkArray
+    */
+    typedef Array<UA_ServerOnNetwork, UA_TYPES_SERVERONNETWORK> ServerOnNetworkArray;
+    //
     // Forward references
+    //
     class UA_EXPORT ClientSubscription;
     class UA_EXPORT MonitoredItem;
     class UA_EXPORT Server;
     class UA_EXPORT Client;
     class UA_EXPORT SeverRepeatedCallback;
-
-
+    //
 }
 #endif // OPEN62541OBJECTS_H

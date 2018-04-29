@@ -50,7 +50,9 @@ extern "C" {
  * Feature Options
  * ---------------
  * Changing the feature options has no effect on a pre-compiled library. */
+#ifndef UA_LOGLEVEL
 #define UA_LOGLEVEL 300
+#endif
 #define UA_ENABLE_METHODCALLS
 #define UA_ENABLE_NODEMANAGEMENT
 #define UA_ENABLE_SUBSCRIPTIONS

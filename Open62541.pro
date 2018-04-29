@@ -16,6 +16,7 @@ TEMPLATE = lib
 
 # for Win32
 DEFINES += UA_DYNAMIC_LINKING_EXPORT
+DEFINES += UA_LOGLEVEL=500
 
 INCLUDEPATH += $$PWD/include
 
@@ -31,9 +32,8 @@ SOURCES += src/open62541client.cpp \
     src/serverobjecttype.cpp \
     src/clientbrowser.cpp \
     src/monitoreditem.cpp \
-    src/clientsubscription.cpp
-    #src/monitoreditem.cpp \
-    #src/clientsubscription.cpp
+    src/clientsubscription.cpp \
+    src/discoveryserver.cpp
 
 HEADERS +=\
     include/open62541client.h \
@@ -52,9 +52,10 @@ HEADERS +=\
     include/clientnodetree.h \
     include/clientbrowser.h \
     include/monitoreditem.h \
-    include/clientsubscription.h
-#    include/monitoreditem.h \
-#    include/clientsubscription.h \
+    include/clientsubscription.h \
+    include/trace.h \
+    include/discoveryserver.h \
+    include/trace.h
 
 
 headers.files = $$HEADERS

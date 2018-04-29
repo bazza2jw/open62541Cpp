@@ -14,8 +14,12 @@ class TestServer : public Open62541::Server {
         TestContext _context;
         TestObject _object; // object
     public:
-        TestServer() : _repeatedEvent(*this, 2000, [](Open62541::SeverRepeatedCallback &) {
-            cout << "_repeatedEvent called" << endl;
+        TestServer() : _repeatedEvent(*this, 2000, [&](Open62541::SeverRepeatedCallback &s) {
+            Open62541::NodeId nodeNumber(_idx, "Number_Value");
+            int v = std::rand() % 100;
+            Open62541::Variant numberValue(v);
+            cout << "_repeatedEvent called setting number value = " << v <<  endl;
+            s.server().writeValue(nodeNumber,numberValue);
         }),
         _object(*this)
 
@@ -44,6 +48,15 @@ void TestServer::initialise() {
                 cout << "Failed to set value callback" << endl;
             }
         }
+
+        cout << "Create Number_Value" << endl;
+        Open62541::NodeId nodeNumber(_idx, "Number_Value");
+        Open62541::Variant numberValue(1);
+        if (!addVariable(Open62541::NodeId::Objects, "Number_Value", numberValue, nodeNumber, Open62541::NodeId::Null))
+        {
+            cout << "Failed to create Number Value Node " << endl;
+        }
+
         //
         // Start repeated event
         //

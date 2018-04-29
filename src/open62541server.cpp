@@ -1,14 +1,14 @@
 /*
- * Copyright (C) 2017 -  B. J. Hill
- *
- * This file is part of open62541 C++ classes. open62541 C++ classes are free software: you can
- * redistribute it and/or modify it under the terms of the Mozilla Public
- * License v2.0 as stated in the LICENSE file provided with open62541.
- *
- * open62541 C++ classes are distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
- * A PARTICULAR PURPOSE.
- */
+    Copyright (C) 2017 -  B. J. Hill
+
+    This file is part of open62541 C++ classes. open62541 C++ classes are free software: you can
+    redistribute it and/or modify it under the terms of the Mozilla Public
+    License v2.0 as stated in the LICENSE file provided with open62541.
+
+    open62541 C++ classes are distributed in the hope that it will be useful, but WITHOUT ANY
+    WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+    A PARTICULAR PURPOSE.
+*/
 #include "open62541server.h"
 #include "nodecontext.h"
 #include "serverbrowser.h"
@@ -17,12 +17,11 @@
 Open62541::Server::ServerMap  Open62541::Server::_serverMap;
 
 /*!
- * \brief Open62541::Server::findContext
- * \param s
- * \return
- */
-Open62541::NodeContext * Open62541::Server::findContext(const std::string &s)
-{
+    \brief Open62541::Server::findContext
+    \param s
+    \return
+*/
+Open62541::NodeContext *Open62541::Server::findContext(const std::string &s) {
     return RegisteredNodeContext::findRef(s); // not all node contexts are registered
 }
 
@@ -30,56 +29,49 @@ Open62541::NodeContext * Open62541::Server::findContext(const std::string &s)
 // Lifecycle call backs
 /* Can be NULL. May replace the nodeContext */
 /*!
- * \brief Open62541::Server::constructor
- * \param server
- * \param sessionId
- * \param sessionContext
- * \param nodeId
- * \param nodeContext
- * \return
- */
+    \brief Open62541::Server::constructor
+    \param server
+    \param sessionId
+    \param sessionContext
+    \param nodeId
+    \param nodeContext
+    \return
+*/
 UA_StatusCode Open62541::Server::constructor(UA_Server *server,
-                             const UA_NodeId */*sessionId*/, void */*sessionContext*/,
-                             const UA_NodeId *nodeId, void **nodeContext)
-{
+                                             const UA_NodeId */*sessionId*/, void */*sessionContext*/,
+                                             const UA_NodeId *nodeId, void **nodeContext) {
     UA_StatusCode ret = UA_STATUSCODE_GOOD;
-    if(server && nodeId && nodeContext)
-    {
+    if (server && nodeId && nodeContext) {
         void *p = *nodeContext;
         NodeContext *cp = (NodeContext *)(p);
-        if(cp)
-        {
-            Server * s = Server::findServer(server);
-            if(s)
-            {
+        if (cp) {
+            Server *s = Server::findServer(server);
+            if (s) {
                 NodeId n(*nodeId);
-                ret = (cp->construct(*s,n))?UA_STATUSCODE_GOOD:UA_STATUSCODE_BADINTERNALERROR;
+                ret = (cp->construct(*s, n)) ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADINTERNALERROR;
             }
         }
     }
     return ret;
 }
 
-/* Can be NULL. The context cannot be replaced since the node is destroyed
- * immediately afterwards anyway. */
+/*  Can be NULL. The context cannot be replaced since the node is destroyed
+    immediately afterwards anyway. */
 /*!
-! * \brief Open62541::Server::destructor
-! * \param server
-! * \param nodeId
-! * \param nodeContext
-! */
+    ! * \brief Open62541::Server::destructor
+    ! * \param server
+    ! * \param nodeId
+    ! * \param nodeContext
+    ! */
 void Open62541::Server::destructor(UA_Server *server,
-                   const UA_NodeId */*sessionId*/, void */*sessionContext*/,
-                   const UA_NodeId *nodeId, void *nodeContext)
-{
-    if(server && nodeId && nodeContext)
-    {
+                                   const UA_NodeId */*sessionId*/, void */*sessionContext*/,
+                                   const UA_NodeId *nodeId, void *nodeContext) {
+    if (server && nodeId && nodeContext) {
         NodeContext *cp = (NodeContext *)(nodeContext);
-        Server * s = Server::findServer(server);
-        if(s)
-        {
+        Server *s = Server::findServer(server);
+        if (s) {
             NodeId n(*nodeId);
-            cp->destruct(*s,n);
+            cp->destruct(*s, n);
         }
     }
 
@@ -204,35 +196,47 @@ bool Open62541::Server::browseTree(NodeId &nodeId, NodeIdMap &m) {
     return browseChildren(nodeId, m);
 }
 
+/*!
+    \brief Open62541::Server::terminate
+*/
+void Open62541::Server::terminate() {
+    if (_server) {
 
+        // un-register all discovery server links
+        for (auto i =  _discoveryList.begin(); i !=  _discoveryList.end(); i++) {
+            unregisterDiscovery(i->second);
+        }
+        //
+        UA_Server_run_shutdown(_server);
+        UA_Server_delete(_server);
+        _serverMap.erase(_server);
+        _server = nullptr;
+    }
+    _discoveryList.clear();
+}
 
 /*!
     \brief Open62541::Server::start
     \param iterate
 */
 void Open62541::Server::start() { // start the server
-        if (!_running) {
-            _running = true;
-            _server = UA_Server_new(_config);
-            if (_server) {
-                _serverMap[_server] = this; // map for call backs
-                UA_Server_run_startup(_server);
-                initialise();
-                while (_running) {
-                    {
-                        UA_Server_run_iterate(_server, true);
-                    }
-                    process(); // called from time to time - Only safe places to access server are in process() and callbacks
-                }
+    if (!_running) {
+        _running = true;
+        _server = UA_Server_new(_config);
+        if (_server) {
+            _serverMap[_server] = this; // map for call backs
+            UA_Server_run_startup(_server);
+            initialise();
+            while (_running) {
                 {
-                    UA_Server_run_shutdown(_server);
+                    UA_Server_run_iterate(_server, true);
                 }
-                UA_Server_delete(_server);
-                _serverMap.erase(_server);
-                _server = nullptr;
+                process(); // called from time to time - Only safe places to access server are in process() and callbacks
             }
-            _running = false;
+            terminate();
         }
+        _running = false;
+    }
 }
 
 /*!
@@ -409,24 +413,23 @@ bool Open62541::Server::addVariable(NodeId &parent,  const std::string &childNam
 
 
 /*!
- * \brief Open62541::Server::addProperty
- * \param parent
- * \param key
- * \param value
- * \param nodeId
- * \param newNode
- * \param c
- * \param nameSpaceIndex
- * \return
- */
+    \brief Open62541::Server::addProperty
+    \param parent
+    \param key
+    \param value
+    \param nodeId
+    \param newNode
+    \param c
+    \param nameSpaceIndex
+    \return
+*/
 bool Open62541::Server::addProperty(NodeId &parent,
-                 const std::string &key,
-                 Variant &value,
-                 NodeId &nodeId,
-                 NodeId &newNode,
-                 NodeContext *c,
-                 int nameSpaceIndex)
-{
+                                    const std::string &key,
+                                    Variant &value,
+                                    NodeId &nodeId,
+                                    NodeId &newNode,
+                                    NodeContext *c,
+                                    int nameSpaceIndex) {
 
     VariableAttributes var_attr;
     var_attr.setDefault();
@@ -436,16 +439,38 @@ bool Open62541::Server::addProperty(NodeId &parent,
     var_attr.get().accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
     var_attr.setValue(value);
     _lastError = UA_Server_addVariableNode(_server, nodeId,
-                                          parent,
-                                          UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY),
-                                          qn,
-                                          UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),
-                                          var_attr,
-                                          c,
-                                          newNode.isNull() ? nullptr : newNode.ref());
-   return lastOK();
+                                           parent,
+                                           UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY),
+                                           qn,
+                                           UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),
+                                           var_attr,
+                                           c,
+                                           newNode.isNull() ? nullptr : newNode.ref());
+    return lastOK();
 }
 
+/*!
+    \brief Open62541::Server::serverOnNetworkCallback
+    \param serverNetwork
+    \param isServerAnnounce
+    \param isTxtReceived
+    \param data
+*/
+void Open62541::Server::serverOnNetworkCallback(const UA_ServerOnNetwork *serverNetwork,
+                                                UA_Boolean isServerAnnounce,
+                                                UA_Boolean isTxtReceived,
+                                                void *data) {
+    Server *p = (Server *)(data);
+    if (p) p->serverOnNetwork(serverNetwork, isServerAnnounce, isTxtReceived);
+}
 
-
+/*!
+    \brief Open62541::Server::registerServerCallback
+    \param registeredServer
+    \param data
+*/
+void Open62541::Server::registerServerCallback(const UA_RegisteredServer *registeredServer, void *data) {
+    Server *p = (Server *)(data);
+    if (p) p->registerServer(registeredServer);
+}
 
