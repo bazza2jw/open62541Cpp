@@ -33,8 +33,15 @@ namespace Open62541 {
 
             }
 
+            /*!
+             * \brief ~NodeContext
+             */
             virtual ~NodeContext() {}
 
+            /*!
+             * \brief name
+             * \return
+             */
             const std::string & name() { return _name;}
             /*!
                 \brief find
@@ -131,7 +138,7 @@ namespace Open62541 {
                 \param value
                 \return
             */
-            virtual bool readData(Server &/*server*/,  NodeId &/*node*/, const UA_NumericRange */*range*/, UA_DataValue &/*value*/) {
+            virtual bool readData(Server &/*server*/,  NodeId &/*node*/, const UA_NumericRange * /*range*/, UA_DataValue &/*value*/) {
                 return false;
             }
 
@@ -143,7 +150,7 @@ namespace Open62541 {
                 \param value
                 \return
             */
-            virtual bool writeData(Server &/*server*/,  NodeId &/*node*/, const UA_NumericRange */*range*/, const UA_DataValue &/*value*/) {
+            virtual bool writeData(Server &/*server*/,  NodeId &/*node*/, const UA_NumericRange * /*range*/, const UA_DataValue &/*value*/) {
                 return false;
             }
 
@@ -199,12 +206,12 @@ namespace Open62541 {
                 \brief readValue
                 \param node
             */
-            virtual void readValue(Server &/*server*/, NodeId &/*node*/, const UA_NumericRange */*range*/, const UA_DataValue */*value*/) {}
+            virtual void readValue(Server &/*server*/, NodeId &/*node*/, const UA_NumericRange * /*range*/, const UA_DataValue */*value*/) {}
             /*!
                 \brief writeValue
                 \param node
             */
-            virtual void writeValue(Server &/*server*/, NodeId &/*node*/, const UA_NumericRange */*range*/, const UA_DataValue &/*value*/) {}
+            virtual void writeValue(Server &/*server*/, NodeId &/*node*/, const UA_NumericRange * /*range*/, const UA_DataValue &/*value*/) {}
 
             // Value Callbacks
             /*!

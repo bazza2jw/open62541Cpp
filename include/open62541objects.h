@@ -1210,10 +1210,10 @@ namespace Open62541 {
                     // allocate array
                     QualifiedNameArray bp(path.size());
                     // set from the path
-                    for (size_t i = 0; i < bp.length(); i++) {
+                    for (size_t j = 0; j < bp.length(); j++) {
                         // populate
-                        const std::string &s = path[i];
-                        bp.at(i) = UA_QUALIFIEDNAME_ALLOC(0, s.c_str());
+                        const std::string &s = path[j];
+                        bp.at(j) = UA_QUALIFIEDNAME_ALLOC(0, s.c_str());
                     }
                     //
                     at(i).browsePath =    bp.data();

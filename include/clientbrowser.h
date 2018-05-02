@@ -17,6 +17,7 @@ namespace Open62541
 
 /*!
       \brief The ClientBrowser class
+      Browse nodes helper
 */
 class ClientBrowser {
         Client &_client;
@@ -28,7 +29,7 @@ class ClientBrowser {
     public:
         /*!
             \brief ClientBrowser
-            \param c
+            \param c client connection
         */
         ClientBrowser(Client &c) : _client(c) {}
         /*!
@@ -37,7 +38,7 @@ class ClientBrowser {
         virtual ~ClientBrowser() {}
         /*!
             \brief browse
-            \param start
+            \param start node ID
         */
         void browse(UA_NodeId start) {
             _list.clear();

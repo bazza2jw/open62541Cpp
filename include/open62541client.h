@@ -116,7 +116,7 @@ namespace Open62541 {
                 \param subscriptionId
                 \param subContext
             */
-            virtual void subscriptionInactivity(UA_UInt32 /*subscriptionId*/, void */*subContext*/) {}
+            virtual void subscriptionInactivity(UA_UInt32 /*subscriptionId*/, void * /*subContext*/) {}
 
             /*!
                 \brief subscriptions
@@ -1486,7 +1486,7 @@ namespace Open62541 {
                 \param response
                 \param responseType
             */
-            virtual void asyncService(void */*userdata*/, UA_UInt32 /*requestId*/, void */*response*/, const UA_DataType */*responseType*/) {}
+            virtual void asyncService(void * /*userdata*/, UA_UInt32 /*requestId*/, void * /*response*/, const UA_DataType * /*responseType*/) {}
     };
 
 

@@ -90,7 +90,7 @@ namespace  Open62541 {
              * \param nEventFields
              * \param eventFields
              */
-            virtual void eventNotification(size_t /*nEventFields*/, UA_Variant */*eventFields*/){}
+            virtual void eventNotification(size_t /*nEventFields*/, UA_Variant * /*eventFields*/){}
             //
             /*!
                 \brief remove

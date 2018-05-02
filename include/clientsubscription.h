@@ -49,7 +49,7 @@ namespace Open62541 {
                 \param notification
             */
 
-            static void statusChangeNotificationCallback(UA_Client */*client*/, UA_UInt32 /*subId*/, void *subscriptionContext,
+            static void statusChangeNotificationCallback(UA_Client * /*client*/, UA_UInt32 /*subId*/, void *subscriptionContext,
                                                          UA_StatusChangeNotification *notification) {
                 ClientSubscription *p = (ClientSubscription *)(subscriptionContext);
                 if (p)p->statusChangeNotification(notification);
@@ -95,7 +95,7 @@ namespace Open62541 {
             /*!
                 \brief changeNotificationCallback
             */
-            virtual void  statusChangeNotification(UA_StatusChangeNotification */*notification*/) {}
+            virtual void  statusChangeNotification(UA_StatusChangeNotification * /*notification*/) {}
             /*!
                 \brief settings
                 \return
