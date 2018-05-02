@@ -19,6 +19,7 @@ set(LIB_SOURCES
         src/clientbrowser.cpp
         src/monitoreditem.cpp
         src/clientsubscription.cpp
+        src/discoveryserver.cpp
         #src/monitoreditem.cpp
         #src/clientsubscription.cpp
         )
@@ -33,7 +34,7 @@ include_directories(
 
 add_library(Open62541Cpp SHARED ${LIB_SOURCES})
 
-install(TARGETS Open62541Cpp DESTINATION bin)
+install(TARGETS Open62541Cpp DESTINATION lib)
 
 set(LIB_HEADERS
         include/open62541client.h
@@ -53,6 +54,8 @@ set(LIB_HEADERS
         include/clientbrowser.h
         include/monitoreditem.h
         include/clientsubscription.h
+        include/trace.h
+        include/discoveryserver.h
         #include/monitoreditem.h
         #include/clientsubscription.h
         )
