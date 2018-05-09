@@ -21,10 +21,10 @@
     \param output
     \return
 */
-UA_StatusCode Open62541::ServerMethod::methodCallback(UA_Server *server, const UA_NodeId */*sessionId*/,
-                     void */*sessionContext*/, const UA_NodeId */*methodId*/,
+UA_StatusCode Open62541::ServerMethod::methodCallback(UA_Server *server, const UA_NodeId * /*sessionId*/,
+                     void * /*sessionContext*/, const UA_NodeId * /*methodId*/,
                      void *methodContext, const UA_NodeId *objectId,
-                     void */*objectContext*/, size_t inputSize,
+                     void * /*objectContext*/, size_t inputSize,
                      const UA_Variant *input, size_t outputSize,
                      UA_Variant *output)
 {

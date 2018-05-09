@@ -12,6 +12,7 @@
 #ifndef SERVERNODETREE_H
 #define SERVERNODETREE_H
 #include <open62541objects.h>
+#include <open62541server.h>
 namespace Open62541
 {
 
@@ -44,44 +45,36 @@ class  UA_EXPORT  ServerNodeTree : public UANodeTree {
             \param parent
             \param ns
         */
-        ServerNodeTree(Server &s, NodeId &parent, int ns = 2)
-            : UANodeTree(parent), _server(s), _nameSpace(ns) {}
+        ServerNodeTree(Server &s, NodeId &parent, int ns = 2);
         // client and server have different methods - TO DO unify client and server - and template
         // only deal with value nodes and folders - for now
 
+        /*!
+         * \brief ~ServerNodeTree
+         */
+        virtual ~ServerNodeTree();
         /*!
             \brief addFolderNode
             \param parent
             \param s
             \return
         */
-        virtual bool addFolderNode(NodeId &parent, const std::string &s, NodeId &no) {
-            NodeId ni(_nameSpace, 0);
-            return _server.addFolder(parent, s, ni, no, _nameSpace);
-        }
+        virtual bool addFolderNode(NodeId &parent, const std::string &s, NodeId &no);
         /*!
             \brief addValueNode
             \return
         */
-        virtual bool addValueNode(NodeId &parent, const std::string &s, NodeId &no, Variant &v) {
-            NodeId ni(_nameSpace, 0);
-            return _server.addVariable(parent, s, v, ni, no, nullptr,_nameSpace);
-        }
+        virtual bool addValueNode(NodeId &parent, const std::string &s, NodeId &no, Variant &v);
         /*!
             \brief getValue
             \return
         */
-        virtual bool getValue(NodeId &n, Variant &v) {
-            return _server.readValue(n, v);
-        }
+        virtual bool getValue(NodeId &n, Variant &v);
         /*!
             \brief setValue
             \return
         */
-        virtual bool setValue(NodeId &n, Variant &v) {
-            _server.writeValue(n, v);
-            return _server.lastOK();
-        }
+        virtual bool setValue(NodeId &n, Variant &v);
 };
 
 

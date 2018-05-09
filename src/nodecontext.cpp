@@ -51,8 +51,8 @@ static Open62541::Variant defaultValue("Undefined");
  * \return
  */
 UA_StatusCode Open62541::NodeContext::typeConstructor(UA_Server *server,
-                              const UA_NodeId */*sessionId*/, void */*sessionContext*/,
-                              const UA_NodeId *typeNodeId, void */*typeNodeContext*/,
+                              const UA_NodeId * /*sessionId*/, void * /*sessionContext*/,
+                              const UA_NodeId *typeNodeId, void * /*typeNodeContext*/,
                               const UA_NodeId *nodeId, void **nodeContext)
 {
     UA_StatusCode ret = (UA_StatusCode)(-1);
@@ -90,8 +90,8 @@ UA_StatusCode Open62541::NodeContext::typeConstructor(UA_Server *server,
   * \param nodeContext
   */
  void Open62541::NodeContext::typeDestructor(UA_Server *server,
-                    const UA_NodeId */*sessionId*/, void */*sessionContext*/,
-                    const UA_NodeId *typeNodeId, void */*typeNodeContext*/,
+                    const UA_NodeId * /*sessionId*/, void * /*sessionContext*/,
+                    const UA_NodeId *typeNodeId, void * /*typeNodeContext*/,
                     const UA_NodeId *nodeId, void **nodeContext)
  {
     if(server && nodeId && typeNodeId)
@@ -152,8 +152,8 @@ bool Open62541::NodeContext::setAsDataSource(Server &server, NodeId &n)
  * \param value
  * \return
  */
-UA_StatusCode Open62541::NodeContext::readDataSource(UA_Server *server, const UA_NodeId */*sessionId*/,
-                          void */*sessionContext*/, const UA_NodeId *nodeId,
+UA_StatusCode Open62541::NodeContext::readDataSource(UA_Server *server, const UA_NodeId * /*sessionId*/,
+                          void * /*sessionContext*/, const UA_NodeId *nodeId,
                           void *nodeContext, UA_Boolean includeSourceTimeStamp,
                           const UA_NumericRange *range, UA_DataValue *value)
 {
@@ -193,8 +193,8 @@ UA_StatusCode Open62541::NodeContext::readDataSource(UA_Server *server, const UA
  * \param value
  * \return
  */
-UA_StatusCode Open62541::NodeContext::writeDataSource(UA_Server *server, const UA_NodeId */*sessionId*/,
-                          void */*sessionContext*/, const UA_NodeId *nodeId,
+UA_StatusCode Open62541::NodeContext::writeDataSource(UA_Server *server, const UA_NodeId * /*sessionId*/,
+                          void * /*sessionContext*/, const UA_NodeId *nodeId,
                           void *nodeContext,
                           const UA_NumericRange *range, // can be null
                           const UA_DataValue *value)
@@ -238,8 +238,8 @@ bool Open62541::NodeContext::setValueCallback(Open62541::Server &server, NodeId 
  * \param range
  * \param value
  */
-void Open62541::NodeContext::readValueCallback(UA_Server *server, const UA_NodeId */*sessionId*/,
-                void */*sessionContext*/, const UA_NodeId *nodeId,
+void Open62541::NodeContext::readValueCallback(UA_Server *server, const UA_NodeId * /*sessionId*/,
+                void * /*sessionContext*/, const UA_NodeId *nodeId,
                 void *nodeContext,
                 const UA_NumericRange *range, // can be null
                 const UA_DataValue *value)
@@ -267,8 +267,8 @@ void Open62541::NodeContext::readValueCallback(UA_Server *server, const UA_NodeI
  * \param data
  */
 void Open62541::NodeContext::writeValueCallback(UA_Server *server,
-                    const UA_NodeId */*sessionId*/,
-                    void */*sessionContext*/,
+                    const UA_NodeId * /*sessionId*/,
+                    void * /*sessionContext*/,
                     const UA_NodeId *nodeId,
                     void *nodeContext,
                     const UA_NumericRange *range, // can be null

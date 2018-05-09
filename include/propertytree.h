@@ -11,7 +11,7 @@
  */
 #ifndef UA_PROPERTYTREE_H
 #define UA_PROPERTYTREE_H
-
+#include <open62541.h>
 #include <boost/optional/optional.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/locks.hpp>
@@ -41,7 +41,7 @@ namespace Open62541 {
     /*!
            \brief The NodePath class
     */
-    template <typename T> class NodePath : public std::vector<T> {
+    template <typename T> class  NodePath : public std::vector<T> {
         public:
             NodePath() {}
             /*!

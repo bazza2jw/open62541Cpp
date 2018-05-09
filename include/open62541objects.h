@@ -37,6 +37,12 @@
 //
 // Open 62541 has quasi new-delete and copy operators for each object type
 // define wrappers for Open 62541 objects
+//
+// With Microsoft Windows watch out for class export problems
+// Sometimes templates have to include UA_EXPORT othertimes not
+// If the template is typedef'ed do not export
+// If the template is the base of a class it is exported
+//
 namespace Open62541 {
     //
     // reference counted shared pointer wrappers for Open types
@@ -106,7 +112,7 @@ namespace Open62541 {
            rather than new and delete
            Also deals with array sreturned from UA_ functions
     */
-    class UA_EXPORT Array {
+    class Array {
             size_t _length = 0;
             T *_data = nullptr;
         public:
@@ -993,6 +999,7 @@ namespace Open62541 {
     /*!
         \brief The UANodeTree class
     */
+
     class  UA_EXPORT  UANodeTree : public PropertyTree<std::string, NodeId> {
 
             NodeId _parent; // note parent node
@@ -1005,6 +1012,10 @@ namespace Open62541 {
                 root().setData(p);
             }
 
+            /*!
+             * \brief ~UANodeTree
+             */
+            virtual ~UANodeTree() {}
             /*!
                 \brief parent
                 \return

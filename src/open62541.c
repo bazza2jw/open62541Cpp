@@ -38593,7 +38593,8 @@ ServerNetworkLayerTCP_add(ServerNetworkLayerTCP *layer, UA_Int32 newsockfd,
         UA_LOG_SOCKET_ERRNO_WRAP(UA_LOG_WARNING(layer->logger, UA_LOGCATEGORY_NETWORK,
                                                 "Connection %i | New connection over TCP, "
                                                         "getnameinfo failed with error: %s",
-                                                (int)newsockfd, errno_str));
+                                                (int)newsockfd,
+                                                errno_str));
     }
 #endif
     /* Allocate and initialize the connection */

@@ -38,7 +38,7 @@ Open62541::NodeContext *Open62541::Server::findContext(const std::string &s) {
     \return
 */
 UA_StatusCode Open62541::Server::constructor(UA_Server *server,
-                                             const UA_NodeId */*sessionId*/, void */*sessionContext*/,
+                                             const UA_NodeId * /*sessionId*/, void * /*sessionContext*/,
                                              const UA_NodeId *nodeId, void **nodeContext) {
     UA_StatusCode ret = UA_STATUSCODE_GOOD;
     if (server && nodeId && nodeContext) {
@@ -64,7 +64,7 @@ UA_StatusCode Open62541::Server::constructor(UA_Server *server,
     ! * \param nodeContext
     ! */
 void Open62541::Server::destructor(UA_Server *server,
-                                   const UA_NodeId */*sessionId*/, void */*sessionContext*/,
+                                   const UA_NodeId * /*sessionId*/, void * /*sessionContext*/,
                                    const UA_NodeId *nodeId, void *nodeContext) {
     if (server && nodeId && nodeContext) {
         NodeContext *cp = (NodeContext *)(nodeContext);

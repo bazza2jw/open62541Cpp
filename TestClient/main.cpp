@@ -63,8 +63,9 @@ int main(int /*argc*/, char **/*argv*/) {
             Open62541::StringArray serverUris;
             Open62541::StringArray localeIds;
             Open62541::ApplicationDescriptionArray registeredServers;
+            Open62541::Client discoveryClient;
             //
-            if (client.findServers(DISCOVERY_SERVER_ENDPOINT, serverUris, localeIds, registeredServers)) {
+            if (discoveryClient.findServers(DISCOVERY_SERVER_ENDPOINT, serverUris, localeIds, registeredServers)) {
                 cout << "Discovered Number of Servers: " << registeredServers.length() << endl;
                 for (size_t i = 0; i < registeredServers.length(); i++) {
 

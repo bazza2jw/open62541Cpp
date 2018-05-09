@@ -206,7 +206,7 @@ namespace Open62541 {
                 \brief readValue
                 \param node
             */
-            virtual void readValue(Server &/*server*/, NodeId &/*node*/, const UA_NumericRange * /*range*/, const UA_DataValue */*value*/) {}
+            virtual void readValue(Server &/*server*/, NodeId &/*node*/, const UA_NumericRange * /*range*/, const UA_DataValue * /*value*/) {}
             /*!
                 \brief writeValue
                 \param node

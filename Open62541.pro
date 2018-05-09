@@ -6,17 +6,19 @@
 include (Open62541.pri)
 
 QT       -= core gui
-unix {
-QMAKE_CFLAGS += -std=c99
-}
+unix:QMAKE_CFLAGS += -std=c99
+
+
 CONFIG += c++11 thread
 
 TARGET = Open62541Cpp
 TEMPLATE = lib
 
 # for Win32
-DEFINES += UA_DYNAMIC_LINKING_EXPORT
-DEFINES += UA_LOGLEVEL=500
+win32:DEFINES += UA_DYNAMIC_LINKING_EXPORT
+# Trace level for diagnostics
+debug:DEFINES += UA_LOGLEVEL=500
+!debug:DEFINES += UA_LOGLEVEL=100
 
 INCLUDEPATH += $$PWD/include
 
@@ -33,7 +35,8 @@ SOURCES += src/open62541client.cpp \
     src/clientbrowser.cpp \
     src/monitoreditem.cpp \
     src/clientsubscription.cpp \
-    src/discoveryserver.cpp
+    src/discoveryserver.cpp \
+    src/servernodetree.cpp
 
 HEADERS +=\
     include/open62541client.h \

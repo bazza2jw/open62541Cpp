@@ -195,7 +195,7 @@ namespace Open62541 {
                 \param isServerAnnounce
                 \param isTxtReceived
             */
-            virtual void serverOnNetwork(const UA_ServerOnNetwork */*serverOnNetwork*/,
+            virtual void serverOnNetwork(const UA_ServerOnNetwork * /*serverOnNetwork*/,
                                          UA_Boolean /*isServerAnnounce*/,
                                          UA_Boolean /*isTxtReceived*/) {
                 OPEN62541_TRC
