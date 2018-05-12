@@ -3,7 +3,7 @@ TEMPLATE = app
 CONFIG += console c++11
 CONFIG -= app_bundle
 CONFIG -= qt
-LIBS += -L $$INSTALLBASE/lib -lOpen62541Cpp
+LIBS += -L$$INSTALLBASE/lib -lOpen62541Cpp
 INCLUDEPATH += ../include
 
 SOURCES += main.cpp
