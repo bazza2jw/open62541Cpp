@@ -11,8 +11,8 @@
  */
 #ifndef SERVERNODETREE_H
 #define SERVERNODETREE_H
-#include <open62541objects.h>
-#include <open62541server.h>
+#include "open62541objects.h"
+#include "open62541server.h"
 namespace Open62541
 {
 

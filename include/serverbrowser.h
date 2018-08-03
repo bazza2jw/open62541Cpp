@@ -17,82 +17,25 @@ namespace Open62541
 // browsing object
 /*!
     \brief The ServerBrowser class
+    Browse a server node
 */
-class  UA_EXPORT  ServerBrowser {
-        Server &_server;
-        // browser call back
-        std::vector<BrowseItem> _list;
-        //
-        static UA_StatusCode browseIter(UA_NodeId childId, UA_Boolean isInverse, UA_NodeId referenceTypeId, void *handle);
+class  UA_EXPORT  ServerBrowser : public Browser<Server> {
         //
     public:
         /*!
             \brief ServerBrowser
             \param c
         */
-        ServerBrowser(Server &c) : _server(c) {}
-        /*!
-            \brief ~ServerBrowser
-        */
-        virtual ~ServerBrowser() {}
+        ServerBrowser(Server &c) : Browser(c) {}
         /*!
             \brief browse
             \param start
         */
         void browse(UA_NodeId start) {
-            _list.clear();
+            list().clear();
             {
-                //WriteLock ll(_server.mutex());
-                UA_Server_forEachChildNodeCall(_server.server(), start, browseIter, (void *) this);
+                UA_Server_forEachChildNodeCall(obj().server(), start, browseIter, (void *) this);
             }
-        }
-        /*!
-            \brief process
-            \param childId
-            \param referenceTypeId
-        */
-        virtual void process(UA_NodeId childId,  UA_NodeId referenceTypeId) {
-            std::string s;
-            int i;
-            NodeId n(childId); // deep copy
-            if (_server.browseName(n, s, i)) {
-                _list.push_back(BrowseItem(s, i, childId, referenceTypeId));
-            }
-
-        }
-        std::vector<BrowseItem> &list() {
-            return _list;
-        }
-        /*!
-            \brief print
-            \param os
-        */
-        void print(std::ostream &os) {
-            for (BrowseItem &i : _list) {
-                std::string s;
-                int j;
-                NodeId n(i.childId); // deep copy
-                if (_server.browseName(n, s, j)) {
-                    os << toString(i.childId) << " ns:" << i.nameSpace
-                       << ": "  << i.name  << " Ref:"
-                       << toString(i.referenceTypeId) << std::endl;
-                }
-            }
-
-        }
-        /*!
-            \brief find
-            \param s
-            \return
-        */
-        int find(const std::string &s) {
-            int ret = -1;
-            for (int i = 0; i < int(_list.size()); i++) {
-                BrowseItem &b = _list[i];
-                if (b.name == s)
-                    return i;
-            }
-            return ret;
         }
 };
 

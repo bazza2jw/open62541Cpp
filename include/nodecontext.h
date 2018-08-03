@@ -11,7 +11,7 @@
  */
 #ifndef NODECONTEXT_H
 #define NODECONTEXT_H
-#include <open62541objects.h>
+#include "open62541objects.h"
 namespace Open62541 {
     /*!
         \brief The NodeContext class
@@ -20,10 +20,10 @@ namespace Open62541 {
         This aggregates the data value call backs and value call backs and lifecycle callbacks
     */
     class UA_EXPORT NodeContext {
-            std::string _name;
-            static UA_DataSource _dataSource;
-            static UA_ValueCallback _valueCallback;
-            static UA_NodeTypeLifecycle _nodeTypeLifeCycle;
+            std::string _name; // Context name
+            static UA_DataSource _dataSource; //!< Call back for data source operations
+            static UA_ValueCallback _valueCallback; //!< call back for value get / set
+            static UA_NodeTypeLifecycle _nodeTypeLifeCycle; //!< life cycle callback
         public:
             /*!
                 \brief NodeContext

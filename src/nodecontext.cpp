@@ -174,6 +174,7 @@ UA_StatusCode Open62541::NodeContext::readDataSource(UA_Server *server, const UA
             {
                 if(includeSourceTimeStamp)
                 {
+                    value->hasServerTimestamp = true;
                     value->sourceTimestamp = UA_DateTime_now();
                 }
             }

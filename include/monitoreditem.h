@@ -18,10 +18,13 @@ namespace  Open62541 {
 
     class ClientSubscription;
 
+    // Callback for a (data change)  monitored item
     typedef std::function<void (ClientSubscription &, UA_DataValue *)> monitorItemFunc;
+    // call back for an event
     typedef std::function<void (ClientSubscription &, VariantArray &)> monitorEventFunc;
     /*!
         \brief The MonitoredItem class
+        This is a single monitored event. Monitored events are associated (owned) by subscriptions
     */
     class  UA_EXPORT  MonitoredItem {
             ClientSubscription &_sub; // parent subscription
@@ -94,12 +97,12 @@ namespace  Open62541 {
             //
             /*!
                 \brief remove
-                \return
+                \return true on success
             */
             virtual bool remove();
             /*!
                 \brief id
-                \return
+                \return the id of the monitored event
             */
             UA_UInt32 id() {
                 return _response.get().monitoredItemId;

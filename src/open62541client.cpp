@@ -221,10 +221,10 @@ bool Open62541::Client::nodeIdFromPath(NodeId &start, Path &path, NodeId &nodeId
         Open62541::ClientBrowser b(*this);
         while (level < int(path.size())) {
             b.browse(n);
-            int i = b.find(path[level]);
-            if (i < 0) return false;
+            auto i = b.find(path[level]);
+            if (i == b.list().end()) return false;
             level++;
-            n = (b.list()[i]).childId;
+            n = (*i).childId;
         }
     }
 
@@ -253,10 +253,10 @@ bool Open62541::Client::createFolderPath(NodeId &start, Path &path, int nameSpac
         Open62541::ClientBrowser b(*this);
         while (level < int(path.size())) {
             b.browse(n);
-            int i = b.find(path[level]);
-            if (i < 0)  break;
+            auto i = b.find(path[level]);
+            if (i == b.list().end())  break;
             level++;
-            n = (b.list()[i]).childId; // shallow copy
+            n = (*i).childId; // shallow copy
         }
         if (level == int(path.size())) {
             nodeId = n;

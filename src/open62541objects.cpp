@@ -92,7 +92,7 @@ void Open62541::Variant::fromAny(boost::any &a)
 /*!
     \brief toString
     \param n
-    \return
+    \return NOde in string form
 */
 std::string Open62541::toString(const UA_NodeId &n) {
     std::string ret = std::to_string(n.namespaceIndex) + ":";
@@ -127,7 +127,12 @@ std::string Open62541::toString(const UA_NodeId &n) {
     return std::string("Invalid Node Type");
 }
 
-
+/*!
+ * \brief Open62541::UANodeTree::printNode
+ * \param n
+ * \param os
+ * \param level
+ */
 void Open62541::UANodeTree::printNode(UANode *n, std::ostream &os, int level)
 {
     if(n)
@@ -144,6 +149,74 @@ void Open62541::UANodeTree::printNode(UANode *n, std::ostream &os, int level)
                 printNode(i->second,os,level); // recurse
             }
         }
+    }
+}
+
+/*!
+ * \brief Open62541::BrowserBase::browseIter
+ * \param childId
+ * \param isInverse
+ * \param referenceTypeId
+ * \param handle
+ * \return status
+ */
+UA_StatusCode Open62541::BrowserBase::browseIter(UA_NodeId childId, UA_Boolean isInverse, UA_NodeId referenceTypeId, void *handle)
+    {
+       // node iterator for browsing
+       if (isInverse) return UA_STATUSCODE_GOOD; // TO DO what does this do?
+       Open62541::BrowserBase *p = (Open62541::BrowserBase *)handle;
+       if (p) {
+           p->process(childId, referenceTypeId); // process record
+       }
+       return UA_STATUSCODE_GOOD;
+   }
+
+
+
+/*!
+    \brief print
+    \param os
+*/
+void Open62541::BrowserBase::print(std::ostream &os) {
+    for (BrowseItem &i : _list) {
+        std::string s;
+        int j;
+        NodeId n;
+        n = i.childId;
+        if (browseName(n, s, j)) {
+            os << toString(i.childId) << " ns:" << i.nameSpace
+               << ": "  << i.name  << " Ref:"
+               << toString(i.referenceTypeId) << std::endl;
+        }
+    }
+}
+/*!
+    \brief find
+    \param s
+    \return iterator to found item or list().end()
+*/
+Open62541::BrowseList::iterator Open62541::BrowserBase::find(const std::string &s) {
+    BrowseList::iterator i = _list.begin();
+    for (i = _list.begin(); i != _list.end(); i++) {
+        BrowseItem &b = *i;
+        if (b.name == s) break;
+    }
+    return i;
+}
+
+
+/*!
+    \brief process
+    \param childId
+    \param referenceTypeId
+*/
+void Open62541::BrowserBase::process(UA_NodeId childId,  UA_NodeId referenceTypeId) {
+    std::string s;
+    int i;
+    NodeId n;
+    n = childId;
+    if (browseName(n, s, i)) {
+        _list.push_back(BrowseItem(s, i, childId, referenceTypeId));
     }
 }
 

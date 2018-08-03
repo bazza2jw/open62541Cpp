@@ -1,10 +1,9 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.5)
 project(Open62541Cpp)
-
-set(CMAKE_CXX_STANDARD 11)
-add_definitions(-D _UNIX)
-set(CMAKE_INSTALL_PREFIX /usr/local/ampi)
-
+include (Common.cmake)
+# where to install
+set(CMAKE_INSTALL_PREFIX ${PIROOT}/usr/local/MRL5)
+add_definitions( -DUA_LOGLEVEL=100 )
 set(LIB_SOURCES
         src/open62541client.cpp
         src/open62541.c
@@ -20,21 +19,22 @@ set(LIB_SOURCES
         src/monitoreditem.cpp
         src/clientsubscription.cpp
         src/discoveryserver.cpp
-        #src/monitoreditem.cpp
-        #src/clientsubscription.cpp
+        src/monitoreditem.cpp
+        src/clientsubscription.cpp
+	src/discoveryserver.cpp 
+	src/servernodetree.cpp
         )
-
-set (Boost_USE_STATIC_LIBS OFF) # enable dynamic linking
-find_package(Boost COMPONENTS REQUIRED system thread)
-include_directories(${Boost_INCLUDE_DIR})
 
 include_directories(
         ./include
 )
 
 add_library(Open62541Cpp SHARED ${LIB_SOURCES})
-
 install(TARGETS Open62541Cpp DESTINATION lib)
+# add boost to target
+if(Boost_FOUND)
+    target_link_libraries(Open62541Cpp ${Boost_LIBRARIES})
+endif()
 
 set(LIB_HEADERS
         include/open62541client.h
@@ -56,8 +56,13 @@ set(LIB_HEADERS
         include/clientsubscription.h
         include/trace.h
         include/discoveryserver.h
-        #include/monitoreditem.h
-        #include/clientsubscription.h
+        include/monitoreditem.h
+        include/clientsubscription.h
+ 	include/trace.h 
+	include/discoveryserver.h 
         )
 
-install(FILES ${LIB_HEADERS} DESTINATION include)
+install(FILES ${LIB_HEADERS} DESTINATION include/Open62541Cpp)
+
+
+

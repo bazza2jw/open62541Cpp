@@ -47,6 +47,11 @@ namespace Open62541 {
     typedef std::map<UA_UInt32, ClientSubscriptionRef> ClientSubscriptionMap;
     /*!
         \brief The Client class
+        This class wraps the corresponding C functions. Refer to the C documentation for a full explanation.
+        The main thing to watch for is Node ID objects are passed by reference. There are stock Node Id objects including NodeId::Null
+        Pass NodeId::Null where a NULL UA_NodeId pointer is expected. If a NodeId is being passed to receive a value use the notNull() method to mark
+        it thus.
+        Most functions return true if the lastError is UA_STATUSCODE_GOOD.
     */
 
     class Client {
@@ -120,7 +125,7 @@ namespace Open62541 {
 
             /*!
                 \brief subscriptions
-                \return
+                \return map of subscriptions
             */
             ClientSubscriptionMap &subscriptions() {
                 return  _subscriptions;
@@ -150,7 +155,7 @@ namespace Open62541 {
             /*!
                 \brief removeSubscription
                 \param Id
-                \return
+                \return true on success
             */
             bool removeSubscription(UA_UInt32 Id) {
                 subscriptions().erase(Id); // remove from dictionary implicit delete
@@ -160,7 +165,7 @@ namespace Open62541 {
             /*!
                 \brief subscription
                 \param Id
-                \return
+                \return pointer to subscription object or null
             */
             ClientSubscription *subscription(UA_UInt32 Id) {
                 if (subscriptions().find(Id) != subscriptions().end()) {
@@ -170,7 +175,9 @@ namespace Open62541 {
                 return nullptr;
             }
 
-
+            //
+            // Connection state handlers
+            //
             /*!
                 \brief stateDisconnected
             */
@@ -236,7 +243,7 @@ namespace Open62541 {
                 Retrive end points
                 \param serverUrl
                 \param list
-                \return
+                \return true on success
             */
             bool getEndpoints(const std::string &serverUrl, EndpointDescriptionArray &list) {
                 WriteLock l(_mutex);
@@ -258,7 +265,7 @@ namespace Open62541 {
                 \param serverUris
                 \param localeIds
                 \param registeredServers
-                \return
+                \return true on success
             */
             bool findServers(const std::string &serverUrl,
                              StringArray &serverUris,
@@ -281,7 +288,7 @@ namespace Open62541 {
                 \param maxRecordsToReturn
                 \param serverCapabilityFilter
                 \param serverOnNetwork
-                \return
+                \return true on success
             */
             bool findServersOnNetwork(const std::string &serverUrl, unsigned startingRecordId,
                                       unsigned maxRecordsToReturn, StringArray &serverCapabilityFilter,
@@ -300,7 +307,7 @@ namespace Open62541 {
                 \param attributeId
                 \param out
                 \param outDataType
-                \return
+                \return true on success
             */
             bool readAttribute(const UA_NodeId *nodeId,  UA_AttributeId attributeId, void *out, const UA_DataType *outDataType) {
                 WriteLock l(_mutex);
@@ -314,7 +321,7 @@ namespace Open62541 {
                 \param attributeId
                 \param in
                 \param inDataType
-                \return
+                \return true on success
             */
             bool writeAttribute(const UA_NodeId *nodeId, UA_AttributeId attributeId, const void *in,  const UA_DataType *inDataType) {
                 WriteLock l(_mutex);
@@ -322,12 +329,16 @@ namespace Open62541 {
                 return lastOK();
             }
 
+            /*!
+             * \brief mutex
+             * \return  client read/write mutex
+             */
             ReadWriteMutex &mutex() {
                 return _mutex;
             }
             /*!
                 \brief getState
-                \return
+                \return connection state
             */
             UA_ClientState getState() {
                 ReadLock l(_mutex);
@@ -348,7 +359,7 @@ namespace Open62541 {
 
             /*!
                 \brief client
-                \return
+                \return underlying client object
             */
             UA_Client *client() {
                 ReadLock l(_mutex);
@@ -357,14 +368,14 @@ namespace Open62541 {
             //
             /*!
                 \brief config
-                \return
+                \return client configuration
             */
             UA_ClientConfig &config() {
                 return _config;
             }
             /*!
                 \brief lastError
-                \return
+                \return last error set
             */
 
             UA_StatusCode lastError() {
@@ -373,13 +384,18 @@ namespace Open62541 {
             //
             // Connect and Disconnect
             //
+            /*!
+             * \brief connect
+             * \param endpointUrl
+             * \return true on success
+             */
             bool connect(const std::string &endpointUrl) {
                 WriteLock l(_mutex);
                 _lastError = UA_Client_connect(_client, endpointUrl.c_str());
                 return lastOK();
             }
 
-            /*  Connect to the selected server with the given username and password
+            /*!  Connect to the selected server with the given username and password
 
                 @param client to use
                 @param endpointURL to connect (for example "opc.tcp://localhost:16664")
@@ -394,7 +410,10 @@ namespace Open62541 {
                 return lastOK();
             }
 
-            /* Close a connection to the selected server */
+            /*!
+             * \brief disconnect
+             * \return
+             */
             UA_StatusCode disconnect() {
                 WriteLock l(_mutex);
                 if (!_client) throw std::runtime_error("Null client");
@@ -403,15 +422,17 @@ namespace Open62541 {
                 _client = nullptr;
                 return lastOK();
             }
-
-            /* Renew the underlying secure channel */
+            /*!
+             * \brief manuallyRenewSecureChannel
+             * \return
+             */
             bool manuallyRenewSecureChannel() {
                 ReadLock l(_mutex);
                 if (!_client) throw std::runtime_error("Null client");
                 return (_lastError = UA_Client_manuallyRenewSecureChannel(_client)) == UA_STATUSCODE_GOOD;
             }
 
-            /*  Gets a list of endpoints of a server
+            /*!  Gets a list of endpoints of a server
 
                 @param client to use. Must be connected to the same endpoint given in
                       serverUrl or otherwise in disconnected state.
@@ -425,7 +446,7 @@ namespace Open62541 {
             // only use for getting string names of end points
             UA_StatusCode getEndpoints(const std::string &serverUrl, std::vector<std::string> &list);
 
-            /*  Get the namespace-index of a namespace-URI
+            /*!  Get the namespace-index of a namespace-URI
 
                 @param client The UA_Client struct for this connection
                 @param namespaceUri The interested namespace URI
@@ -446,7 +467,7 @@ namespace Open62541 {
             /*!
                 \brief browseName
                 \param nodeId
-                \return
+                \return true on success
             */
             bool  browseName(NodeId &nodeId, std::string &s, int &ns) {
                 WriteLock l(_mutex);
@@ -476,14 +497,14 @@ namespace Open62541 {
                 \brief browseTree
                 \param nodeId
                 \param node
-                \return
+                \return true on success
             */
             bool browseTree(UA_NodeId &nodeId, Open62541::UANode *node);
 
             /*!
                 \brief browseTree
                 \param nodeId
-                \return
+                \return true on success
             */
             bool browseTree(NodeId &nodeId, UANodeTree &tree);
             /*!
@@ -504,7 +525,7 @@ namespace Open62541 {
                 \brief browseChildren
                 \param nodeId
                 \param m
-                \return
+                \return  true on success
             */
             bool browseChildren(UA_NodeId &nodeId, NodeIdMap &m);
 
@@ -512,7 +533,7 @@ namespace Open62541 {
                 \brief NodeIdFromPath get the node id from the path of browse names in the given namespace. Tests for node existance
                 \param path
                 \param nodeId
-                \return
+                \return  true on success
             */
             bool nodeIdFromPath(NodeId &start, Path &path,  NodeId &nodeId);
 
@@ -522,7 +543,7 @@ namespace Open62541 {
                 \param path
                 \param nameSpaceIndex
                 \param nodeId
-                \return
+                \return  true on success
             */
             bool createFolderPath(NodeId &start, Path &path, int nameSpaceIndex, NodeId &nodeId);
 
@@ -539,7 +560,7 @@ namespace Open62541 {
                 \param parent
                 \param nameSpaceIndex
                 \param childName
-                \return
+                \return  true on success
             */
             bool addFolder(NodeId &parent,  const std::string &childName,
                            NodeId &nodeId, NodeId &newNode = NodeId::Null, int nameSpaceIndex = 0);
@@ -549,7 +570,7 @@ namespace Open62541 {
                 \param parent
                 \param nameSpaceIndex
                 \param childName
-                \return
+                \return  true on success
             */
             bool addVariable(NodeId &parent, const std::string &childName, Variant &value,
                              NodeId &nodeId, NodeId &newNode = NodeId::Null, int nameSpaceIndex = 0);
@@ -558,7 +579,7 @@ namespace Open62541 {
                 \brief setVariable
                 \param nodeId
                 \param value
-                \return
+                \return  true on success
             */
             bool  setVariable(NodeId &nodeId,  Variant &value) {
                 _lastError = UA_Client_writeValueAttribute(_client,  nodeId, value);
@@ -570,7 +591,7 @@ namespace Open62541 {
                 \brief readNodeIdAttribute
                 \param nodeId
                 \param outNodeId
-                \return
+                \return  true on success
             */
             bool
             readNodeIdAttribute(NodeId &nodeId,
@@ -582,7 +603,7 @@ namespace Open62541 {
                 \brief readNodeClassAttribute
                 \param nodeId
                 \param outNodeClass
-                \return
+                \return  true on success
             */
             bool
             readNodeClassAttribute(NodeId &nodeId,
@@ -594,7 +615,7 @@ namespace Open62541 {
                 \brief readBrowseNameAttribute
                 \param nodeId
                 \param outBrowseName
-                \return
+                \return  true on success
             */
             bool
             readBrowseNameAttribute(NodeId &nodeId,
@@ -607,7 +628,7 @@ namespace Open62541 {
                 \brief readDisplayNameAttribute
                 \param nodeId
                 \param outDisplayName
-                \return
+                \return  true on success
             */
             bool
             readDisplayNameAttribute(NodeId &nodeId,
@@ -621,7 +642,7 @@ namespace Open62541 {
                 \brief readDescriptionAttribute
                 \param nodeId
                 \param outDescription
-                \return
+                \return  true on success
             */
             bool
             readDescriptionAttribute(NodeId &nodeId,
@@ -635,7 +656,7 @@ namespace Open62541 {
                 \brief readWriteMaskAttribute
                 \param nodeId
                 \param outWriteMask
-                \return
+                \return  true on success
             */
             bool
             readWriteMaskAttribute(NodeId &nodeId,
@@ -648,7 +669,7 @@ namespace Open62541 {
                 \brief readUserWriteMaskAttribute
                 \param nodeId
                 \param outUserWriteMask
-                \return
+                \return  true on success
             */
             bool
             readUserWriteMaskAttribute(NodeId &nodeId,
@@ -663,7 +684,7 @@ namespace Open62541 {
                 \brief readIsAbstractAttribute
                 \param nodeId
                 \param outIsAbstract
-                \return
+                \return  true on success
             */
             bool
             readIsAbstractAttribute(NodeId &nodeId,
@@ -676,7 +697,7 @@ namespace Open62541 {
                 \brief readSymmetricAttribute
                 \param nodeId
                 \param outSymmetric
-                \return
+                \return  true on success
             */
             bool
             readSymmetricAttribute(NodeId &nodeId,
@@ -689,7 +710,7 @@ namespace Open62541 {
                 \brief readInverseNameAttribute
                 \param nodeId
                 \param outInverseName
-                \return
+                \return  true on success
             */
             bool
             readInverseNameAttribute(NodeId &nodeId,
@@ -703,7 +724,7 @@ namespace Open62541 {
                 \brief readContainsNoLoopsAttribute
                 \param nodeId
                 \param outContainsNoLoops
-                \return
+                \return  true on success
             */
             bool
             readContainsNoLoopsAttribute(NodeId &nodeId,
@@ -718,7 +739,7 @@ namespace Open62541 {
                 \brief readEventNotifierAttribute
                 \param nodeId
                 \param outEventNotifier
-                \return
+                \return  true on success
             */
             bool
             readEventNotifierAttribute(NodeId &nodeId,
@@ -730,7 +751,7 @@ namespace Open62541 {
                 \brief readValueAttribute
                 \param nodeId
                 \param outValue
-                \return
+                \return  true on success
             */
             bool
             readValueAttribute(NodeId &nodeId,
@@ -742,7 +763,7 @@ namespace Open62541 {
                 \brief readDataTypeAttribute
                 \param nodeId
                 \param outDataType
-                \return
+                \return  true on success
             */
             bool
             readDataTypeAttribute(NodeId &nodeId,
@@ -754,7 +775,7 @@ namespace Open62541 {
                 \brief readValueRankAttribute
                 \param nodeId
                 \param outValueRank
-                \return
+                \return  true on success
             */
             bool
             readValueRankAttribute(NodeId &nodeId,
@@ -766,7 +787,7 @@ namespace Open62541 {
                 \brief readArrayDimensionsAttribute
                 \param nodeId
                 \param ret
-                \return
+                \return true on success
             */
             bool readArrayDimensionsAttribute(NodeId &nodeId, std::vector<UA_UInt32> &ret) {
                 WriteLock l(_mutex);
@@ -787,7 +808,7 @@ namespace Open62541 {
                 \brief readAccessLevelAttribute
                 \param nodeId
                 \param outAccessLevel
-                \return
+                \return  true on success
             */
             bool
             readAccessLevelAttribute(NodeId &nodeId,
@@ -800,7 +821,7 @@ namespace Open62541 {
                 \brief readUserAccessLevelAttribute
                 \param nodeId
                 \param outUserAccessLevel
-                \return
+                \return  true on success
             */
             bool
             readUserAccessLevelAttribute(NodeId &nodeId,
@@ -815,7 +836,7 @@ namespace Open62541 {
                 \brief readMinimumSamplingIntervalAttribute
                 \param nodeId
                 \param outMinSamplingInterval
-                \return
+                \return  true on success
             */
             bool
             readMinimumSamplingIntervalAttribute(NodeId &nodeId,
@@ -830,7 +851,7 @@ namespace Open62541 {
                 \brief readHistorizingAttribute
                 \param nodeId
                 \param outHistorizing
-                \return
+                \return  true on success
             */
             bool
             readHistorizingAttribute(NodeId &nodeId,
@@ -843,7 +864,7 @@ namespace Open62541 {
                 \brief readExecutableAttribute
                 \param nodeId
                 \param outExecutable
-                \return
+                \return  true on success
             */
             bool
             readExecutableAttribute(NodeId &nodeId,
@@ -856,7 +877,7 @@ namespace Open62541 {
                 \brief readUserExecutableAttribute
                 \param nodeId
                 \param outUserExecutable
-                \return
+                \return  true on success
             */
             bool
             readUserExecutableAttribute(NodeId &nodeId,
@@ -871,7 +892,7 @@ namespace Open62541 {
                 \brief setNodeIdAttribute
                 \param nodeId
                 \param newNodeId
-                \return
+                \return  true on success
             */
             bool
             setNodeIdAttribute(NodeId &nodeId,
@@ -883,7 +904,7 @@ namespace Open62541 {
                 \brief setNodeClassAttribute
                 \param nodeId
                 \param newNodeClass
-                \return
+                \return  true on success
             */
             bool
             setNodeClassAttribute(NodeId &nodeId,
@@ -895,7 +916,7 @@ namespace Open62541 {
                 \brief setBrowseNameAttribute
                 \param nodeId
                 \param newBrowseName
-                \return
+                \return  true on success
             */
             bool
             setBrowseNameAttribute(NodeId &nodeId,
@@ -908,7 +929,7 @@ namespace Open62541 {
                 \brief setDisplayNameAttribute
                 \param nodeId
                 \param newDisplayName
-                \return
+                \return  true on success
             */
             bool
             setDisplayNameAttribute(NodeId &nodeId,
@@ -921,7 +942,7 @@ namespace Open62541 {
                 \brief setDescriptionAttribute
                 \param nodeId
                 \param newDescription
-                \return
+                \return  true on success
             */
             bool
             setDescriptionAttribute(NodeId &nodeId,
@@ -934,7 +955,7 @@ namespace Open62541 {
                 \brief setWriteMaskAttribute
                 \param nodeId
                 \param newWriteMask
-                \return
+                \return  true on success
             */
             bool
             setWriteMaskAttribute(NodeId &nodeId,
@@ -946,7 +967,7 @@ namespace Open62541 {
                 \brief setUserWriteMaskAttribute
                 \param nodeId
                 \param newUserWriteMask
-                \return
+                \return  true on success
             */
             bool
             setUserWriteMaskAttribute(NodeId &nodeId,
@@ -960,7 +981,7 @@ namespace Open62541 {
                 \brief setIsAbstractAttribute
                 \param nodeId
                 \param newIsAbstract
-                \return
+                \return  true on success
             */
             bool
             setIsAbstractAttribute(NodeId &nodeId,
@@ -972,7 +993,7 @@ namespace Open62541 {
                 \brief setSymmetricAttribute
                 \param nodeId
                 \param newSymmetric
-                \return
+                \return  true on success
             */
             bool
             setSymmetricAttribute(NodeId &nodeId,
@@ -984,7 +1005,7 @@ namespace Open62541 {
                 \brief setInverseNameAttribute
                 \param nodeId
                 \param newInverseName
-                \return
+                \return  true on success
             */
             bool
             setInverseNameAttribute(NodeId &nodeId,
@@ -997,7 +1018,7 @@ namespace Open62541 {
                 \brief setContainsNoLoopsAttribute
                 \param nodeId
                 \param newContainsNoLoops
-                \return
+                \return  true on success
             */
             bool
             setContainsNoLoopsAttribute(NodeId &nodeId,
@@ -1011,7 +1032,7 @@ namespace Open62541 {
                 \brief setEventNotifierAttribute
                 \param nodeId
                 \param newEventNotifier
-                \return
+                \return  true on success
             */
             bool
             setEventNotifierAttribute(NodeId &nodeId,
@@ -1025,7 +1046,7 @@ namespace Open62541 {
                 \brief setValueAttribute
                 \param nodeId
                 \param newValue
-                \return
+                \return  true on success
             */
             bool
             setValueAttribute(NodeId &nodeId,
@@ -1037,7 +1058,7 @@ namespace Open62541 {
                 \brief setDataTypeAttribute
                 \param nodeId
                 \param newDataType
-                \return
+                \return  true on success
             */
             bool
             setDataTypeAttribute(NodeId &nodeId,
@@ -1049,7 +1070,7 @@ namespace Open62541 {
                 \brief setValueRankAttribute
                 \param nodeId
                 \param newValueRank
-                \return
+                \return   true on success
             */
             bool
             setValueRankAttribute(NodeId &nodeId,
@@ -1061,7 +1082,7 @@ namespace Open62541 {
                 \brief setArrayDimensionsAttribute
                 \param nodeId
                 \param newArrayDimensions
-                \return
+                \return   true on success
             */
             bool
             setArrayDimensionsAttribute(NodeId &nodeId,
@@ -1075,7 +1096,7 @@ namespace Open62541 {
                 \brief setAccessLevelAttribute
                 \param nodeId
                 \param newAccessLevel
-                \return
+                \return   true on success
             */
             bool
             setAccessLevelAttribute(NodeId &nodeId,
@@ -1087,7 +1108,7 @@ namespace Open62541 {
                 \brief setUserAccessLevelAttribute
                 \param nodeId
                 \param newUserAccessLevel
-                \return
+                \return   true on success
             */
             bool
             setUserAccessLevelAttribute(NodeId &nodeId,
@@ -1101,7 +1122,7 @@ namespace Open62541 {
                 \brief setMinimumSamplingIntervalAttribute
                 \param nodeId
                 \param newMinInterval
-                \return
+                \return   true on success
             */
             bool
             setMinimumSamplingIntervalAttribute(
@@ -1115,7 +1136,7 @@ namespace Open62541 {
                 \brief setHistorizingAttribute
                 \param nodeId
                 \param newHistorizing
-                \return
+                \return   true on success
             */
             bool
             setHistorizingAttribute(NodeId &nodeId,
@@ -1127,7 +1148,7 @@ namespace Open62541 {
                 \brief setExecutableAttribute
                 \param nodeId
                 \param newExecutable
-                \return
+                \return   true on success
             */
             bool
             setExecutableAttribute(NodeId &nodeId,
@@ -1140,7 +1161,7 @@ namespace Open62541 {
                 \brief setUserExecutableAttribute
                 \param nodeId
                 \param newUserExecutable
-                \return
+                \return   true on success
             */
             bool
             setUserExecutableAttribute(NodeId &nodeId,
@@ -1158,7 +1179,7 @@ namespace Open62541 {
                 \brief variable
                 \param nodeId
                 \param value
-                \return
+                \return   true on success
             */
             bool  variable(NodeId &nodeId,  Variant &value) {
                 WriteLock l(_mutex);
@@ -1172,13 +1193,12 @@ namespace Open62541 {
                 \brief nodeClass
                 \param nodeId
                 \param c
-                \return
+                \return   true on success
             */
             bool nodeClass(NodeId &nodeId, NodeClass &c) {
                 WriteLock l(_mutex);
                 if (!_client) throw std::runtime_error("Null client");
-                c.null();
-                _lastError = UA_Client_readNodeClassAttribute(_client, nodeId, c);
+                _lastError = UA_Client_readNodeClassAttribute(_client, nodeId, &c);
                 return lastOK();
             }
 
@@ -1186,7 +1206,7 @@ namespace Open62541 {
                 \brief deleteNode
                 \param nodeId
                 \param deleteReferences
-                \return
+                \return   true on success
             */
             bool deleteNode(NodeId &nodeId, bool  deleteReferences) {
                 WriteLock l(_mutex);
@@ -1198,7 +1218,7 @@ namespace Open62541 {
             /*!
                 \brief deleteTree
                 \param nodeId
-                \return
+                \return   true on success
             */
             bool deleteTree(NodeId &nodeId); // recursive delete
 
@@ -1213,7 +1233,7 @@ namespace Open62541 {
                 \param methodId
                 \param in
                 \param out
-                \return
+                \return   true on success
             */
             bool callMethod(NodeId &objectId,  NodeId &methodId, VariantList &in, VariantCallResult &out) {
                 WriteLock l(_mutex);
@@ -1233,7 +1253,7 @@ namespace Open62541 {
 
             /*!
                 \brief process
-                \return
+                \return   true on success
             */
             virtual bool process() {
                 UA_Client_runAsync(_client, 1000); // drive the async subscriptions
@@ -1242,7 +1262,7 @@ namespace Open62541 {
 
             /*!
                 \brief lastOK
-                \return
+                \return   true if last error is UA_STATUSCODE_GOOD
             */
             bool lastOK() const {
                 return _lastError == UA_STATUSCODE_GOOD;
@@ -1258,7 +1278,7 @@ namespace Open62541 {
                 \param browseName
                 \param attr
                 \param outNewNodeId
-                \return
+                \return true on success
             */
             bool
             addVariableTypeNode(
@@ -1287,7 +1307,7 @@ namespace Open62541 {
                 \param typeDefinition
                 \param attr
                 \param outNewNodeId
-                \return
+                \return true on success
             */
             bool
             addObjectNode(NodeId  &requestedNewNodeId,
@@ -1317,7 +1337,7 @@ namespace Open62541 {
                 \param browseName
                 \param attr
                 \param outNewNodeId
-                \return
+                \return true on success
             */
             bool
             addObjectTypeNode(NodeId  &requestedNewNodeId,
@@ -1344,7 +1364,7 @@ namespace Open62541 {
                 \param browseName
                 \param attr
                 \param outNewNodeId
-                \return
+                \return true on success
             */
             bool
             addViewNode(NodeId  &requestedNewNodeId,
@@ -1372,7 +1392,7 @@ namespace Open62541 {
                 \param browseName
                 \param attr
                 \param outNewNodeId
-                \return
+                \return true on success
             */
             bool
             addReferenceTypeNode(
@@ -1401,7 +1421,7 @@ namespace Open62541 {
                 \param browseName
                 \param attr
                 \param outNewNodeId
-                \return
+                \return true on success
             */
             bool
             addDataTypeNode(NodeId  &requestedNewNodeId,
@@ -1428,7 +1448,7 @@ namespace Open62541 {
                 \param browseName
                 \param attr
                 \param outNewNodeId
-                \return
+                \return true on success
             */
             bool
             addMethodNode(NodeId  &requestedNewNodeId,
@@ -1456,7 +1476,7 @@ namespace Open62541 {
                 \param value
                 \param nodeId
                 \param newNode
-                \return
+                \return true on success
             */
             bool addProperty(NodeId &parent,
                              const std::string &key,
@@ -1486,7 +1506,8 @@ namespace Open62541 {
                 \param response
                 \param responseType
             */
-            virtual void asyncService(void * /*userdata*/, UA_UInt32 /*requestId*/, void * /*response*/, const UA_DataType * /*responseType*/) {}
+            virtual void asyncService(void * /*userdata*/, UA_UInt32 /*requestId*/, void * /*response*/,
+                                      const UA_DataType * /*responseType*/) {}
     };
 
 

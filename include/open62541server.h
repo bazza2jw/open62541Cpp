@@ -12,9 +12,9 @@
 #ifndef OPEN62541SERVER_H
 #define OPEN62541SERVER_H
 #include "open62541objects.h"
-#include <nodecontext.h>
-#include <servermethod.h>
-#include <serverrepeatedcallback.h>
+#include "nodecontext.h"
+#include "servermethod.h"
+#include "serverrepeatedcallback.h"
 
 namespace Open62541 {
 
@@ -65,7 +65,8 @@ namespace Open62541 {
                 \brief Server
                 \param p
             */
-            Server(int p = 4840, UA_ByteString *certificate = nullptr ) : _config(UA_ServerConfig_new_minimal(p,certificate)), _port(p) {
+            Server(int p = 4840, UA_ByteString *certificate = nullptr )
+                : _config(UA_ServerConfig_new_minimal(p,certificate)), _port(p) {
                 _config->nodeLifecycle.constructor = constructor; // set up the node global lifecycle
                 _config->nodeLifecycle.destructor = destructor;
 

@@ -259,23 +259,7 @@ void Open62541::Server::initialise() {
 
 
 
-/*!
-    \brief Open62541::ServerBrowser::browseIter
-    \param childId
-    \param isInverse
-    \param referenceTypeId
-    \param handle
-    \return
-*/
-UA_StatusCode Open62541::ServerBrowser::browseIter(UA_NodeId childId, UA_Boolean isInverse, UA_NodeId referenceTypeId, void *handle) {
-    // node iterator for browsing
-    if (isInverse) return UA_STATUSCODE_GOOD; // TO DO what does this do?
-    ServerBrowser *p = (ServerBrowser *)handle;
-    if (p) {
-        p->process(childId, referenceTypeId); // process record
-    }
-    return UA_STATUSCODE_GOOD;
-}
+
 
 /*!
     \brief NodeIdFromPath
@@ -293,10 +277,10 @@ bool Open62541::Server::nodeIdFromPath(NodeId &start, Path &path,  NodeId &nodeI
         ServerBrowser b(*this);
         while (level < int(path.size())) {
             b.browse(nodeId);
-            int i = b.find(path[level]);
-            if (i < 0) return false;
+            auto i = b.find(path[level]);
+            if (i == b.list().end()) return false;
             level++;
-            nodeId = (b.list()[i]).childId;
+            nodeId = (*i).childId;
         }
     }
     return level == int(path.size());
@@ -323,10 +307,10 @@ bool Open62541::Server::createFolderPath(NodeId &start, Path &path, int nameSpac
         ServerBrowser b(*this);
         while (level < int(path.size())) {
             b.browse(n);
-            int i = b.find(path[level]);
-            if (i < 0)  break;
+            auto i = b.find(path[level]);
+            if (i == b.list().end())  break;
             level++;
-            n = (b.list()[i]).childId; // shallow copy
+            n = (*i).childId; // shallow copy
         }
         nodeId = n;
         NodeId newNode;

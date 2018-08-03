@@ -11,7 +11,7 @@
 */
 #ifndef CLIENTSUBSCRIPTION_H
 #define CLIENTSUBSCRIPTION_H
-#include <open62541objects.h>
+#include "open62541objects.h"
 #include "monitoreditem.h"
 
 namespace Open62541 {

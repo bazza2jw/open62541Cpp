@@ -105,12 +105,14 @@ bool Open62541::ServerObjectType::append(NodeId &parent, NodeId &nodeId, NodeId 
 */
 bool Open62541::ServerObjectType::addInstance(const std::string &n, NodeId &parent,
                                               NodeId &nodeId, NodeId &requestNodeId, NodeContext *context) {
-    return _server.addInstance(n,
+   bool ret = _server.addInstance(n,
                                requestNodeId,
                                parent,
                                _typeId,
                                nodeId,
                                context);
+   UAPRINTLASTERROR(_server.lastError());
+   return ret;
 }
 
 

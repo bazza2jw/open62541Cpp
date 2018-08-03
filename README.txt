@@ -5,7 +5,7 @@ This is a set of wrapper classes for the Open62541 C OPC UA library version 0.3.
 
 The objective is to reduce the code required by a considerable amount and allow object orrentated coding.
 
-Building uses qmake, but does not depend in any way on Qt.
+Building uses cmake
 
 The examples show how to use the classes and should correspond to many of the C library examples.
 
@@ -18,7 +18,7 @@ Most UA_* types are wrapped such that for each UA_* structure there is a corresp
 
 Hence UA_NodeId is wrapped with Open62541::NodeId
 
-Assignments or copy construction always uses deep copies. I abandoned using reference counted objects as this gave too many headaches.
+Assignments or copy construction always uses deep copies.
 
 It is possible to shallow copy UA_* items to the corresponding C++ managed objects. Do not do it, unless you really, really want to.
 

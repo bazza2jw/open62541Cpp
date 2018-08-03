@@ -45,16 +45,14 @@
 //
 namespace Open62541 {
     //
-    // reference counted shared pointer wrappers for Open types
-    //
-    // browse path
+    // Base wrapper for most C open62541 object types
+    // use unique_ptr
     //
     template<typename T> class UA_EXPORT TypeBase {
         protected:
             std::unique_ptr<T> _d; // shared pointer - there is no copy on change
         public:
             TypeBase(T *t) : _d(t) {}
-            //TypeBase(const TypeBase &t) : _d(t._d) {}
             T &get() {
                 return *(_d.get());
             }
@@ -83,12 +81,14 @@ namespace Open62541 {
 #define UA_STRINGIFY(a) __UA_STRINGIFY(a)
 #define __UA_STRINGIFY(a) #a
 
-    #ifdef UA_TRACE_OBJ
-#define UA_TRC(s) std::cout << s << std::endl;
-    #else
-#define UA_TRC(s)
-    #endif
-
+#ifdef UA_TRACE_OBJ
+    #define UA_TRC(s) std::cout << s << std::endl;
+#else
+    #define UA_TRC(s)
+#endif
+//
+// copies are all deep copies
+//
 #define UA_TYPE_BASE(C,T)\
     C() :  TypeBase(T##_new()) {T##_init(_d.get()); UA_TRC("Construct:" << UA_STRINGIFY(C))}\
     C(const T &t) :  TypeBase(T##_new()){assignFrom(t);UA_TRC("Construct (" << UA_STRINGIFY(T) << ")")}\
@@ -110,7 +110,7 @@ namespace Open62541 {
            simple lifecycle management.
            Uses UA_array_new and UA_array_delete
            rather than new and delete
-           Also deals with array sreturned from UA_ functions
+           Also deals with arrays returned from UA_ functions
     */
     class Array {
             size_t _length = 0;
@@ -205,7 +205,7 @@ namespace Open62541 {
     typedef Array<UA_String, UA_TYPES_STRING> StringArray;
     typedef Array<UA_NodeId, UA_TYPES_NODEID> NodeIdArray;
 
-    // none heap allocation - no delete
+    // non-heap allocation - no delete
     /*!
         \brief toUA_String
         \param s
@@ -247,7 +247,7 @@ namespace Open62541 {
         return std::string(UA_StatusCode_name(c));
     }
 
-
+// Prints status only if not Good
 #define UAPRINTLASTERROR(c) {if(c != UA_STATUSCODE_GOOD) std::cerr << __FUNCTION__ << ":" << __LINE__ << ":" << UA_StatusCode_name(c) << std::endl;}
     /*!
            \brief The UsernamePasswordLogin class
@@ -347,10 +347,7 @@ namespace Open62541 {
     /*!
         \brief The NodeClass class
     */
-    class UA_EXPORT NodeClass : public TypeBase<UA_NodeClass> {
-        public:
-            UA_TYPE_DEF(NodeClass)
-    };
+    typedef UA_NodeClass NodeClass;
     /*!
            \brief The NodeId class
     */
@@ -417,12 +414,13 @@ namespace Open62541 {
                 *(_d.get()) = UA_NODEID_NUMERIC(1, 0); // force a node not to be null
                 return *this;
             }
+
     };
 
     /*!
         \brief toString
         \param n
-        \return
+        \return node identifier as string
     */
     UA_EXPORT  std::string toString(const UA_NodeId &n);
 
@@ -484,6 +482,11 @@ namespace Open62541 {
                 UA_NodeId_copy(&get().nodeId, &node); // deep copy across
                 ref()->serverIndex = serverIndex;
             }
+
+            UA_NodeId & nodeId () { return ref()->nodeId;}
+            UA_String & namespaceUri() { return ref()->namespaceUri;}
+            UA_UInt32 serverIndex() { return ref()->serverIndex;}
+
     };
 
 
@@ -491,7 +494,7 @@ namespace Open62541 {
     /*!
         \brief toString
         \param r
-        \return
+        \return UA_String as std::string
     */
     inline std::string toString(UA_String &r) {
         std::string s((const char *)(r.data), r.length);
@@ -504,6 +507,7 @@ namespace Open62541 {
     */
     //
     // Managed variant type
+    //
     // Memory Leak Risk - TODO Check this
     //
 
@@ -610,10 +614,9 @@ namespace Open62541 {
             // convert from an any to Variant
             // limit to basic types
             void fromAny(boost::any &a);
-
-
     };
 
+    // array of variants
     typedef Array<UA_Variant, UA_TYPES_VARIANT> VariantArray;
 
     /*!
@@ -629,9 +632,9 @@ namespace Open62541 {
                 *(_d.get()) = UA_QUALIFIEDNAME_ALLOC(ns, s.c_str());
             }
 
-
+            UA_UInt16 namespaceIndex() { return ref()->namespaceIndex;}
+            UA_String &name() { return ref()->name;}
     };
-
 
 
     //
@@ -1013,8 +1016,8 @@ namespace Open62541 {
             }
 
             /*!
-             * \brief ~UANodeTree
-             */
+                \brief ~UANodeTree
+            */
             virtual ~UANodeTree() {}
             /*!
                 \brief parent
@@ -1282,9 +1285,8 @@ namespace Open62541 {
             }
 
             /*!
-             */
-            ~EventFilterSelect()
-            {
+            */
+            ~EventFilterSelect() {
                 _selectClause.clear();
             }
 
@@ -1334,5 +1336,67 @@ namespace Open62541 {
     class UA_EXPORT Client;
     class UA_EXPORT SeverRepeatedCallback;
     //
+    typedef std::list<BrowseItem> BrowseList;
+    /*!
+        \brief The BrowserBase class
+        NOde browsing base class
+    */
+    class UA_EXPORT BrowserBase {
+        protected:
+            BrowseList _list;
+            static UA_StatusCode browseIter(UA_NodeId childId, UA_Boolean isInverse, UA_NodeId referenceTypeId, void *handle);
+        public:
+            BrowserBase() = default;
+            virtual ~BrowserBase() {
+                _list.clear();
+            }
+            BrowseList &list() {
+                return _list;
+            }
+            virtual void browse(UA_NodeId /*start*/) {}
+            virtual bool browseName(NodeId &/*n*/, std::string &/*s*/, int &/*i*/) {
+                return false;
+            }
+
+            /*!
+                \brief print
+                \param os
+            */
+            void print(std::ostream &os);
+            /*!
+                \brief find
+                \param s
+                \return
+            */
+            BrowseList::iterator find(const std::string &s);
+            /*!
+                \brief process
+                \param childId
+                \param referenceTypeId
+            */
+            void process(UA_NodeId childId,  UA_NodeId referenceTypeId);
+    };
+
+    template <typename T>
+    /*!
+        \brief The Browser class
+    */
+    class Browser : public BrowserBase {
+            T &_obj;
+            // browser call back
+            BrowseList _list;
+            //
+        public:
+            Browser(T &c) : _obj(c) {}
+            T &obj() {
+                return _obj;
+            }
+
+            bool browseName(NodeId &n, std::string &s, int &i) {
+                return _obj.browseName(n, s, i);
+            }
+
+    };
+
 }
 #endif // OPEN62541OBJECTS_H
