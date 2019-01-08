@@ -13,7 +13,7 @@
 
 /*!
     \brief Open62541::ClientCacheThread::start
-    \return
+    \return true on success
 */
 bool Open62541::ClientCacheThread::start() {
 

@@ -52,7 +52,7 @@ namespace  Open62541 {
         public:
             /*!
                 \brief MonitoredItem
-                \param s
+                \param s owning subscription
             */
             MonitoredItem(ClientSubscription &s);
 
@@ -64,7 +64,7 @@ namespace  Open62541 {
             }
             /*!
                 \brief lastError
-                \return
+                \return last error code
             */
             UA_StatusCode  lastError() const {
                 return _lastError;
@@ -72,7 +72,7 @@ namespace  Open62541 {
 
             /*!
              * \brief subscription
-             * \return
+             * \return owning subscription
              */
             ClientSubscription &subscription() { return _sub;} // parent subscription
 
@@ -111,6 +111,7 @@ namespace  Open62541 {
 
     /*!
         \brief The MonitoredItemDataChange class
+        Handles value change notifications
     */
     class MonitoredItemDataChange : public MonitoredItem {
             monitorItemFunc _func; // lambda for callback
@@ -118,25 +119,25 @@ namespace  Open62541 {
         public:
             /*!
                 \brief MonitoredItem
-                \param s
+                \param s owning subscription
             */
             MonitoredItemDataChange(ClientSubscription &s) : MonitoredItem(s) {}
             /*!
                 \brief MonitoredItem
-                \param f
-                \param s
+                \param f functor to handle notifications
+                \param s owning subscription
             */
             MonitoredItemDataChange(monitorItemFunc f, ClientSubscription &s) : MonitoredItem(s), _func(f) {}
             /*!
                 \brief setFunction
-                \param f
+                \param f functor
             */
             void setFunction(monitorItemFunc f) {
                 _func = f;
             }
             /*!
                 \brief dataChangeNotification
-                \param value
+                \param value new value
             */
             virtual void dataChangeNotification(UA_DataValue *value) {
                 if (_func) _func(subscription(), value); // invoke functor
@@ -144,9 +145,9 @@ namespace  Open62541 {
 
             /*!
                 \brief addDataChange
-                \param n
-                \param ts
-                \return
+                \param n node id
+                \param ts timestamp specification
+                \return true on success
             */
             bool addDataChange(NodeId &n, UA_TimestampsToReturn ts = UA_TIMESTAMPSTORETURN_BOTH);
     };
@@ -156,24 +157,24 @@ namespace  Open62541 {
     */
     class MonitoredItemEvent : public MonitoredItem {
             monitorEventFunc _func; // the event call functor
-            EventFilterSelect * _events = nullptr;
+            EventFilterSelect * _events = nullptr; // filter for events
         public:
             /*!
                 \brief MonitoredItem
-                \param s
+                \param s owning subscription
             */
             MonitoredItemEvent(ClientSubscription &s) : MonitoredItem(s) {}
             /*!
                 \brief MonitoredItem
-                \param f
-                \param s
+                \param f functor to handle event notifications
+                \param s owning subscriptions
             */
             MonitoredItemEvent(monitorEventFunc f, ClientSubscription &s) : MonitoredItem(s), _func(f) {}
 
 
             /*!
              * \brief remove
-             * \return
+             * \return true on success
              */
             bool remove()
             {
@@ -185,7 +186,7 @@ namespace  Open62541 {
 
             /*!
                 \brief setFunction
-                \param f
+                \param f functor
             */
             void setFunction(monitorEventFunc f) {
                 _func = f;
@@ -193,6 +194,7 @@ namespace  Open62541 {
 
             /*!
                 \brief eventNotification
+                Handles the event notification
             */
             virtual void eventNotification(size_t nEventFields, UA_Variant *eventFields) {
                 if (_func) {
@@ -205,9 +207,10 @@ namespace  Open62541 {
 
             /*!
                 \brief addEvent
-                \param n
-                \param ts
-                \return
+                \param n node id
+                \param events event filter
+                \param ts timestamp flags
+                \return true on success
             */
             bool addEvent(NodeId &n,  EventFilterSelect *events, UA_TimestampsToReturn ts = UA_TIMESTAMPSTORETURN_BOTH);
 

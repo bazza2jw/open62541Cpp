@@ -22,10 +22,12 @@ namespace Open62541 {
     /*!
         \brief The Server class - this abstracts the server side
     */
-    // C++ wrappers for the UA_Server_* calls
-    // Be careful often data items are shallow copied not deep copied
-    // Check if items have to be deleted or not - get it wrong and you either have crashes or memory leaks
-    //
+    //This class wraps the corresponding C functions. Refer to the C documentation for a full explanation.
+    //The main thing to watch for is Node ID objects are passed by reference. There are stock Node Id objects including NodeId::Null
+    //Pass NodeId::Null where a NULL UA_NodeId pointer is expected.
+    //If a NodeId is being passed to receive a value use the notNull() method to mark it as a receiver of a new node id.
+    //Most functions return true if the lastError is UA_STATUSCODE_GOOD.
+
     /*!
         \brief The Server class
     */
@@ -56,7 +58,7 @@ namespace Open62541 {
             typedef std::map<UA_Server *, Server *> ServerMap;
             static ServerMap _serverMap;
 
-            std::map<UA_UInt64,std::string> _discoveryList; // set of discovery servers this server has registered with
+            std::map<UA_UInt64, std::string> _discoveryList; // set of discovery servers this server has registered with
 
         protected:
             UA_StatusCode _lastError = 0;
@@ -65,8 +67,8 @@ namespace Open62541 {
                 \brief Server
                 \param p
             */
-            Server(int p = 4840, UA_ByteString *certificate = nullptr )
-                : _config(UA_ServerConfig_new_minimal(p,certificate)), _port(p) {
+            Server(int p = 4840, UA_ByteString *certificate = nullptr)
+                : _config(UA_ServerConfig_new_minimal(p, certificate)), _port(p) {
                 _config->nodeLifecycle.constructor = constructor; // set up the node global lifecycle
                 _config->nodeLifecycle.destructor = destructor;
 
@@ -75,8 +77,8 @@ namespace Open62541 {
             virtual ~Server() {
                 // possible abnormal exit
                 if (_server) {
-                   WriteLock l(_mutex);
-                   terminate();
+                    WriteLock l(_mutex);
+                    terminate();
                 }
                 if (_config) UA_ServerConfig_delete(_config);
             }
@@ -91,12 +93,11 @@ namespace Open62541 {
             }
 
             /*!
-             * \brief setMdnsServerName
-             * \param s
-             */
-            void setMdnsServerName(const std::string &s)
-            {
-              _config->mdnsServerName = UA_String_fromChars(s.c_str());
+                \brief setMdnsServerName
+                \param s
+            */
+            void setMdnsServerName(const std::string &s) {
+                _config->mdnsServerName = UA_String_fromChars(s.c_str());
             }
 
             /*!
@@ -114,7 +115,7 @@ namespace Open62541 {
                 \brief registerDiscovery
                 \param discoveryServerUrl
                 \param semaphoreFilePath
-                \return
+                \return true on success
             */
             bool registerDiscovery(const std::string &discoveryServerUrl,  const std::string &semaphoreFilePath = "") {
                 _lastError = UA_Server_register_discovery(server(),
@@ -125,19 +126,18 @@ namespace Open62541 {
 
             /*!
                 \brief unregisterDiscovery
-                \return
+                \return  true on success
             */
             bool unregisterDiscovery(const std::string &discoveryServerUrl) {
                 _lastError = UA_Server_unregister_discovery(server(), discoveryServerUrl.c_str());
                 return lastOK();
             }
             /*!
-             * \brief unregisterDiscovery
-             * \param periodicCallbackId
-             * \return
-             */
-            bool unregisterDiscovery(UA_UInt64 &periodicCallbackId)
-            {
+                \brief unregisterDiscovery
+                \param periodicCallbackId
+                \return true on success
+            */
+            bool unregisterDiscovery(UA_UInt64 &periodicCallbackId) {
                 bool ret = unregisterDiscovery(_discoveryList[periodicCallbackId]);
                 _discoveryList.erase(periodicCallbackId);
                 return ret;
@@ -149,21 +149,20 @@ namespace Open62541 {
                 \param intervalMs
                 \param delayFirstRegisterMs
                 \param periodicCallbackId
-                \return
+                \return true on success
             */
             bool  addPeriodicServerRegister(const std::string &discoveryServerUrl,
-                                                    UA_UInt64 &periodicCallbackId,
-                                                    UA_UInt32 intervalMs = 600 * 1000, // default to 10 minutes
-                                                    UA_UInt32 delayFirstRegisterMs = 1000) {
+                                            UA_UInt64 &periodicCallbackId,
+                                            UA_UInt32 intervalMs = 600 * 1000, // default to 10 minutes
+                                            UA_UInt32 delayFirstRegisterMs = 1000) {
                 _lastError = UA_Server_addPeriodicServerRegisterCallback(server(),
                                                                          discoveryServerUrl.c_str(),
                                                                          intervalMs,
                                                                          delayFirstRegisterMs,
                                                                          &periodicCallbackId);
                 //
-                if(lastOK())
-                {
-                  _discoveryList[periodicCallbackId]  = discoveryServerUrl;
+                if (lastOK()) {
+                    _discoveryList[periodicCallbackId]  = discoveryServerUrl;
                 }
                 //
                 return lastOK();
@@ -230,7 +229,7 @@ namespace Open62541 {
             /*!
                 \brief stop
             */
-            virtual void stop();  // stop the server - do not try start-stop-start
+            virtual void stop();  // stop the server (prior to delete) - do not try start-stop-start
             /*!
                 \brief initialise
             */
@@ -241,8 +240,8 @@ namespace Open62541 {
             virtual void process() {} // called between server loop iterations - hook thread event processing
 
             /*!
-             * \brief terminate
-             */
+                \brief terminate
+            */
             virtual void terminate(); // called before server is closed
             //
             /*!
@@ -269,14 +268,14 @@ namespace Open62541 {
 
             /*!
                 \brief server
-                \return
+                \return pointer to underlying server structure
             */
             UA_Server *server() const {
                 return _server;
             }
             /*!
                 \brief running
-                \return
+                \return running state
             */
             UA_Boolean  running() const {
                 return _running;
@@ -285,9 +284,9 @@ namespace Open62541 {
 
             /*!
                 \brief getNodeContext
-                \param n
-                \param c
-                \return
+                \param n node if
+                \param c pointer to context
+                \return true on success
             */
             bool getNodeContext(NodeId &n, NodeContext *&c) {
                 void *p = (void *)(c);
@@ -297,16 +296,17 @@ namespace Open62541 {
 
             /*!
                 \brief findContext
-                \return
+                \param s name of context
+                \return named context
             */
             static NodeContext *findContext(const std::string &s);
 
             /* Careful! The user has to ensure that the destructor callbacks still work. */
             /*!
                 \brief setNodeContext
-                \param n
-                \param c
-                \return
+                \param n node id
+                \param c context
+                \return true on success
             */
             bool setNodeContext(NodeId &n, const NodeContext *c) {
                 _lastError = UA_Server_setNodeContext(_server, n.get(), (void *)(c));
@@ -318,8 +318,8 @@ namespace Open62541 {
                 \brief readAttribute
                 \param nodeId
                 \param attributeId
-                \param v
-                \return
+                \param v data pointer
+                \return true on success
             */
             bool readAttribute(const UA_NodeId *nodeId, UA_AttributeId attributeId, void *v) {
                 WriteLock l(_mutex);
@@ -332,8 +332,8 @@ namespace Open62541 {
                 \param nodeId
                 \param attributeId
                 \param attr_type
-                \param attr
-                \return
+                \param attr data pointer
+                \return true on success
             */
             bool writeAttribute(const UA_NodeId *nodeId, const UA_AttributeId attributeId, const UA_DataType *attr_type, const void *attr) {
                 WriteLock l(_mutex);
@@ -342,7 +342,7 @@ namespace Open62541 {
             }
             /*!
                 \brief mutex
-                \return
+                \return server mutex
             */
             ReadWriteMutex &mutex() {
                 return _mutex; // access mutex - most accesses need a write lock
@@ -350,57 +350,59 @@ namespace Open62541 {
 
             /*!
                 \brief deleteTree
-                \param nodeId
-                \return
+                \param nodeId node to be delted with its children
+                \return true on success
             */
             bool deleteTree(NodeId &nodeId);
             /*!
                 \brief browseTree
-                \param nodeId
-                \param node
-                \return
+                \param nodeId  start point
+                \param node point in tree to add nodes to
+                \return true on success
             */
             bool browseTree(UA_NodeId &nodeId, Open62541::UANode *node); // add child nodes to property tree node
 
             /*!
                 \brief browseTree
-                \param nodeId
-                \return
+                \param nodeId start point to browse from
+                \return true on success
             */
-            bool browseTree(NodeId &nodeId, UANodeTree &tree); // produces and addressable tree using dot seperated browse path
+            bool browseTree(NodeId &nodeId, UANodeTree &tree); // produces an addressable tree using dot seperated browse path
             /*!
                 \brief browseTree
-                \param nodeId
-                \param tree
-                \return
+                \param nodeId start node to browse from
+                \param tree tree to fill
+                \return true on success
             */
             bool browseTree(NodeId &nodeId, UANode *tree);
             /*!
                 \brief browseTree
+                browse and create a map of string version of nodeids ids to node ids
                 \param nodeId
                 \param tree
-                \return
+                \return true on success
             */
-            bool browseTree(NodeId &nodeId, NodeIdMap &m); // browse and create a map of string version of nodeids ids to node ids
+            bool browseTree(NodeId &nodeId, NodeIdMap &m); //
             /*!
                 \brief browseChildren
-                \param nodeId
-                \param m
-                \return
+                \param nodeId parent of childrent ot browse
+                \param m map to fill
+                \return true on success
             */
             bool browseChildren(UA_NodeId &nodeId, NodeIdMap &m);
 
             /*!
                 \brief createBrowsePath
-                \param p
+                \param parent node to start with
+                \param p path to create
                 \param tree
-                \return
+                \return true on success
             */
             bool createBrowsePath(NodeId &parent, UAPath &p, UANodeTree &tree); // create a browse path and add it to the tree
             /*!
                 \brief addNamespace
-                \param s
-                \return
+                \param s name of name space
+                \return name space index
             */
             UA_UInt16 addNamespace(const std::string s) {
                 UA_UInt16 ret = 0;
@@ -411,6 +413,10 @@ namespace Open62541 {
                 return ret;
             }
             //
+            /*!
+             * \brief serverConfig
+             * \return  server configuration
+             */
             UA_ServerConfig    &serverConfig() {
                 return *_config;
             }
@@ -422,7 +428,7 @@ namespace Open62541 {
                 \param nodeId
                 \param newNode
                 \param nameSpaceIndex
-                \return
+                \return true on success
             */
             bool addServerMethod(ServerMethod *method, const std::string &browseName,
                                  NodeId &parent,  NodeId &nodeId,
@@ -532,17 +538,18 @@ namespace Open62541 {
                 \brief NodeIdFromPath get the node id from the path of browse names in the given namespace. Tests for node existance
                 \param path
                 \param nodeId
-                \return
+                \return true on success
             */
             bool nodeIdFromPath(NodeId &start, Path &path,  NodeId &nodeId);
 
             /*!
                 \brief createPath
+                Create a path
                 \param start
                 \param path
                 \param nameSpaceIndex
                 \param nodeId
-                \return
+                \return true on success
             */
             bool createFolderPath(NodeId &start, Path &path, int nameSpaceIndex, NodeId &nodeId);
 
@@ -550,7 +557,7 @@ namespace Open62541 {
                 \brief getChild
                 \param nameSpaceIndex
                 \param childName
-                \return
+                \return true on success
             */
             bool  getChild(NodeId &start, const std::string &childName, NodeId &ret);
 
@@ -558,10 +565,12 @@ namespace Open62541 {
 
             /*!
                 \brief addFolder
-                \param parent
-                \param nameSpaceIndex
-                \param childName
-                \return
+                \param parent parent node
+                \param childName browse name of child node
+                \param nodeId  assigned node id or NodeId::Null for auto assign
+                \param newNode receives new node if not null
+                \param nameSpaceIndex name space index of new node, if non-zero otherwise namespace of parent
+                \return true on success
             */
             bool addFolder(NodeId &parent,  const std::string &childName,
                            NodeId &nodeId, NodeId &newNode = NodeId::Null, int nameSpaceIndex = 0);
@@ -571,7 +580,7 @@ namespace Open62541 {
                 \param parent
                 \param nameSpaceIndex
                 \param childName
-                \return
+                \return true on success
             */
             bool addVariable(NodeId &parent, const std::string &childName,
                              Variant &value, NodeId &nodeId,  NodeId &newNode = NodeId::Null,
@@ -581,13 +590,14 @@ namespace Open62541 {
             template<typename T>
             /*!
                 \brief addVariable
+                Add a variable of the given type
                 \param parent
                 \param childName
                 \param nodeId
                 \param c
                 \param newNode
                 \param nameSpaceIndex
-                \return
+                \return true on success
             */
             bool addVariable(NodeId &parent,  const std::string &childName,
                              NodeId &nodeId, const std::string &c,
@@ -604,6 +614,7 @@ namespace Open62541 {
             template <typename T>
             /*!
                 \brief addProperty
+                Add a property of the given type
                 \param parent
                 \param key
                 \param value
@@ -611,7 +622,7 @@ namespace Open62541 {
                 \param newNode
                 \param c
                 \param nameSpaceIndex
-                \return
+                \return true on success
             */
             bool addProperty(NodeId &parent,
                              const std::string &key,
@@ -633,7 +644,7 @@ namespace Open62541 {
                 \param newNode
                 \param c
                 \param nameSpaceIndex
-                \return
+                \return true on success
             */
             bool addProperty(NodeId &parent,
                              const std::string &key,
@@ -647,7 +658,7 @@ namespace Open62541 {
                 \brief variable
                 \param nodeId
                 \param value
-                \return
+                \return true on success
             */
             bool  variable(NodeId &nodeId,  Variant &value) {
                 // outValue is managed by caller - transfer to output value
@@ -660,7 +671,7 @@ namespace Open62541 {
                 \brief deleteNode
                 \param nodeId
                 \param deleteReferences
-                \return
+                \return true on success
             */
             bool deleteNode(NodeId &nodeId, bool  deleteReferences) {
                 WriteLock l(_mutex);
@@ -672,7 +683,7 @@ namespace Open62541 {
                 \brief call
                 \param request
                 \param ret
-                \return
+                \return true on sucess
             */
             bool call(CallMethodRequest &request, CallMethodResult &ret) {
                 WriteLock l(_mutex);
@@ -684,7 +695,7 @@ namespace Open62541 {
                 \brief translateBrowsePathToNodeIds
                 \param path
                 \param result
-                \return
+                \return true on sucess
             */
             bool translateBrowsePathToNodeIds(BrowsePath &path, BrowsePathResult &result) {
                 WriteLock l(_mutex);
@@ -694,7 +705,7 @@ namespace Open62541 {
 
             /*!
                 \brief lastOK
-                \return
+                \return last error code
             */
             bool lastOK() const {
                 return _lastError == UA_STATUSCODE_GOOD;
@@ -706,7 +717,7 @@ namespace Open62541 {
                 \brief readNodeId
                 \param nodeId
                 \param outNodeId
-                \return
+                \return true on sucess
             */
             bool
             readNodeId(NodeId &nodeId,
@@ -717,7 +728,7 @@ namespace Open62541 {
                 \brief readNodeClass
                 \param nodeId
                 \param outNodeClass
-                \return
+                \return true on success
             */
             bool
             readNodeClass(NodeId &nodeId,
@@ -729,7 +740,7 @@ namespace Open62541 {
                 \brief readBrowseName
                 \param nodeId
                 \param outBrowseName
-                \return
+                \return true on success
             */
             bool
             readBrowseName(NodeId &nodeId,
@@ -741,7 +752,7 @@ namespace Open62541 {
                 \brief readDisplayName
                 \param nodeId
                 \param outDisplayName
-                \return
+                \return true on sucess
             */
             bool
             readDisplayName(NodeId &nodeId,
@@ -753,7 +764,7 @@ namespace Open62541 {
                 \brief readDescription
                 \param nodeId
                 \param outDescription
-                \return
+                \return true on success
             */
             bool
             readDescription(NodeId &nodeId,
@@ -765,7 +776,7 @@ namespace Open62541 {
                 \brief readWriteMask
                 \param nodeId
                 \param outWriteMask
-                \return
+                \return true on sucess
             */
             bool
             readWriteMask(NodeId &nodeId,
@@ -777,7 +788,7 @@ namespace Open62541 {
                 \brief readIsAbstract
                 \param nodeId
                 \param outIsAbstract
-                \return
+                \return true on success
             */
             bool
             readIsAbstract(NodeId &nodeId,
@@ -789,7 +800,7 @@ namespace Open62541 {
                 \brief readSymmetric
                 \param nodeId
                 \param outSymmetric
-                \return
+                \return true on success
             */
             bool
             readSymmetric(NodeId &nodeId,
@@ -801,7 +812,7 @@ namespace Open62541 {
                 \brief readInverseName
                 \param nodeId
                 \param outInverseName
-                \return
+                \return true on success
             */
             bool
             readInverseName(NodeId &nodeId,
@@ -813,7 +824,7 @@ namespace Open62541 {
                 \brief readContainsNoLoop
                 \param nodeId
                 \param outContainsNoLoops
-                \return
+                \return true on success
             */
             bool
             readContainsNoLoop(NodeId &nodeId,

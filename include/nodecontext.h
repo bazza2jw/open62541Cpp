@@ -77,7 +77,7 @@ namespace Open62541 {
              * \param typeNodeContext
              * \param nodeId
              * \param nodeContext
-             * \return
+             * \return error code
              */
             static UA_StatusCode typeConstructor(UA_Server *server,
                                           const UA_NodeId *sessionId, void *sessionContext,
@@ -103,7 +103,7 @@ namespace Open62541 {
 
              /*!
              * \brief typeConstruct
-             * \return
+             * \return true on success
              */
             virtual bool typeConstruct(Server &/*server*/, NodeId &/*n*/, NodeId &/*t*/)
             {
@@ -124,7 +124,7 @@ namespace Open62541 {
               * \brief setTypeLifeCycle
               * \param server
               * \param n
-              * \return
+              * \return true on success
               */
              bool setTypeLifeCycle(Server &server, NodeId &n);
 
@@ -136,7 +136,7 @@ namespace Open62541 {
                 \param node
                 \param range
                 \param value
-                \return
+                \return true on success
             */
             virtual bool readData(Server &/*server*/,  NodeId &/*node*/, const UA_NumericRange * /*range*/, UA_DataValue &/*value*/) {
                 return false;
@@ -148,7 +148,7 @@ namespace Open62541 {
                 \param node
                 \param range
                 \param value
-                \return
+                \return true on success
             */
             virtual bool writeData(Server &/*server*/,  NodeId &/*node*/, const UA_NumericRange * /*range*/, const UA_DataValue &/*value*/) {
                 return false;
@@ -158,7 +158,7 @@ namespace Open62541 {
              * \brief setAsDataSource
              * \param server
              * \param n
-             * \return
+             * \return true on success
              */
             bool setAsDataSource(Server &server,  NodeId &n);
 
@@ -172,7 +172,7 @@ namespace Open62541 {
                 \param includeSourceTimeStamp
                 \param range
                 \param value
-                \return
+                \return error code
             */
             static UA_StatusCode readDataSource(UA_Server *server, const UA_NodeId *sessionId,
                                                 void *sessionContext, const UA_NodeId *nodeId,
@@ -188,7 +188,7 @@ namespace Open62541 {
                 \param nodeContext
                 \param range
                 \param value
-                \return
+                \return error code
             */
             static UA_StatusCode writeDataSource(UA_Server *server, const UA_NodeId *sessionId,
                                                  void *sessionContext, const UA_NodeId *nodeId,
@@ -199,7 +199,7 @@ namespace Open62541 {
              * \brief setValueCallback
              * \param server
              * \param n
-             * \return
+             * \return true on success
              */
             bool setValueCallback(Open62541::Server &server, NodeId &n);
             /*!
@@ -248,10 +248,11 @@ namespace Open62541 {
 
     /*!
      * \brief The RegisteredNodeContext class
+     * Can be used to setup stock call backs
      */
     class RegisteredNodeContext : public NodeContext
     {
-        typedef std::map<std::string, NodeContext *> NodeContextMap;
+        typedef std::map<std::string, NodeContext *> NodeContextMap; // map of contexts
         static NodeContextMap _map; // map of registered contexts - typically a static instance is used to self register
     public:
         /*!

@@ -48,7 +48,7 @@ static Open62541::Variant defaultValue("Undefined");
  * \param typeNodeContext
  * \param nodeId
  * \param nodeContext
- * \return
+ * \return error code
  */
 UA_StatusCode Open62541::NodeContext::typeConstructor(UA_Server *server,
                               const UA_NodeId * /*sessionId*/, void * /*sessionContext*/,

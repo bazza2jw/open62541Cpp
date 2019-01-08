@@ -16,7 +16,7 @@ endif()
 #
 # now add each of the server builds 
 #
-foreach(SERVER_EXE Simulator)
+foreach(SERVER_EXE Simulator )
 	set(SERVER_DIR ${CMAKE_SOURCE_DIR}/Servers/${SERVER_EXE})
 	file(GLOB SOURCES ${SERVER_DIR}/*.cpp)
 #

@@ -18,6 +18,7 @@ namespace Open62541 {
 
     /*!
         \brief The ClientSubscription class
+        Encapsulates a client subscription
     */
 
     typedef std::shared_ptr<MonitoredItem> MonitoredItemRef;
@@ -68,13 +69,13 @@ namespace Open62541 {
             virtual ~ClientSubscription();
             /*!
                 \brief create
-                \return
+                \return true on success
             */
             bool create();
 
             /*!
                 \brief client
-                \return
+                \return reference to owning client
             */
             Client &client() {
                 return _client;
@@ -82,7 +83,7 @@ namespace Open62541 {
 
             /*!
                 \brief id
-                \return
+                \return subscription id
             */
             UA_UInt32 id() {
                 return _response.get().subscriptionId;
@@ -98,14 +99,14 @@ namespace Open62541 {
             virtual void  statusChangeNotification(UA_StatusChangeNotification * /*notification*/) {}
             /*!
                 \brief settings
-                \return
+                \return reference to the request structure
             */
             UA_CreateSubscriptionRequest &settings() {
                 return  _settings;
             }
             /*!
                 \brief response
-                \return
+                \return reference to subscription response
             */
             UA_CreateSubscriptionResponse &response() {
                 return _response;
@@ -113,7 +114,8 @@ namespace Open62541 {
 
             /*!
                 \brief addMonitorItem
-                \param m
+                \param m monitored item
+                \return monitored item
             */
             unsigned addMonitorItem(MonitoredItemRef &m) {
                 _monitorId++;
@@ -123,7 +125,7 @@ namespace Open62541 {
 
             /*!
                 \brief deleteMonitorItem
-                \param id
+                \param id Id of the monitored item (from addMonitorItem) to delete
             */
 
             void deleteMonitorItem(unsigned id) {
@@ -136,8 +138,8 @@ namespace Open62541 {
 
             /*!
                 \brief findMonitorItem
-                \param id
-                \return
+                \param id Id of monitored item
+                \return pointer to MonitoredItem or null
             */
             MonitoredItem *findMonitorItem(unsigned id) {
                 if (_map.find(id) != _map.end()) {
@@ -149,13 +151,15 @@ namespace Open62541 {
 
             /*!
              * \brief addMonitorNodeId
-             * \param n
+             * \param f Functor to handle item updates
+             * \param n node to monitor
              */
             unsigned addMonitorNodeId(monitorItemFunc f, NodeId &n);
             /*!
              * \brief addEventMonitor
-             * \param f
-             * \param n
+             * \param f functor to handle event
+             * \param n node to monitor
+             * \param ef event filter
              */
             unsigned addEventMonitor(monitorEventFunc f, NodeId &n, Open62541::EventFilterSelect *ef);
 

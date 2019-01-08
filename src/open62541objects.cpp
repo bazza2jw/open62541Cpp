@@ -35,7 +35,7 @@ Open62541::ExpandedNodeId   Open62541::ExpandedNodeId::ModellingRuleMandatory(UA
 //
 /*!
  * \brief Open62541::Variant::fromAny
- * \param a
+ * \param a boost::any
  */
 void Open62541::Variant::fromAny(boost::any &a)
 {

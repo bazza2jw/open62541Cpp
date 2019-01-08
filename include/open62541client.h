@@ -44,13 +44,15 @@ namespace Open62541 {
 
     // dictionary of subscriptions associated with a Client
     typedef std::shared_ptr<ClientSubscription> ClientSubscriptionRef;
+    //
     typedef std::map<UA_UInt32, ClientSubscriptionRef> ClientSubscriptionMap;
+    //
     /*!
         \brief The Client class
         This class wraps the corresponding C functions. Refer to the C documentation for a full explanation.
         The main thing to watch for is Node ID objects are passed by reference. There are stock Node Id objects including NodeId::Null
-        Pass NodeId::Null where a NULL UA_NodeId pointer is expected. If a NodeId is being passed to receive a value use the notNull() method to mark
-        it thus.
+        Pass NodeId::Null where a NULL UA_NodeId pointer is expected.
+        If a NodeId is being passed to receive a value use the notNull() method to mark it as a receiver of a new node id.
         Most functions return true if the lastError is UA_STATUSCODE_GOOD.
     */
 

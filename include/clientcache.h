@@ -40,7 +40,7 @@ namespace Open62541 {
             /*!
                 \brief add
                 \param name
-                \return
+                \return reference to  client interface
             */
             ClientRef &add(const std::string &endpoint) {
                 if (_cache.find(endpoint) != _cache.end()) {
@@ -52,7 +52,7 @@ namespace Open62541 {
             }
             /*!
                 \brief remove
-                \param s
+                \param s name of client to remove
             */
             void remove(const std::string &s) {
                 auto a = find(s);
@@ -63,8 +63,8 @@ namespace Open62541 {
             }
             /*!
                 \brief find
-                \param endpoint
-                \return
+                \param endpoint name of client
+                \return pointer to client object
             */
             Client *find(const std::string &endpoint) {
                 if (_cache.find(endpoint) != _cache.end()) {
@@ -74,6 +74,7 @@ namespace Open62541 {
             }
             /*!
                 \brief process
+                Periodic processing interface
             */
             void process() {
                 for (auto i = _cache.begin(); i != _cache.end(); i++) {

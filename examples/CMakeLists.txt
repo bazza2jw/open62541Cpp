@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 3.11)
 # Add the test 
 add_subdirectory(TestServer)
 add_subdirectory(TestClient)

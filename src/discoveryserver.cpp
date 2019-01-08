@@ -14,7 +14,8 @@
 
 /*!
  * \brief Open62541::DiscoveryServer::DiscoveryServer
- * \param url
+ * \param port server port
+ * \param url  server description
  */
 Open62541::DiscoveryServer::DiscoveryServer(int port, const std::string &url)
 {
