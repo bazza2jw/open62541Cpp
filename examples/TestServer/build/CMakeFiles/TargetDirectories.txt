@@ -1,3 +1,0 @@
-/home/barry/Work/Development/Projects/MRL/Open62541Cpp/examples/TestServer/build/CMakeFiles/edit_cache.dir
-/home/barry/Work/Development/Projects/MRL/Open62541Cpp/examples/TestServer/build/CMakeFiles/rebuild_cache.dir
-/home/barry/Work/Development/Projects/MRL/Open62541Cpp/examples/TestServer/build/CMakeFiles/TestServer.dir
