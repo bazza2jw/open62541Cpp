@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.5)
 project(Open62541Cpp)
 include(Common.cmake)
+set(CMAKE_CXX_FLAGS "-Wall")
 
 # where to install
-set(CMAKE_INSTALL_PREFIX /usr/lib)
+set(CMAKE_INSTALL_PREFIX /usr)
 
 add_definitions(-DUA_LOGLEVEL=100)
 
@@ -64,5 +65,5 @@ install(FILES ${LIB_HEADERS} DESTINATION include/Open62541Cpp)
 if (with_examples)
     message("Building with examples")
     add_subdirectory(examples)
-endif (with_examples)
+endif()
 
