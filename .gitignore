@@ -13,6 +13,7 @@
 *.exe
 *.o
 *.so
+*.so.*
 *.pyc
 *.cbp
 *.a
@@ -24,7 +25,7 @@ CMakeCache.txt
 CMakeFiles/
 _CPack_Packages/
 CMakeScripts
-Makefile
+Makefile*
 cmake_install.cmake
 install_manifest.txt
 compile_commands.json
@@ -65,3 +66,65 @@ cmake-build*/
 ehthumbs.db
 Thumbs.db
 *~
+
+# Visual Studio generated files
+###############################
+*.ib_pdb_index
+*.idb
+*.ilk
+*.pdb
+*.sln
+*.suo
+*.vcproj
+*vcproj.*.*.user
+*.ncb
+*.sdf
+*.opensdf
+*.vcxproj
+*vcxproj.*
+
+# MinGW generated files
+#######################
+*.Debug
+*.Release
+
+# Vim temporary files
+#####################
+.*.swp
+
+# qtcreator generated files
+###########################
+*.pro.user*
+
+# xemacs temporary files
+########################
+*.flc
+
+# Others
+########
+*.autosave
+*.core
+*.moc
+*.obj
+*.orig
+*.rej
+*_pch.h.cpp
+*_resource.rc
+*.qm
+.#*
+*.*#
+core
+!core/
+tags
+.DS_Store
+.directory
+*.debug
+*.prl
+*.app
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+*.res
+*.rc
+/.qmake.cache
+/.qmake.stash
