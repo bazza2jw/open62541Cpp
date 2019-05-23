@@ -6,6 +6,7 @@ set(CMAKE_CXX_FLAGS "-Wall")
 # where to install
 set(CMAKE_INSTALL_PREFIX /usr)
 
+# Set the loglevel. Set this to 500 to reduce the messages shown.
 add_definitions(-DUA_LOGLEVEL=100)
 
 set(LIB_SOURCES

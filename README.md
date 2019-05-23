@@ -23,3 +23,8 @@ There is C++ style class support of Object Types.
 
 The library is Built using cmake. The examples show how to use the classes and should correspond to many of the C 
 library examples. These examples can be build with `-Dwith_examples=ON`.
+
+## Requirements
+
+1.  [Open62541](https://github.com/open62541/open62541). This is integrated in this project so it not required.
+2.  Boost
