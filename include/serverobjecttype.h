@@ -93,7 +93,7 @@ namespace Open62541 {
                                                             NodeContext *context = nullptr,
                                                             NodeId &requestNodeId = NodeId::Null, // usually want auto generated ids
                                                             bool mandatory = true) {
-                T a;
+                T a{};
                 Variant value(a);
                 //
                 VariableAttributes var_attr;
