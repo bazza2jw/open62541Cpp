@@ -1,5 +1,3 @@
-## include directories
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(LIB_SOURCES
         open62541.c
@@ -28,6 +26,7 @@ set_property(TARGET OBJS PROPERTY POSITION_INDEPENDENT_CODE ON)
 add_library(${OPEN62541_CPP} SHARED $<TARGET_OBJECTS:OBJS>)
 
 # add boost to target
+include(../Common.cmake)
 if (Boost_FOUND)
     target_link_libraries(${OPEN62541_CPP} ${Boost_LIBRARIES})
 endif ()
