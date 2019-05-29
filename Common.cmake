@@ -1,8 +1,5 @@
-#
 # Common CMAKE definitions
-set(CMAKE_CXX_STANDARD 14)
-#
-set(Boost_USE_STATIC_LIBS OFF) 
+set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)  
 set(Boost_USE_STATIC_RUNTIME OFF) 
 

@@ -1,70 +1,40 @@
 cmake_minimum_required(VERSION 3.5)
-project(Open62541Cpp)
-include(Common.cmake)
-set(CMAKE_CXX_FLAGS "-Wall")
 
-# where to install
-set(CMAKE_INSTALL_PREFIX /usr)
+## project name
+project(open62541cpp)
 
-# Set the loglevel. Set this to 500 to reduce the messages shown.
-add_definitions(-DUA_LOGLEVEL=100)
+## library name
+set(OPEN62541_CPP Open62541Cpp)
 
-set(LIB_SOURCES
-        src/open62541client.cpp
-        src/open62541.c
-        src/open62541server.cpp
-        src/open62541objects.cpp
-        src/clientcache.cpp
-        src/clientcachethread.cpp
-        src/nodecontext.cpp
-        src/serverrepeatedcallback.cpp
-        src/servermethod.cpp
-        src/serverobjecttype.cpp
-        src/clientbrowser.cpp
-        src/monitoreditem.cpp
-        src/clientsubscription.cpp
-        src/discoveryserver.cpp
-        src/servernodetree.cpp
-        )
+## build settings
+set(VERSION_MAJOR 0)
+set(VERSION_MINOR 3)
+set(VERSION_PATCH 0)
 
-include_directories(
-        ./include
-)
+set(CLIENT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 
-add_library(Open62541Cpp SHARED ${LIB_SOURCES})
-install(TARGETS Open62541Cpp DESTINATION lib)
+set(CPACK_PACKAGE_VERSION_MAJOR ${VERSION_MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${VERSION_MINOR})
+set(CPACK_PACKAGE_VERSION_PATCH ${VERSION_PATCH})
 
-# add boost to target
-if (Boost_FOUND)
-    target_link_libraries(Open62541Cpp ${Boost_LIBRARIES})
-endif ()
+## Set the UA log level.
+IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+    add_definitions(-DUA_LOGLEVEL=100)
+ELSE()
+    add_definitions(-DUA_LOGLEVEL=500)
+ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
-set(LIB_HEADERS
-        include/open62541client.h
-        include/open62541objects.h
-        include/open62541.h
-        include/open62541server.h
-        include/propertytree.h
-        include/clientcache.h
-        include/clientcachethread.h
-        include/nodecontext.h
-        include/servermethod.h
-        include/serverrepeatedcallback.h
-        include/serverobjecttype.h
-        include/serverbrowser.h
-        include/servernodetree.h
-        include/clientnodetree.h
-        include/clientbrowser.h
-        include/monitoreditem.h
-        include/clientsubscription.h
-        include/trace.h
-        include/discoveryserver.h
-        )
+## --- Build options ---
+set(BUILD_EXAMPLES FALSE CACHE BOOL "Build example programs")
 
-install(FILES ${LIB_HEADERS} DESTINATION include/Open62541Cpp)
+## --- C++14 build flags ---
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
-if (with_examples)
-    message("Building with examples")
+add_subdirectory(src)
+add_subdirectory(include)
+
+if (BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
