@@ -33,7 +33,7 @@ namespace Open62541 {
     */
     class  UA_EXPORT  Server {
             UA_ServerConfig *_config = nullptr;
-            UA_Server *_server; // assume one server per application
+            UA_Server *_server = nullptr; // assume one server per application
             UA_Boolean  _running = false;
             int _port = 4840;
             //
@@ -155,6 +155,7 @@ namespace Open62541 {
                                             UA_UInt64 &periodicCallbackId,
                                             UA_UInt32 intervalMs = 600 * 1000, // default to 10 minutes
                                             UA_UInt32 delayFirstRegisterMs = 1000) {
+                std::cerr << "Discovery URL " << discoveryServerUrl << std::endl;
                 _lastError = UA_Server_addPeriodicServerRegisterCallback(server(),
                                                                          discoveryServerUrl.c_str(),
                                                                          intervalMs,

@@ -47,7 +47,8 @@ void TestServer::initialise() {
         //
         _repeatedEvent.start();
         cerr << "Register with discovery server" << endl;
-        if (!addPeriodicServerRegister(DISCOVERY_SERVER_ENDPOINT, _discoveryid)) {
+        std::string endpoint(DISCOVERY_SERVER_ENDPOINT);
+        if (!addPeriodicServerRegister(endpoint, _discoveryid)) {
             cerr << "Failed to register with discovery server" << endl;
         }
     }

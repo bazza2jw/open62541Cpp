@@ -417,7 +417,7 @@ namespace Open62541 {
                 if (children().size() > 0) {
                     for (auto i = children().begin(); i != children().end(); i++) {
                         Node *c = new Node();
-                        n->addChild(n); // add the child
+                        n->addChild(c); // add the child
                         i->second->copyTo(c); // now recurse
                     }
                 }

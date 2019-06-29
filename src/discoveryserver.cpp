@@ -44,8 +44,8 @@ Open62541::DiscoveryServer::DiscoveryServer(int port, const std::string &url)
  */
 Open62541::DiscoveryServer::~DiscoveryServer()
 {
-    UA_Server_delete(_server);
-    UA_ServerConfig_delete(_config);
+    if(_server) UA_Server_delete(_server);
+    if(_config) UA_ServerConfig_delete(_config);
 }
 
 /*!

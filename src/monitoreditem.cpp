@@ -90,7 +90,7 @@ void Open62541::MonitoredItem::eventNotificationCallback
 */
 bool  Open62541::MonitoredItem::remove() {
     bool ret =  false;
-    if (id() > 0) {
+    if ((id() > 0) && _sub.client().client() ) {
         ret = UA_Client_MonitoredItems_deleteSingle(_sub.client().client(), _sub.id(), id()) == UA_STATUSCODE_GOOD;
         _response.null();
     }

@@ -54,7 +54,7 @@ Open62541::SeverRepeatedCallback::SeverRepeatedCallback(Server &s, UA_UInt32 int
     \return
 */
 bool Open62541::SeverRepeatedCallback::start() {
-    if (_id == 0) {
+    if ((_id == 0) && _server.server()) {
         WriteLock l(_server.mutex());
         _lastError = UA_Server_addRepeatedCallback(_server.server(), callbackFunction, this, _interval, &_id);
         return lastOK();
@@ -68,7 +68,7 @@ bool Open62541::SeverRepeatedCallback::start() {
     \return
 */
 bool Open62541::SeverRepeatedCallback::changeInterval(unsigned i) {
-    if (_id != 0) {
+    if ((_id != 0) && _server.server()) {
         WriteLock l(_server.mutex());
         _lastError = UA_Server_changeRepeatedCallbackInterval(_server.server(), _id, i);
         return lastOK();
@@ -104,8 +104,11 @@ bool Open62541::SeverRepeatedCallback::stop() {
 */
 Open62541::SeverRepeatedCallback::~SeverRepeatedCallback() {
     //UA_Server_removeRepeatedCallback(_server.server(), _id);
-    WriteLock l(server().mutex());
-    UA_Server_removeRepeatedCallback(_server.server(), _id);
+    if(_server.server())
+    {
+        WriteLock l(server().mutex());
+        UA_Server_removeRepeatedCallback(_server.server(), _id);
+    }
 }
 
 
