@@ -1,2 +1,0 @@
-/usr/local/MRL5/OpcService/bin/Simulator
-/usr/local/MRL5/OpcService/bin/libOpcServiceCommon.so
