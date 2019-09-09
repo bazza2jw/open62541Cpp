@@ -4,14 +4,14 @@ cmake_minimum_required(VERSION 3.5)
 project(open62541cpp)
 
 ## library name
-set(OPEN62541_CPP Open62541Cpp)
+set(OPEN62541_CPP open62541cpp)
 
 ## build settings
 set(VERSION_MAJOR 0)
 set(VERSION_MINOR 3)
-set(VERSION_PATCH 0)
+set(VERSION_PATCH 1)
 
-set(CLIENT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
+set(PACKAGE_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 
 set(CPACK_PACKAGE_VERSION_MAJOR ${VERSION_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${VERSION_MINOR})
@@ -31,8 +31,11 @@ set(BUILD_EXAMPLES FALSE CACHE BOOL "Build example programs")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
+set(INCLUDE_INSTALL_DIR include)
+set(LIB_INSTALL_DIR lib)
+
 ## include directories
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(include)
 
 add_subdirectory(src)
 add_subdirectory(include)

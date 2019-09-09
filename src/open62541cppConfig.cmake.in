@@ -1,0 +1,8 @@
+set(FOO_VERSION 0.3.1)
+
+@PACKAGE_INIT@
+
+set_and_check(OPEN62541CPP_INCLUDE_DIR "@PACKAGE_INCLUDE_INSTALL_DIR@")
+set_and_check(OPEN62541CPP_LIB_DIR "@PACKAGE_LIB_INSTALL_DIR@")
+
+check_required_components(open62541cpp)

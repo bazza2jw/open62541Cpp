@@ -33,11 +33,29 @@ endif ()
 
 ## set the shared library soname
 set_target_properties(${OPEN62541_CPP} PROPERTIES
-        VERSION ${CLIENT_VERSION}
+        VERSION ${PACKAGE_VERSION}
         SOVERSION ${VERSION_MAJOR})
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(open62541cppConfig.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/open62541cppConfig.cmake
+        INSTALL_DESTINATION ${LIB_INSTALL_DIR}/${OPEN62541_CPP}/cmake
+        PATH_VARS INCLUDE_INSTALL_DIR LIB_INSTALL_DIR
+        )
+
+write_basic_package_version_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/${OPEN62541_CPP}ConfigVersion.cmake
+        VERSION ${PACKAGE_VERSION}
+        COMPATIBILITY SameMajorVersion)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${OPEN62541_CPP}Config.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/${OPEN62541_CPP}ConfigVersion.cmake
+        DESTINATION ${LIB_INSTALL_DIR}/${OPEN62541_CPP}/cmake )
 
 ## install the shared library
 install(TARGETS ${OPEN62541_CPP}
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
-        RUNTIME DESTINATION bin)
+        RUNTIME DESTINATION bin
+        INCLUDES DESTINSTION include
+        )

@@ -1,7 +1,7 @@
 #ifndef SIMULATORSTOPMETHOD_H
 #define SIMULATORSTOPMETHOD_H
 
-#include <Open62541Cpp/servermethod.h>
+#include <open62541cpp/servermethod.h>
 class SimulateProcess;
 class SimulatorStopMethod : public Open62541::ServerMethod
 {
