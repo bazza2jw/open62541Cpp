@@ -1,7 +1,7 @@
 #ifndef SIMULATORNODECONTEXT_H
 #define SIMULATORNODECONTEXT_H
-#include <Open62541Cpp/open62541server.h>
-#include <Open62541Cpp/nodecontext.h>
+#include <open62541cpp/open62541server.h>
+#include <open62541cpp/nodecontext.h>
 
 /*!
  * \brief The SimulatorNodeContext class

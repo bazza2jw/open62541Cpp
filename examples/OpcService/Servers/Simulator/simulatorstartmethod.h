@@ -1,6 +1,6 @@
 #ifndef SIMULATORSTARTMETHOD_H
 #define SIMULATORSTARTMETHOD_H
-#include <Open62541Cpp/servermethod.h>
+#include <open62541cpp/servermethod.h>
 class SimulateProcess;
 
 class SimulatorStartMethod : public Open62541::ServerMethod

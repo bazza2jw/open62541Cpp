@@ -18,7 +18,7 @@
 #endif
 //
 #include "open62541.h"
-#include "trace.h"
+#include "open62541cpp_trace.h"
 //
 #include <string>
 #if defined(__GNUC__)

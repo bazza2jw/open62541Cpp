@@ -1,5 +1,5 @@
 #include "simulatornodecontext.h"
-#include <Open62541Cpp/open62541objects.h>
+#include <open62541cpp/open62541objects.h>
 #include <OpcServiceCommon/opcservicecommon.h>
 #include <OpcServiceCommon/stockdefs.h>
 #include "simulatoropc.h"

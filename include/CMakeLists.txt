@@ -17,7 +17,7 @@ set(LIB_HEADERS
         clientbrowser.h
         monitoreditem.h
         clientsubscription.h
-        trace.h
+        open62541cpp_trace.h
         discoveryserver.h
         historydatabase.h
         )

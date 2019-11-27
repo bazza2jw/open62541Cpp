@@ -1,7 +1,7 @@
 #ifndef SIMULATOROPC_H
 #define SIMULATOROPC_H
-#include <Open62541Cpp/open62541server.h>
-#include <Open62541Cpp/serverrepeatedcallback.h>
+#include <open62541cpp/open62541server.h>
+#include <open62541cpp/serverrepeatedcallback.h>
 #include <OpcServiceCommon/opcservicecommon.h>
 #include "simulatordefs.h"
 #include <OpcServiceCommon/stockdefs.h>
