@@ -91,11 +91,12 @@ bool Open62541::SeverRepeatedCallback::stop() {
         if(_server.server())
         {
             WriteLock l(_server.mutex());
-            _lastError =  UA_Server_removeRepeatedCallback(_server.server(), _id);
+            UA_Server_removeRepeatedCallback(_server.server(), _id);
             _id = 0;
-            return lastOK();
+            return true;
         }
     }
+    _id = 0;
     return false;
 }
 

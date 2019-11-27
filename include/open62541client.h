@@ -57,7 +57,6 @@ namespace Open62541 {
     */
 
     class Client {
-            UA_ClientConfig _config = UA_ClientConfig_default;
             UA_Client *_client = nullptr;
             ReadWriteMutex _mutex;
             //
@@ -71,37 +70,77 @@ namespace Open62541 {
         private:
             // Call Backs
             static void  stateCallback(UA_Client *client, UA_ClientState clientState);
+            /*!
+                \brief asyncConnectCallback
+                \param client
+                \param userdata
+                \param requestId
+                \param response
+            */
+            static void asyncConnectCallback(UA_Client *client, void *userdata, UA_UInt32 requestId, void *response) {
+                Client *p = (Client *)(UA_Client_getContext(client));
+                if (p) {
+                    p->asyncConnectService(requestId, userdata, response);
+                }
+            }
+
         public:
 
-            Client() {
-                _config.clientContext = this;
-                _config.stateCallback = stateCallback;
-                _config.subscriptionInactivityCallback = subscriptionInactivityCallback;
-                _client = UA_Client_new(_config);
+            // must connect to have a valid client
+            Client() : _client(nullptr) {
             }
-            /*!
-                \brief Open62541Client
-                \param config
-            */
-            Client(UA_ClientConfig &config) {
-                _config = config;
-                _config.clientContext = this;
-                _client = UA_Client_new(config);
-            }
+
 
             /*!
                 \brief ~Open62541Client
             */
             virtual ~Client() {
-                if (_client)  disconnect();
+                if (_client)
+                {
+                    disconnect();
+                    UA_Client_delete(_client);
+                }
             }
-
             /*!
-                \brief runAsync
-                \param interval
+             * \brief runIterate
+             * \param interval
+             * \return
+             */
+            bool runIterate(uint32_t interval = 100)
+            {
+                if(_client)
+                {
+                    _lastError = UA_Client_run_iterate(_client,interval);
+                    return lastOK();
+                }
+                return false;
+            }
+            /*!
+             * \brief initialise
+             */
+            void initialise()
+            {
+                if(_client)
+                {
+                    if(getState() != UA_CLIENTSTATE_DISCONNECTED) disconnect();
+                    UA_Client_delete(_client);
+                    _client = nullptr;
+                }
+                _client = UA_Client_new();
+                if (_client) {
+                    UA_ClientConfig_setDefault(UA_Client_getConfig(_client)); // initalise the client structure
+                    UA_Client_getConfig(_client)->clientContext = this;
+                    UA_Client_getConfig(_client)->stateCallback = stateCallback;
+                    UA_Client_getConfig(_client)->subscriptionInactivityCallback = subscriptionInactivityCallback;
+                }
+            }
+            /*!
+                \brief asyncService - handles callbacks when connected async mode
+                \param requestId
+                \param response
             */
-            void runAsync(int interval) {
-                UA_Client_runAsync(_client, interval);
+            virtual void asyncConnectService(UA_UInt32 /*requestId*/, void */*userData*/, void */*response*/) {
+
             }
             /*!
                 \brief getContext
@@ -216,6 +255,20 @@ namespace Open62541 {
             }
 
             /*!
+                \brief stateWaitingForAck
+            */
+            virtual void stateWaitingForAck() {
+                OPEN62541_TRC;
+
+            }
+            /*!
+                \brief stateSessionDisconnected
+            */
+            virtual void stateSessionDisconnected() {
+                OPEN62541_TRC;
+
+            }
+            /*!
                 \brief stateChange
                 \param clientState
             */
@@ -236,6 +289,14 @@ namespace Open62541 {
                     case UA_CLIENTSTATE_SESSION_RENEWED:
                         stateSessionRenewed();
                         break;
+                    case UA_CLIENTSTATE_WAITING_FOR_ACK:
+                        stateWaitingForAck();
+                        break;
+                    case UA_CLIENTSTATE_SESSION_DISCONNECTED:
+                        stateSessionDisconnected();
+                        break;
+                    default:
+                        break;
                 }
             }
 
@@ -248,6 +309,7 @@ namespace Open62541 {
                 \return true on success
             */
             bool getEndpoints(const std::string &serverUrl, EndpointDescriptionArray &list) {
+                if (!_client) return false;
                 WriteLock l(_mutex);
                 size_t endpointDescriptionsSize = 0;
                 UA_EndpointDescription *endpointDescriptions = nullptr;
@@ -273,6 +335,7 @@ namespace Open62541 {
                              StringArray &serverUris,
                              StringArray &localeIds,
                              ApplicationDescriptionArray &registeredServers) {
+                if (!_client) return false;
                 WriteLock l(_mutex);
                 _lastError = UA_Client_findServers(_client, serverUrl.c_str(),
                                                    serverUris.length(), serverUris.data(),
@@ -295,6 +358,7 @@ namespace Open62541 {
             bool findServersOnNetwork(const std::string &serverUrl, unsigned startingRecordId,
                                       unsigned maxRecordsToReturn, StringArray &serverCapabilityFilter,
                                       ServerOnNetworkArray &serverOnNetwork) {
+                if (!_client) return false;
                 WriteLock l(_mutex);
                 _lastError =
                     UA_Client_findServersOnNetwork(_client, serverUrl.c_str(),
@@ -312,6 +376,7 @@ namespace Open62541 {
                 \return true on success
             */
             bool readAttribute(const UA_NodeId *nodeId,  UA_AttributeId attributeId, void *out, const UA_DataType *outDataType) {
+                if (!_client) return false;
                 WriteLock l(_mutex);
                 _lastError = __UA_Client_readAttribute(_client, nodeId, attributeId, out, outDataType);
                 return lastOK();
@@ -326,15 +391,16 @@ namespace Open62541 {
                 \return true on success
             */
             bool writeAttribute(const UA_NodeId *nodeId, UA_AttributeId attributeId, const void *in,  const UA_DataType *inDataType) {
+                if (!_client) return false;
                 WriteLock l(_mutex);
                 _lastError = __UA_Client_writeAttribute(_client, nodeId, attributeId, in, inDataType);
                 return lastOK();
             }
 
             /*!
-             * \brief mutex
-             * \return  client read/write mutex
-             */
+                \brief mutex
+                \return  client read/write mutex
+            */
             ReadWriteMutex &mutex() {
                 return _mutex;
             }
@@ -354,8 +420,8 @@ namespace Open62541 {
             */
             void reset() {
                 WriteLock l(_mutex);
-                if (_client) UA_Client_reset(_client);
-                throw std::runtime_error("Null client");
+                if (!_client) throw std::runtime_error("Null client");
+                UA_Client_reset(_client);
                 return;
             }
 
@@ -373,7 +439,7 @@ namespace Open62541 {
                 \return client configuration
             */
             UA_ClientConfig &config() {
-                return _config;
+                return *UA_Client_getConfig(_client);
             }
             /*!
                 \brief lastError
@@ -387,12 +453,14 @@ namespace Open62541 {
             // Connect and Disconnect
             //
             /*!
-             * \brief connect
-             * \param endpointUrl
-             * \return true on success
-             */
+                \brief connect
+                \param endpointUrl
+                \return true on success
+            */
             bool connect(const std::string &endpointUrl) {
+                initialise();
                 WriteLock l(_mutex);
+                if (!_client) throw std::runtime_error("Null client");
                 _lastError = UA_Client_connect(_client, endpointUrl.c_str());
                 return lastOK();
             }
@@ -405,33 +473,65 @@ namespace Open62541 {
                 @param password
                 @return Indicates whether the operation succeeded or returns an error code */
             bool connectUsername(const std::string &endpoint, const std::string &username, const std::string &password) {
+                initialise();
                 WriteLock l(_mutex);
                 if (!_client)throw std::runtime_error("Null client");
                 _lastError = UA_Client_connect_username(_client, endpoint.c_str(), username.c_str(), password.c_str());
+                return lastOK();
+            }
+            /*!
+                \brief connectAsync
+                \param endpoint
+                \return
+            */
+            bool connectAsync(const std::string &endpoint) {
+                initialise();
+                WriteLock l(_mutex);
+                if (!_client)throw std::runtime_error("Null client");
+                _lastError = UA_Client_connect_async(_client, endpoint.c_str(), asyncConnectCallback, this);
+                return lastOK();
+            }
 
+            /*  Connect to the server without creating a session
+
+                @param client to use
+                @param endpointURL to connect (for example "opc.tcp://localhost:4840")
+                @return Indicates whether the operation succeeded or returns an error code */
+            bool connectNoSession(const std::string &endpoint) {
+                initialise();
+                WriteLock l(_mutex);
+                if (!_client)throw std::runtime_error("Null client");
+                _lastError =  UA_Client_connect_noSession(_client, endpoint.c_str());
                 return lastOK();
             }
 
             /*!
-             * \brief disconnect
-             * \return
-             */
-            UA_StatusCode disconnect() {
+                \brief disconnect
+                \return
+            */
+            bool disconnect() {
                 WriteLock l(_mutex);
                 if (!_client) throw std::runtime_error("Null client");
                 _lastError = UA_Client_disconnect(_client);
-                UA_Client_delete(_client);
-                _client = nullptr;
                 return lastOK();
             }
             /*!
-             * \brief manuallyRenewSecureChannel
-             * \return
-             */
-            bool manuallyRenewSecureChannel() {
-                ReadLock l(_mutex);
+                \brief disconnectAsync
+                \return true on success
+            */
+            bool disconnectAsync(UA_UInt32 requestId = 0) {
+                WriteLock l(_mutex);
                 if (!_client) throw std::runtime_error("Null client");
-                return (_lastError = UA_Client_manuallyRenewSecureChannel(_client)) == UA_STATUSCODE_GOOD;
+                _lastError = UA_Client_disconnect_async(_client, &requestId);
+                return lastOK();
+            }
+
+            /*!
+                \brief manuallyRenewSecureChannel
+                \return
+            */
+            bool manuallyRenewSecureChannel() {
+                return false;
             }
 
             /*!  Gets a list of endpoints of a server
@@ -584,6 +684,7 @@ namespace Open62541 {
                 \return  true on success
             */
             bool  setVariable(NodeId &nodeId,  Variant &value) {
+                if (!_client) return false;
                 _lastError = UA_Client_writeValueAttribute(_client,  nodeId, value);
                 return lastOK();
             }
@@ -792,6 +893,7 @@ namespace Open62541 {
                 \return true on success
             */
             bool readArrayDimensionsAttribute(NodeId &nodeId, std::vector<UA_UInt32> &ret) {
+                if (!_client) return false;
                 WriteLock l(_mutex);
                 size_t outArrayDimensionsSize;
                 UA_UInt32 *outArrayDimensions = nullptr;
@@ -1184,6 +1286,7 @@ namespace Open62541 {
                 \return   true on success
             */
             bool  variable(NodeId &nodeId,  Variant &value) {
+                if (!_client) return false;
                 WriteLock l(_mutex);
                 // outValue is managed by caller - transfer to output value
                 value.clear();
@@ -1258,7 +1361,6 @@ namespace Open62541 {
                 \return   true on success
             */
             virtual bool process() {
-                UA_Client_runAsync(_client, 1000); // drive the async subscriptions
                 return true;
             }
 
@@ -1290,6 +1392,7 @@ namespace Open62541 {
                 QualifiedName &browseName,
                 VariableTypeAttributes &attr,
                 NodeId &outNewNodeId = NodeId::Null) {
+                if (!_client) return false;
                 WriteLock l(_mutex);
                 _lastError = UA_Client_addVariableTypeNode(_client,
                                                            requestedNewNodeId,
@@ -1319,6 +1422,7 @@ namespace Open62541 {
                           NodeId  &typeDefinition,
                           ObjectAttributes &attr,
                           NodeId &outNewNodeId = NodeId::Null) {
+                if (!_client) return false;
                 WriteLock l(_mutex);
                 _lastError = UA_Client_addObjectNode(_client,
                                                      requestedNewNodeId,
@@ -1348,6 +1452,7 @@ namespace Open62541 {
                               QualifiedName &browseName,
                               ObjectTypeAttributes &attr,
                               NodeId &outNewNodeId = NodeId::Null) {
+                if (!_client) return false;
                 WriteLock l(_mutex);
                 _lastError = UA_Client_addObjectTypeNode(_client,
                                                          requestedNewNodeId,
@@ -1375,6 +1480,7 @@ namespace Open62541 {
                         QualifiedName &browseName,
                         ViewAttributes &attr,
                         NodeId &outNewNodeId = NodeId::Null) {
+                if (!_client) return false;
                 WriteLock l(_mutex);
                 _lastError = UA_Client_addViewNode(_client,
                                                    requestedNewNodeId,
@@ -1404,6 +1510,7 @@ namespace Open62541 {
                 QualifiedName &browseName,
                 ReferenceTypeAttributes &attr,
                 NodeId &outNewNodeId = NodeId::Null) {
+                if (!_client) return false;
                 WriteLock l(_mutex);
                 _lastError = UA_Client_addReferenceTypeNode(_client,
                                                             requestedNewNodeId,
@@ -1432,6 +1539,7 @@ namespace Open62541 {
                             QualifiedName &browseName,
                             DataTypeAttributes &attr,
                             NodeId &outNewNodeId = NodeId::Null) {
+                if (!_client) return false;
                 WriteLock l(_mutex);
                 _lastError = UA_Client_addDataTypeNode(_client,
                                                        requestedNewNodeId,
@@ -1459,6 +1567,7 @@ namespace Open62541 {
                           QualifiedName &browseName,
                           MethodAttributes &attr,
                           NodeId &outNewNodeId = NodeId::Null) {
+                if (!_client) return false;
                 WriteLock l(_mutex);
                 _lastError = UA_Client_addMethodNode(_client,
                                                      requestedNewNodeId,
@@ -1510,6 +1619,97 @@ namespace Open62541 {
             */
             virtual void asyncService(void * /*userdata*/, UA_UInt32 /*requestId*/, void * /*response*/,
                                       const UA_DataType * /*responseType*/) {}
+            /*!
+                \brief historicalIterator
+                \return
+            */
+            virtual bool historicalIterator(const NodeId &/*node*/, UA_Boolean /*moreDataAvailable*/,const UA_ExtensionObject &/*data*/) {
+                return false;
+            }
+            /*!
+                \brief historicalIteratorCallback
+                \param client
+                \param nodeId
+                \param moreDataAvailable
+                \param data
+                \param callbackContext
+                \return
+            */
+            static UA_Boolean historicalIteratorCallback(UA_Client *client, const UA_NodeId *nodeId,   UA_Boolean moreDataAvailable,
+                                                         const UA_ExtensionObject *data, void *callbackContext) {
+                if (callbackContext && nodeId && data) {
+                    Client *p = (Client *)callbackContext;
+                    NodeId n(*nodeId);
+                    return (p->historicalIterator(n, moreDataAvailable,*data)) ? UA_TRUE : UA_FALSE;
+                }
+                return UA_FALSE;
+            }
+
+
+            /*!
+                \brief historyReadRaw
+                \param n
+                \param startTime
+                \param endTime
+                \param numValuesPerNode
+                \param indexRange
+                \param returnBounds
+                \param timestampsToReturn
+                \return
+            */
+            bool  historyReadRaw(const NodeId &n, UA_DateTime startTime, UA_DateTime endTime,
+                                 unsigned numValuesPerNode, const UA_String &indexRange = UA_STRING_NULL, bool returnBounds = false,
+                                 UA_TimestampsToReturn timestampsToReturn = UA_TIMESTAMPSTORETURN_BOTH) {
+                _lastError = UA_Client_HistoryRead_raw(_client, n.constRef(), historicalIteratorCallback,startTime, endTime,
+                                                       indexRange, returnBounds ? UA_TRUE : UA_FALSE, (UA_UInt32) numValuesPerNode,
+                                                       timestampsToReturn, this);
+                return lastOK();
+            }
+            /*!
+                \brief historyUpdateInsert
+                \param n
+                \param value
+                \return
+            */
+            bool historyUpdateInsert(const NodeId &n, const UA_DataValue &value)  {
+
+                _lastError =   UA_Client_HistoryUpdate_insert(_client, n.constRef(), const_cast<UA_DataValue *>(&value));
+                return lastOK();
+            }
+            /*!
+                \brief historyUpdateReplace
+                \param n
+                \param value
+                \return
+            */
+            bool historyUpdateReplace(const NodeId &n, const UA_DataValue &value) {
+
+                _lastError = UA_Client_HistoryUpdate_replace(_client, n.constRef(), const_cast<UA_DataValue *>(&value));
+                return lastOK();
+            }
+            /*!
+                \brief historyUpdateUpdate
+                \param n
+                \param value
+                \return
+            */
+            bool historyUpdateUpdate(const NodeId &n, const UA_DataValue &value) {
+
+                _lastError = UA_Client_HistoryUpdate_update(_client, n.constRef(), const_cast<UA_DataValue *>(&value));
+                return lastOK();
+            }
+            /*!
+                \brief historyUpdateDeleteRaw
+                \param n
+                \param startTimestamp
+                \param endTimestamp
+                \return
+            */
+            bool historyUpdateDeleteRaw(const NodeId &n, UA_DateTime startTimestamp, UA_DateTime endTimestamp) {
+                _lastError = UA_Client_HistoryUpdate_deleteRaw(_client, n.constRef(), startTimestamp, endTimestamp);
+                return lastOK();
+            }
+
     };
 
 

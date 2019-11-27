@@ -97,6 +97,34 @@ bool  Open62541::MonitoredItem::remove() {
     return ret;
 }
 
+
+/*!
+ * \brief setMonitoringMode
+ * \param request
+ * \param response
+ * \return
+ */
+bool  Open62541::MonitoredItem::setMonitoringMode( const SetMonitoringModeRequest &request, SetMonitoringModeResponse &response)
+{
+    response.get() =
+            UA_Client_MonitoredItems_setMonitoringMode(subscription().client().client(), request.get());
+    return true;
+
+}
+
+/*!
+ * \brief setTriggering
+ * \param request
+ * \param request
+ * \return
+ */
+bool  Open62541::MonitoredItem::setTriggering(const SetTriggeringRequest &request, SetTriggeringResponse &response)
+{
+    response.get() =  UA_Client_MonitoredItems_setTriggering(subscription().client().client(), request.get());
+    return true;
+}
+
+
 /*!
     \brief Open62541::MonitoredItem::addDataChange
     \param n

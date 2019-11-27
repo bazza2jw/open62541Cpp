@@ -28,14 +28,15 @@ namespace Open62541 {
     //If a NodeId is being passed to receive a value use the notNull() method to mark it as a receiver of a new node id.
     //Most functions return true if the lastError is UA_STATUSCODE_GOOD.
 
+    class HistoryDataGathering;
+    class HistoryDataBackend;
     /*!
         \brief The Server class
     */
     class  UA_EXPORT  Server {
-            UA_ServerConfig *_config = nullptr;
             UA_Server *_server = nullptr; // assume one server per application
+            UA_ServerConfig *_config = nullptr;
             UA_Boolean  _running = false;
-            int _port = 4840;
             //
             std::map<std::string, SeverRepeatedCallbackRef> _callbacks;
             //
@@ -53,34 +54,178 @@ namespace Open62541 {
             static void destructor(UA_Server *server,
                                    const UA_NodeId *sessionId, void *sessionContext,
                                    const UA_NodeId *nodeId, void *nodeContext);
-
+            //
             // Map of servers key by UA_Server pointer
             typedef std::map<UA_Server *, Server *> ServerMap;
             static ServerMap _serverMap;
-
             std::map<UA_UInt64, std::string> _discoveryList; // set of discovery servers this server has registered with
+            std::vector<UA_UsernamePasswordLogin> _logins; // set of permitted  logins
+            //
+            //
+            // Access Control Callbacks - these invoke virtual functions to control access
+            static UA_Boolean   allowAddNodeHandler(UA_Server *server, UA_AccessControl *ac,
+                                                    const UA_NodeId *sessionId, void *sessionContext, const UA_AddNodesItem *item);
+
+            static UA_Boolean
+            allowAddReferenceHandler(UA_Server *server, UA_AccessControl *ac,
+                                     const UA_NodeId *sessionId, void *sessionContext,
+                                     const UA_AddReferencesItem *item);
+
+            static UA_Boolean
+            allowDeleteNodeHandler(UA_Server *server, UA_AccessControl *ac,
+                                   const UA_NodeId *sessionId, void *sessionContext, const UA_DeleteNodesItem *item);
+            static UA_Boolean
+            allowDeleteReferenceHandler(UA_Server *server, UA_AccessControl *ac,
+                                        const UA_NodeId *sessionId, void *sessionContext, const UA_DeleteReferencesItem *item);
+            //
+            static UA_StatusCode activateSessionHandler(UA_Server *server, UA_AccessControl *ac,
+                                                        const UA_EndpointDescription *endpointDescription,
+                                                        const UA_ByteString *secureChannelRemoteCertificate,
+                                                        const UA_NodeId *sessionId,
+                                                        const UA_ExtensionObject *userIdentityToken,
+                                                        void **sessionContext);
+
+            /* Deauthenticate a session and cleanup */
+            static void closeSessionHandler(UA_Server *server, UA_AccessControl *ac,
+                                            const UA_NodeId *sessionId, void *sessionContext);
+
+            /* Access control for all nodes*/
+            static UA_UInt32 getUserRightsMaskHandler(UA_Server *server, UA_AccessControl *ac,
+                                                      const UA_NodeId *sessionId, void *sessionContext,
+                                                      const UA_NodeId *nodeId, void *nodeContext);
+
+            /* Additional access control for variable nodes */
+            static UA_Byte getUserAccessLevelHandler(UA_Server *server, UA_AccessControl *ac,
+                                                     const UA_NodeId *sessionId, void *sessionContext,
+                                                     const UA_NodeId *nodeId, void *nodeContext);
+
+            /* Additional access control for method nodes */
+            static UA_Boolean getUserExecutableHandler(UA_Server *server, UA_AccessControl *ac,
+                                                       const UA_NodeId *sessionId, void *sessionContext,
+                                                       const UA_NodeId *methodId, void *methodContext);
+
+            /*  Additional access control for calling a method node in the context of a
+                specific object */
+            static UA_Boolean getUserExecutableOnObjectHandler(UA_Server *server, UA_AccessControl *ac,
+                                                               const UA_NodeId *sessionId, void *sessionContext,
+                                                               const UA_NodeId *methodId, void *methodContext,
+                                                               const UA_NodeId *objectId, void *objectContext);
+            /* Allow insert,replace,update of historical data */
+            static UA_Boolean allowHistoryUpdateUpdateDataHandler(UA_Server *server, UA_AccessControl *ac,
+                                                                  const UA_NodeId *sessionId, void *sessionContext,
+                                                                  const UA_NodeId *nodeId,
+                                                                  UA_PerformUpdateType performInsertReplace,
+                                                                  const UA_DataValue *value);
+
+            /* Allow delete of historical data */
+            static UA_Boolean allowHistoryUpdateDeleteRawModifiedHandler(UA_Server *server, UA_AccessControl *ac,
+                                                                         const UA_NodeId *sessionId, void *sessionContext,
+                                                                         const UA_NodeId *nodeId,
+                                                                         UA_DateTime startTimestamp,
+                                                                         UA_DateTime endTimestamp,
+                                                                         bool isDeleteModified);
 
         protected:
             UA_StatusCode _lastError = 0;
         public:
+
+
             /*!
                 \brief Server
-                \param p
             */
-            Server(int p = 4840, UA_ByteString *certificate = nullptr)
-                : _config(UA_ServerConfig_new_minimal(p, certificate)), _port(p) {
-                _config->nodeLifecycle.constructor = constructor; // set up the node global lifecycle
-                _config->nodeLifecycle.destructor = destructor;
-
+            Server() {
+                _server = UA_Server_new();
+                if (_server) {
+                    _config = UA_Server_getConfig(_server);
+                    if (_config) {
+                        UA_ServerConfig_setDefault(_config);
+                        _config->nodeLifecycle.constructor = constructor; // set up the node global lifecycle
+                        _config->nodeLifecycle.destructor = destructor;
+                    }
+                }
             }
 
+            /*!
+                \brief Server
+                \param port
+                \param certificate
+            */
+            Server(int port, const UA_ByteString &certificate = UA_BYTESTRING_NULL) {
+                _server = UA_Server_new();
+                if (_server) {
+                    _config = UA_Server_getConfig(_server);
+                    if (_config) {
+                        UA_ServerConfig_setMinimal(_config, port, &certificate);
+                        _config->nodeLifecycle.constructor = constructor; // set up the node global lifecycle
+                        _config->nodeLifecycle.destructor = destructor;
+                    }
+                }
+            }
+
+            /*!
+                \brief ~Server
+            */
             virtual ~Server() {
                 // possible abnormal exit
                 if (_server) {
                     WriteLock l(_mutex);
                     terminate();
                 }
-                if (_config) UA_ServerConfig_delete(_config);
+            }
+
+            void setMdnsServerName(const std::string &name) {
+                if (_config) {
+                    _config->discovery.mdnsEnable = true;
+#ifdef UA_ENABLE_DISCOVERY_MULTICAST
+                    _config->discovery.mdns.mdnsServerName = UA_String_fromChars(name.c_str());
+#else
+    (void)name;
+#endif
+                }
+            }
+
+            /*!
+                \brief logins
+                Array of user name / passowrds - TODO add clear, add, delete update
+                \return
+            */
+            std::vector<UA_UsernamePasswordLogin> &logins() {
+                return  _logins;
+            }
+
+
+            /*!
+                \brief applyEndpoints
+            */
+            void applyEndpoints(EndpointDescriptionArray &endpoints) {
+                _config->endpoints = endpoints.data();
+                _config->endpointsSize = endpoints.length();
+                // Transfer ownership
+                endpoints.release();
+            }
+
+            /*!
+                \brief configClean
+            */
+            void configClean() {
+                if (_config) UA_ServerConfig_clean(_config);
+            }
+
+
+            /*!
+                \brief enableSimpleLogin
+                Set up for simple login - assumes the permitted logins have been set up before hand
+                This gives username / password access and disables anomyous access
+                \return
+            */
+            bool enableSimpleLogin();
+
+
+            /* Set a custom hostname in server configuration */
+
+            void setCustomHostname(const std::string &customHostname) {
+                UA_String s =   toUA_String(customHostname); // shallow copy
+                UA_ServerConfig_setCustomHostname(_config, s);
             }
 
             /*!
@@ -92,13 +237,7 @@ namespace Open62541 {
                 _config->applicationDescription.applicationUri = UA_String_fromChars(s.c_str());
             }
 
-            /*!
-                \brief setMdnsServerName
-                \param s
-            */
-            void setMdnsServerName(const std::string &s) {
-                _config->mdnsServerName = UA_String_fromChars(s.c_str());
-            }
+
 
             /*!
                 \brief findServer
@@ -117,31 +256,14 @@ namespace Open62541 {
                 \param semaphoreFilePath
                 \return true on success
             */
-            bool registerDiscovery(const std::string &discoveryServerUrl,  const std::string &semaphoreFilePath = "") {
-                _lastError = UA_Server_register_discovery(server(),
-                                                          discoveryServerUrl.c_str(),
-                                                          (semaphoreFilePath.empty()) ? nullptr : semaphoreFilePath.c_str());
-                return lastOK();
-            }
+            bool registerDiscovery(Client &client,  const std::string &semaphoreFilePath = "");
 
             /*!
                 \brief unregisterDiscovery
                 \return  true on success
             */
-            bool unregisterDiscovery(const std::string &discoveryServerUrl) {
-                _lastError = UA_Server_unregister_discovery(server(), discoveryServerUrl.c_str());
-                return lastOK();
-            }
-            /*!
-                \brief unregisterDiscovery
-                \param periodicCallbackId
-                \return true on success
-            */
-            bool unregisterDiscovery(UA_UInt64 &periodicCallbackId) {
-                bool ret = unregisterDiscovery(_discoveryList[periodicCallbackId]);
-                _discoveryList.erase(periodicCallbackId);
-                return ret;
-            }
+            bool unregisterDiscovery(Client &client);
+
 
             /*!
                 \brief addPeriodicServerRegister
@@ -151,23 +273,11 @@ namespace Open62541 {
                 \param periodicCallbackId
                 \return true on success
             */
-            bool  addPeriodicServerRegister(const std::string &discoveryServerUrl,
+            bool  addPeriodicServerRegister(const std::string &discoveryServerUrl, // url must persist - that is be static
+                                            Client &client,
                                             UA_UInt64 &periodicCallbackId,
                                             UA_UInt32 intervalMs = 600 * 1000, // default to 10 minutes
-                                            UA_UInt32 delayFirstRegisterMs = 1000) {
-                std::cerr << "Discovery URL " << discoveryServerUrl << std::endl;
-                _lastError = UA_Server_addPeriodicServerRegisterCallback(server(),
-                                                                         discoveryServerUrl.c_str(),
-                                                                         intervalMs,
-                                                                         delayFirstRegisterMs,
-                                                                         &periodicCallbackId);
-                //
-                if (lastOK()) {
-                    _discoveryList[periodicCallbackId]  = discoveryServerUrl;
-                }
-                //
-                return lastOK();
-            }
+                                            UA_UInt32 delayFirstRegisterMs = 1000);
 
 
             /*!
@@ -252,20 +362,6 @@ namespace Open62541 {
             UA_StatusCode lastError() const {
                 return _lastError;
             }
-            /*!
-                \brief port
-                \return
-            */
-            int port() const {
-                return _port;
-            }
-            /*!
-                \brief setPort
-                \param p
-            */
-            void setPort(int p) {
-                _port = p;
-            }
 
             /*!
                 \brief server
@@ -290,6 +386,7 @@ namespace Open62541 {
                 \return true on success
             */
             bool getNodeContext(NodeId &n, NodeContext *&c) {
+                if (!server()) return false;
                 void *p = (void *)(c);
                 _lastError = UA_Server_getNodeContext(_server, n.get(), &p);
                 return lastOK();
@@ -310,6 +407,7 @@ namespace Open62541 {
                 \return true on success
             */
             bool setNodeContext(NodeId &n, const NodeContext *c) {
+                if (!server()) return false;
                 _lastError = UA_Server_setNodeContext(_server, n.get(), (void *)(c));
                 return lastOK();
             }
@@ -323,6 +421,7 @@ namespace Open62541 {
                 \return true on success
             */
             bool readAttribute(const UA_NodeId *nodeId, UA_AttributeId attributeId, void *v) {
+                if (!server()) return false;
                 WriteLock l(_mutex);
                 _lastError =  __UA_Server_read(_server, nodeId, attributeId, v);
                 return lastOK();
@@ -337,6 +436,7 @@ namespace Open62541 {
                 \return true on success
             */
             bool writeAttribute(const UA_NodeId *nodeId, const UA_AttributeId attributeId, const UA_DataType *attr_type, const void *attr) {
+                if (!server()) return false;
                 WriteLock l(_mutex);
                 _lastError =  __UA_Server_write(_server, nodeId, attributeId, attr_type, attr) == UA_STATUSCODE_GOOD;
                 return lastOK();
@@ -392,6 +492,26 @@ namespace Open62541 {
             */
             bool browseChildren(UA_NodeId &nodeId, NodeIdMap &m);
 
+
+            /*  A simplified TranslateBrowsePathsToNodeIds based on the
+                SimpleAttributeOperand type (Part 4, 7.4.4.5).
+
+                This specifies a relative path using a list of BrowseNames instead of the
+                RelativePath structure. The list of BrowseNames is equivalent to a
+                RelativePath that specifies forward references which are subtypes of the
+                HierarchicalReferences ReferenceType. All Nodes followed by the browsePath
+                shall be of the NodeClass Object or Variable. */
+            bool browseSimplifiedBrowsePath(NodeId origin,
+                                            size_t browsePathSize,
+                                            QualifiedName &browsePath, BrowsePathResult &result) {
+                result.get() = UA_Server_browseSimplifiedBrowsePath(_server,
+                                                                    origin,
+                                                                    browsePathSize,
+                                                                    browsePath.constRef());
+                _lastError = result.ref()->statusCode;
+                return lastOK();
+
+            }
             /*!
                 \brief createBrowsePath
                 \param parent node to start with
@@ -406,6 +526,7 @@ namespace Open62541 {
                 \return name space index
             */
             UA_UInt16 addNamespace(const std::string s) {
+                if (!server()) return 0;
                 UA_UInt16 ret = 0;
                 {
                     WriteLock l(mutex());
@@ -415,11 +536,11 @@ namespace Open62541 {
             }
             //
             /*!
-             * \brief serverConfig
-             * \return  server configuration
-             */
+                \brief serverConfig
+                \return  server configuration
+            */
             UA_ServerConfig    &serverConfig() {
-                return *_config;
+                return *UA_Server_getConfig(server());
             }
             //
 
@@ -435,6 +556,7 @@ namespace Open62541 {
                                  NodeId &parent,  NodeId &nodeId,
                                  NodeId &newNode,  int nameSpaceIndex = 0) {
                 //
+                if (!server()) return false;
                 //
                 if (nameSpaceIndex == 0) nameSpaceIndex = parent.nameSpaceIndex(); // inherit parent by default
                 //
@@ -529,6 +651,7 @@ namespace Open62541 {
                 \param name
             */
             void setBrowseName(NodeId &nodeId, int nameSpaceIndex, const std::string &name) {
+                if (!server()) return;
                 QualifiedName newBrowseName(nameSpaceIndex, name);
                 WriteLock l(_mutex);
                 UA_Server_writeBrowseName(_server, nodeId, newBrowseName);
@@ -576,6 +699,7 @@ namespace Open62541 {
             bool addFolder(NodeId &parent,  const std::string &childName,
                            NodeId &nodeId, NodeId &newNode = NodeId::Null, int nameSpaceIndex = 0);
 
+
             /*!
                 \brief addVariable
                 \param parent
@@ -611,6 +735,46 @@ namespace Open62541 {
                 }
                 return false;
             }
+
+            /*!
+                \brief addVariable
+                \param parent
+                \param nameSpaceIndex
+                \param childName
+                \return true on success
+            */
+            bool addHistoricalVariable(NodeId &parent, const std::string &childName,
+                                       Variant &value, NodeId &nodeId,  NodeId &newNode = NodeId::Null,
+                                       NodeContext *c = nullptr,
+                                       int nameSpaceIndex = 0);
+
+            template<typename T>
+            /*!
+                \brief addVariable
+                Add a variable of the given type
+                \param parent
+                \param childName
+                \param nodeId
+                \param c
+                \param newNode
+                \param nameSpaceIndex
+                \return true on success
+            */
+            bool addHistoricalVariable(NodeId &parent,  const std::string &childName,
+                                       NodeId &nodeId, const std::string &c,
+                                       NodeId &newNode = NodeId::Null,
+                                       int nameSpaceIndex = 0) {
+                NodeContext *cp = findContext(c);
+                if (cp) {
+                    Variant v(T());
+                    return  addHistoricalVariable(parent, childName, v, nodeId,  newNode, cp, nameSpaceIndex);
+                }
+                return false;
+            }
+
+
+
+
 
             template <typename T>
             /*!
@@ -662,6 +826,8 @@ namespace Open62541 {
                 \return true on success
             */
             bool  variable(NodeId &nodeId,  Variant &value) {
+                if (!server()) return false;
+
                 // outValue is managed by caller - transfer to output value
                 value.null();
                 WriteLock l(_mutex);
@@ -675,6 +841,8 @@ namespace Open62541 {
                 \return true on success
             */
             bool deleteNode(NodeId &nodeId, bool  deleteReferences) {
+                if (!server()) return false;
+
                 WriteLock l(_mutex);
                 _lastError =  UA_Server_deleteNode(_server, nodeId, UA_Boolean(deleteReferences));
                 return _lastError != UA_STATUSCODE_GOOD;
@@ -687,6 +855,8 @@ namespace Open62541 {
                 \return true on sucess
             */
             bool call(CallMethodRequest &request, CallMethodResult &ret) {
+                if (!server()) return false;
+
                 WriteLock l(_mutex);
                 ret.get() = UA_Server_call(_server, request);
                 return ret.get().statusCode == UA_STATUSCODE_GOOD;
@@ -699,6 +869,8 @@ namespace Open62541 {
                 \return true on sucess
             */
             bool translateBrowsePathToNodeIds(BrowsePath &path, BrowsePathResult &result) {
+                if (!server()) return false;
+
                 WriteLock l(_mutex);
                 result.get() = UA_Server_translateBrowsePathToNodeIds(_server, path);
                 return result.get().statusCode  == UA_STATUSCODE_GOOD;
@@ -1036,6 +1208,8 @@ namespace Open62541 {
             bool
             writeValue(NodeId &nodeId,
                        Variant &value) {
+                if (!server()) return false;
+
                 return  UA_STATUSCODE_GOOD == (_lastError = __UA_Server_write(_server, nodeId, UA_ATTRIBUTEID_VALUE,
                                                                               &UA_TYPES[UA_TYPES_VARIANT], value));
             }
@@ -1088,6 +1262,41 @@ namespace Open62541 {
                 return  writeAttribute(nodeId, UA_ATTRIBUTEID_ACCESSLEVEL,
                                        &UA_TYPES[UA_TYPES_BYTE], &accessLevel);
             }
+
+            // Some short cuts
+            /*!
+                \brief writeEnable
+                \param nodeId
+                \return
+            */
+            bool writeEnable(NodeId &nodeId) {
+                UA_Byte accessLevel;
+                if (readAccessLevel(nodeId, accessLevel)) {
+                    accessLevel |= UA_ACCESSLEVELMASK_WRITE;
+                    return writeAccessLevel(nodeId, accessLevel);
+                }
+                return false;
+            }
+            /*!
+                \brief setReadOnly
+                \param nodeId
+                \param historyEnable
+                \return
+            */
+            bool setReadOnly(NodeId &nodeId, bool historyEnable = false) {
+                UA_Byte accessLevel;
+                if (readAccessLevel(nodeId, accessLevel)) {
+                    // remove the write bits
+                    accessLevel &= ~(UA_ACCESSLEVELMASK_WRITE | UA_ACCESSLEVELMASK_HISTORYWRITE);
+                    // add the read bits
+                    accessLevel |= UA_ACCESSLEVELMASK_READ;
+                    if (historyEnable) accessLevel |= UA_ACCESSLEVELMASK_HISTORYREAD;
+                    return writeAccessLevel(nodeId, accessLevel);
+                }
+                return false;
+            }
+
+
             /*!
                 \brief writeMinimumSamplingInterval
                 \param nodeId
@@ -1139,6 +1348,7 @@ namespace Open62541 {
                             VariableAttributes &attr,
                             NodeId &outNewNodeId = NodeId::Null,
                             NodeContext *nc = nullptr) {
+                if (!server()) return false;
                 WriteLock l(_mutex);
                 _lastError = UA_Server_addVariableNode(_server,
                                                        requestedNewNodeId,
@@ -1175,6 +1385,7 @@ namespace Open62541 {
                 VariableTypeAttributes &attr,
                 NodeId &outNewNodeId = NodeId::Null,
                 NodeContext *instantiationCallback = nullptr) {
+                if (!server()) return false;
                 WriteLock l(_mutex);
                 _lastError =  UA_Server_addVariableTypeNode(_server,
                                                             requestedNewNodeId,
@@ -1209,6 +1420,8 @@ namespace Open62541 {
                           ObjectAttributes &attr,
                           NodeId &outNewNodeId = NodeId::Null,
                           NodeContext *instantiationCallback = nullptr) {
+                if (!server()) return false;
+
                 WriteLock l(_mutex);
                 _lastError = UA_Server_addObjectNode(_server,
                                                      requestedNewNodeId,
@@ -1241,6 +1454,8 @@ namespace Open62541 {
                               ObjectTypeAttributes &attr,
                               NodeId &outNewNodeId = NodeId::Null,
                               NodeContext *instantiationCallback = nullptr) {
+                if (!server()) return false;
+
                 _lastError = UA_Server_addObjectTypeNode(_server,
                                                          requestedNewNodeId,
                                                          parentNodeId,
@@ -1272,6 +1487,8 @@ namespace Open62541 {
                         NodeId &outNewNodeId = NodeId::Null,
                         NodeContext *instantiationCallback = nullptr
                        ) {
+                if (!server()) return false;
+
                 WriteLock l(_mutex);
                 _lastError = UA_Server_addViewNode(_server,
                                                    requestedNewNodeId,
@@ -1305,6 +1522,8 @@ namespace Open62541 {
                 NodeId &outNewNodeId = NodeId::Null,
                 NodeContext *instantiationCallback = nullptr
             ) {
+                if (!server()) return false;
+
                 WriteLock l(_mutex);
                 _lastError = UA_Server_addReferenceTypeNode(_server,
                                                             requestedNewNodeId,
@@ -1338,6 +1557,8 @@ namespace Open62541 {
                 NodeId &outNewNodeId = NodeId::Null,
                 NodeContext *instantiationCallback = nullptr
             ) {
+                if (!server()) return false;
+
                 WriteLock l(_mutex);
                 _lastError = UA_Server_addDataTypeNode(_server,
                                                        requestedNewNodeId,
@@ -1374,6 +1595,8 @@ namespace Open62541 {
                 NodeId &outNewNodeId = NodeId::Null,
                 NodeContext *instantiationCallback = nullptr
             ) {
+                if (!server()) return false;
+
                 WriteLock l(_mutex);
                 _lastError = UA_Server_addDataSourceVariableNode(_server,
                                                                  requestedNewNodeId,
@@ -1399,6 +1622,7 @@ namespace Open62541 {
                 \return
             */
             bool addReference(NodeId &sourceId, NodeId &refTypeId, ExpandedNodeId &targetId, bool isForward) {
+                if (!server()) return false;
                 WriteLock l(_mutex);
                 _lastError =  UA_Server_addReference(server(), sourceId, refTypeId, targetId, isForward);
                 return lastOK();
@@ -1426,6 +1650,8 @@ namespace Open62541 {
                                  NodeId &referenceTypeId, bool isForward,
                                  ExpandedNodeId &targetNodeId,
                                  bool deleteBidirectional) {
+                if (!server()) return false;
+
                 WriteLock l(_mutex);
                 _lastError =  UA_Server_deleteReference(server(), sourceNodeId, referenceTypeId,
                                                         isForward, targetNodeId, deleteBidirectional);
@@ -1443,6 +1669,8 @@ namespace Open62541 {
             */
             bool addInstance(const std::string &n, NodeId &requestedNewNodeId, NodeId &parent,
                              NodeId &typeId, NodeId &nodeId = NodeId::Null, NodeContext *context = nullptr) {
+                if (!server()) return false;
+
                 ObjectAttributes oAttr;
                 oAttr.setDefault();
                 oAttr.setDisplayName(n);
@@ -1456,6 +1684,299 @@ namespace Open62541 {
                                      nodeId,
                                      context);
             }
+            //
+            //
+            //
+            /*  Creates a node representation of an event
+
+                @param server The server object
+                @param eventType The type of the event for which a node should be created
+                @param outNodeId The NodeId of the newly created node for the event
+                @return The StatusCode of the UA_Server_createEvent method */
+            bool createEvent(const NodeId &eventType, NodeId &outNodeId) {
+                if (!server()) return false;
+                WriteLock l(_mutex);
+                _lastError = UA_Server_createEvent(_server, eventType, outNodeId.ref());
+                return lastOK();
+            }
+
+            /*  Triggers a node representation of an event by applying EventFilters and
+                adding the event to the appropriate queues.
+                @param server The server object
+                @param eventNodeId The NodeId of the node representation of the event which should be triggered
+                @param outEvent the EventId of the new event
+                @param deleteEventNode Specifies whether the node representation of the event should be deleted
+                @return The StatusCode of the UA_Server_triggerEvent method */
+            bool triggerEvent(NodeId &eventNodeId,    UA_ByteString *outEventId = nullptr, bool deleteEventNode = true) {
+                if (!server()) return false;
+                WriteLock l(_mutex);
+                _lastError = UA_Server_triggerEvent(_server,
+                                                    eventNodeId,
+                                                    UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER),
+                                                    outEventId,
+                                                    deleteEventNode);
+                return lastOK();
+            }
+
+
+            /*!
+                \brief addNewEventType
+                \param name
+                \param description
+                \param eventType  the event type node
+                \return true on success
+            */
+            bool  addNewEventType(const std::string &name, NodeId &eventType, const std::string &description = std::string()) {
+                if (!server()) return false;
+                ObjectTypeAttributes attr;
+                attr.setDefault();
+                attr.setDisplayName(name);
+                attr.setDescription((description.empty() ? name : description));
+                QualifiedName qn(0, name);
+                WriteLock l(_mutex);
+                _lastError =  UA_Server_addObjectTypeNode(server(),
+                                                          UA_NODEID_NULL,
+                                                          UA_NODEID_NUMERIC(0, UA_NS0ID_BASEEVENTTYPE),
+                                                          UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
+                                                          qn,
+                                                          attr,
+                                                          NULL,
+                                                          eventType.ref());
+                return lastOK();
+            }
+
+
+            /*!
+                \brief setUpEvent
+                \param outId
+                \param eventMessage
+                \param eventSourceName
+                \param eventSeverity
+                \param eventTime
+                \return true on success
+            */
+
+            bool  setUpEvent(NodeId &outId, NodeId &eventType, const std::string &eventMessage,
+                             const std::string &eventSourceName, int eventSeverity = 100,
+                             UA_DateTime eventTime = UA_DateTime_now()
+                            ) {
+                if (!server()) return false;
+                WriteLock l(_mutex);
+                _lastError = UA_Server_createEvent(server(), eventType, outId);
+                if (_lastError == UA_STATUSCODE_GOOD) {
+
+                    /* Set the Event Attributes */
+                    /* Setting the Time is required or else the event will not show up in UAExpert! */
+                    UA_Server_writeObjectProperty_scalar(server(), outId, UA_QUALIFIEDNAME(0, const_cast<char *>("Time")),
+                                                         &eventTime, &UA_TYPES[UA_TYPES_DATETIME]);
+
+                    UA_Server_writeObjectProperty_scalar(server(), outId, UA_QUALIFIEDNAME(0, const_cast<char *>("Severity")),
+                                                         &eventSeverity, &UA_TYPES[UA_TYPES_UINT16]);
+
+                    LocalizedText eM(const_cast<char *>("en-US"), eventMessage);
+                    UA_Server_writeObjectProperty_scalar(server(), outId, UA_QUALIFIEDNAME(0, const_cast<char *>("Message")),
+                                                         eM.ref(), &UA_TYPES[UA_TYPES_LOCALIZEDTEXT]);
+
+                    UA_String eSN = UA_STRING(const_cast<char *>(eventSourceName.c_str()));
+                    UA_Server_writeObjectProperty_scalar(server(), outId, UA_QUALIFIEDNAME(0, const_cast<char *>("SourceName")),
+                                                         &eSN, &UA_TYPES[UA_TYPES_STRING]);
+                }
+                return lastOK();
+            }
+
+            /*!
+                \brief updateCertificate
+                \param oldCertificate
+                \param newCertificate
+                \param newPrivateKey
+                \param closeSessions
+                \param closeSecureChannels
+                \return true on success
+            */
+            bool updateCertificate(const UA_ByteString *oldCertificate,
+                                   const UA_ByteString *newCertificate,
+                                   const UA_ByteString *newPrivateKey,
+                                   bool closeSessions = true,
+                                   bool closeSecureChannels = true) {
+                if (!server()) return false;
+                WriteLock l(_mutex);
+                _lastError =  UA_Server_updateCertificate(_server,
+                                                          oldCertificate,
+                                                          newCertificate,
+                                                          newPrivateKey,
+                                                          closeSessions,
+                                                          closeSecureChannels);
+                return lastOK();
+            }
+            /*!
+                \brief accessControlAllowHistoryUpdateUpdateData
+                \param sessionId
+                \param sessionContext
+                \param nodeId
+                \param performInsertReplace
+                \param value
+                \return
+            */
+            bool accessControlAllowHistoryUpdateUpdateData(const NodeId &sessionId,
+                                                           void *sessionContext,
+                                                           const NodeId &nodeId,
+                                                           UA_PerformUpdateType performInsertReplace,
+                                                           UA_DataValue &value) {
+                if (!server()) return false;
+                WriteLock l(_mutex);
+                return  UA_Server_AccessControl_allowHistoryUpdateUpdateData(_server, sessionId.constRef(), sessionContext,
+                                                                             nodeId.constRef(), performInsertReplace, &value) == UA_TRUE;
+            }
+
+            bool accessControlAllowHistoryUpdateDeleteRawModified(const NodeId &sessionId, void *sessionContext,
+                                                                  const NodeId &nodeId,
+                                                                  UA_DateTime startTimestamp,
+                                                                  UA_DateTime endTimestamp,
+                                                                  bool isDeleteModified = true) {
+                if (!server()) return false;
+                WriteLock l(_mutex);
+                return   UA_Server_AccessControl_allowHistoryUpdateDeleteRawModified(_server,
+                                                                                     sessionId.constRef(), sessionContext,
+                                                                                     nodeId.constRef(),
+                                                                                     startTimestamp,
+                                                                                     endTimestamp,
+                                                                                     isDeleteModified);
+
+            }
+
+            //
+            // Access control
+            //
+            /*!
+                \brief allowAddNode
+                \param ac
+                \param sessionId
+                \param sessionContext
+                \param item
+                \return
+            */
+            virtual bool allowAddNode(UA_AccessControl */*ac*/,
+                                      const UA_NodeId */*sessionId*/, void */*sessionContext*/,
+                                      const UA_AddNodesItem */*item*/) {
+                return true;
+            }
+
+            /*!
+                \brief allowAddReference
+                \param ac
+                \param sessionId
+                \param sessionContext
+                \param item
+                \return
+            */
+            virtual bool allowAddReference(UA_AccessControl */*ac*/,
+                                           const UA_NodeId */*sessionId*/, void */*sessionContext*/,
+                                           const UA_AddReferencesItem */*item*/) {
+                return true;
+            }
+
+            /*!
+                \brief allowDeleteNode
+                \param ac
+                \param sessionId
+                \param sessionContext
+                \param item
+                \return
+            */
+            virtual bool allowDeleteNode(UA_AccessControl */*ac*/,
+                                         const UA_NodeId */*sessionId*/, void */*sessionContext*/,
+                                         const UA_DeleteNodesItem */*item*/) {
+                return false; // Do not allow deletion from client
+            }
+
+            /*!
+                \brief allowDeleteReference
+                \param ac
+                \param sessionId
+                \param sessionContext
+                \param item
+                \return
+            */
+            virtual bool allowDeleteReference(UA_AccessControl */*ac*/,
+                                              const UA_NodeId */*sessionId*/, void */*sessionContext*/,
+                                              const UA_DeleteReferencesItem */*item*/) {
+                return true;
+            }
+
+            /*!
+                \brief activateSession
+                \return
+            */
+            virtual UA_StatusCode activateSession(UA_AccessControl */*ac*/,
+                                                  const UA_EndpointDescription */*endpointDescription*/,
+                                                  const UA_ByteString */*secureChannelRemoteCertificate*/,
+                                                  const UA_NodeId */*sessionId*/,
+                                                  const UA_ExtensionObject */*userIdentityToken*/,
+                                                  void **/*sessionContext*/) {
+                return UA_STATUSCODE_BADSESSIONIDINVALID;
+            }
+
+            /* Deauthenticate a session and cleanup */
+            virtual void closeSession(UA_AccessControl */*ac*/,
+                                      const UA_NodeId */*sessionId*/, void */*sessionContext*/) {
+
+            }
+
+            /* Access control for all nodes*/
+            virtual uint32_t getUserRightsMask(UA_AccessControl */*ac*/,
+                                               const UA_NodeId */*sessionId*/, void */*sessionContext*/,
+                                               const UA_NodeId */*nodeId*/, void */*nodeContext*/) {
+                return 0;
+            }
+
+            /* Additional access control for variable nodes */
+            virtual uint8_t getUserAccessLevel(UA_AccessControl */*ac*/,
+                                               const UA_NodeId */*sessionId*/, void */*sessionContext*/,
+                                               const UA_NodeId */*nodeId*/, void */*nodeContext*/) {
+                return 0;
+            }
+
+            /* Additional access control for method nodes */
+            virtual bool getUserExecutable(UA_AccessControl */*ac*/,
+                                           const UA_NodeId */*sessionId*/, void */*sessionContext*/,
+                                           const UA_NodeId */*methodId*/, void */*methodContext*/) {
+                return false;
+            }
+
+            /*  Additional access control for calling a method node in the context of a
+                specific object */
+            virtual bool getUserExecutableOnObject(UA_AccessControl *ac,
+                                                   const UA_NodeId *sessionId, void *sessionContext,
+                                                   const UA_NodeId *methodId, void *methodContext,
+                                                   const UA_NodeId *objectId, void *objectContext) {
+                return false;
+            }
+            /* Allow insert,replace,update of historical data */
+            virtual bool allowHistoryUpdateUpdateData(UA_AccessControl */*ac*/,
+                                                      const UA_NodeId */*sessionId*/, void */*sessionContext*/,
+                                                      const UA_NodeId */*nodeId*/,
+                                                      UA_PerformUpdateType /*performInsertReplace*/,
+                                                      const UA_DataValue */*value*/) {
+                return false;
+            }
+
+            /* Allow delete of historical data */
+            virtual bool allowHistoryUpdateDeleteRawModified(UA_AccessControl */*ac*/,
+                                                             const UA_NodeId */*sessionId*/,
+                                                             void */*sessionContext*/,
+                                                             const UA_NodeId */*nodeId*/,
+                                                             UA_DateTime /*startTimestamp*/,
+                                                             UA_DateTime/* endTimestamp*/,
+                                                             bool /*isDeleteModified*/) {
+                return false;
+            }
+
+
+            /*!
+                \brief setHistoryDatabase
+            */
+            void setHistoryDatabase(UA_HistoryDatabase &);
+            // Publish - Subscribe interface
 
 
     };

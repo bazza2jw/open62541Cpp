@@ -19,6 +19,7 @@ set(LIB_HEADERS
         clientsubscription.h
         trace.h
         discoveryserver.h
+        historydatabase.h
         )
 
 install(FILES ${LIB_HEADERS} DESTINATION include/open62541cpp)

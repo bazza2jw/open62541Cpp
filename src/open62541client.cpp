@@ -12,6 +12,8 @@
 #include "open62541client.h"
 #include "clientbrowser.h"
 
+
+
 /*!
  * \brief subscriptionInactivityCallback
  * \param client
@@ -69,13 +71,16 @@ void  Open62541::Client::stateCallback (UA_Client *client, UA_ClientState client
     \return
 */
 bool Open62541::Client::deleteTree(NodeId &nodeId) {
-    NodeIdMap m;
-    browseTree(nodeId, m);
-    for (auto i = m.begin(); i != m.end(); i++) {
-        UA_NodeId &ni =  i->second;
-        if (ni.namespaceIndex > 0) { // namespace 0 appears to be reserved
-            WriteLock l(_mutex);
-            UA_Client_deleteNode(_client, i->second, true);
+    if(_client)
+    {
+        NodeIdMap m;
+        browseTree(nodeId, m);
+        for (auto i = m.begin(); i != m.end(); i++) {
+            UA_NodeId &ni =  i->second;
+            if (ni.namespaceIndex > 0) { // namespace 0 appears to be reserved
+                WriteLock l(_mutex);
+                UA_Client_deleteNode(_client, i->second, true);
+            }
         }
     }
     return lastOK();
@@ -142,24 +147,27 @@ bool Open62541::Client::browseTree(Open62541::NodeId &nodeId, Open62541::UANodeT
 */
 bool Open62541::Client::browseTree(UA_NodeId &nodeId, Open62541::UANode *node) {
     // form a heirachical tree of nodes
-    Open62541::UANodeIdList l;
+    if(_client)
     {
-        WriteLock ll(mutex());
-        UA_Client_forEachChildNodeCall(_client, nodeId,  browseTreeCallBack, &l); // get the childlist
-    }
-    for (int i = 0; i < int(l.size()); i++) {
-        if (l[i].namespaceIndex > 0) {
-            QualifiedName outBrowseName;
-            {
-                WriteLock ll(mutex());
-                _lastError = __UA_Client_readAttribute(_client, &l[i], UA_ATTRIBUTEID_BROWSENAME, outBrowseName, &UA_TYPES[UA_TYPES_QUALIFIEDNAME]);
-            }
-            if (lastOK()) {
-                std::string s = toString(outBrowseName.get().name); // get the browse name and leaf key
-                NodeId nId = l[i]; // deep copy
-                UANode *n = node->createChild(s); // create the node
-                n->setData(nId);
-                browseTree(l[i], n);
+        Open62541::UANodeIdList l;
+        {
+            WriteLock ll(mutex());
+            UA_Client_forEachChildNodeCall(_client, nodeId,  browseTreeCallBack, &l); // get the childlist
+        }
+        for (int i = 0; i < int(l.size()); i++) {
+            if (l[i].namespaceIndex > 0) {
+                QualifiedName outBrowseName;
+                {
+                    WriteLock ll(mutex());
+                    _lastError = __UA_Client_readAttribute(_client, &l[i], UA_ATTRIBUTEID_BROWSENAME, outBrowseName, &UA_TYPES[UA_TYPES_QUALIFIEDNAME]);
+                }
+                if (lastOK()) {
+                    std::string s = toString(outBrowseName.get().name); // get the browse name and leaf key
+                    NodeId nId = l[i]; // deep copy
+                    UANode *n = node->createChild(s); // create the node
+                    n->setData(nId);
+                    browseTree(l[i], n);
+                }
             }
         }
     }
@@ -299,6 +307,7 @@ bool Open62541::Client::getChild(NodeId &start, const std::string &childName, No
 */
 bool Open62541::Client::addFolder(NodeId &parent,  const std::string &childName,
                                   NodeId &nodeId,  NodeId &newNode, int nameSpaceIndex) {
+    if(!_client) return false;
     WriteLock l(_mutex);
     //
     if (nameSpaceIndex == 0) nameSpaceIndex = parent.nameSpaceIndex(); // inherit parent by default
@@ -329,6 +338,7 @@ bool Open62541::Client::addFolder(NodeId &parent,  const std::string &childName,
 */
 bool Open62541::Client::addVariable(NodeId &parent, const std::string &childName, Variant &value,
                                     NodeId &nodeId, NodeId &newNode, int nameSpaceIndex) {
+    if(!_client) return false;
     WriteLock l(_mutex);
     if (nameSpaceIndex == 0) nameSpaceIndex = parent.nameSpaceIndex(); // inherit parent by default
     VariableAttributes var_attr;
@@ -366,6 +376,7 @@ bool Open62541::Client::addProperty(NodeId &parent,
                  NodeId &newNode,
                  int nameSpaceIndex )
 {
+    if(!_client) return false;
     WriteLock l(_mutex);
     if (nameSpaceIndex == 0) nameSpaceIndex = parent.nameSpaceIndex(); // inherit parent by default
     VariableAttributes var_attr;

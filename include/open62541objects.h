@@ -53,22 +53,22 @@ namespace Open62541 {
             std::unique_ptr<T> _d; // shared pointer - there is no copy on change
         public:
             TypeBase(T *t) : _d(t) {}
-            T &get() {
+            T &get() const {
                 return *(_d.get());
             }
             // Reference and pointer for parameter passing
-            operator T &() {
+            operator T &() const {
                 return get();
             }
 
-            operator T *() {
+            operator T *() const{
                 return _d.get();
             }
-            const T *constRef() {
+            const T *constRef() const {
                 return _d.get();
             }
 
-            T   *ref() {
+            T   *ref() const {
                 return _d.get();
             }
 
@@ -229,6 +229,16 @@ namespace Open62541 {
         r = UA_STRING_ALLOC(s.c_str());
     }
 
+    /*!
+     * \brief fromByteString
+     * \param b
+     * \return
+     */
+    inline std::string  fromByteString(UA_ByteString &b)
+    {
+        std::string s((const char *)b.data,b.length);
+        return s;
+    }
 
     /*!
         \brief printLastError
@@ -489,7 +499,27 @@ namespace Open62541 {
 
     };
 
-
+    /*!
+     * \brief The BrowsePathResult class
+     */
+    class UA_EXPORT BrowsePathResult : public TypeBase<UA_BrowsePathResult> {
+        static UA_BrowsePathTarget nullResult;
+    public:
+        UA_TYPE_DEF(BrowsePathResult)
+        UA_StatusCode statusCode() const
+        {
+            return ref()->statusCode;
+        }
+        size_t targetsSize() const
+        {
+            return ref()->targetsSize;
+        }
+        UA_BrowsePathTarget targets(size_t i)
+        {
+            if(i < ref()->targetsSize)  return ref()->targets[i];
+            return nullResult;
+        }
+    };
 
     /*!
         \brief toString
@@ -510,7 +540,7 @@ namespace Open62541 {
     //
     // Memory Leak Risk - TODO Check this
     //
-
+    std::string variantToString(UA_Variant &v);
     class  UA_EXPORT  Variant  : public TypeBase<UA_Variant> {
         public:
             // It would be nice to template but ...
@@ -614,6 +644,11 @@ namespace Open62541 {
             // convert from an any to Variant
             // limit to basic types
             void fromAny(boost::any &a);
+            /*!
+             * \brief toString
+             * \return variant in string form
+             */
+            std::string toString();
     };
 
     // array of variants
@@ -665,6 +700,8 @@ namespace Open62541 {
             referenceTypeId = b.referenceTypeId;
         }
     };
+
+
 
     //
     // Helper containers
@@ -770,6 +807,19 @@ namespace Open62541 {
             void setValueRank(int i) {
                 get().valueRank = i;
             }
+
+            void setHistorizing(bool f = true)
+            {
+                get().historizing = f;
+                if(f)
+                {
+                    get().accessLevel |=  UA_ACCESSLEVELMASK_HISTORYREAD;
+                }
+                else
+                {
+                    get().accessLevel &= ~UA_ACCESSLEVELMASK_HISTORYREAD;
+                }
+            }
     };
 
     /*!
@@ -866,7 +916,6 @@ namespace Open62541 {
     };
 
 
-
     /*!
         \brief The RelativePath class
     */
@@ -912,13 +961,7 @@ namespace Open62541 {
             UA_TYPE_DEF(BrowseResult)
     };
 
-    /*!
-        \brief The BrowsePathResult class
-    */
-    class  UA_EXPORT  BrowsePathResult : public TypeBase<UA_BrowsePathResult> {
-        public:
-            UA_TYPE_DEF(BrowsePathResult)
-    };
+
 
     class  UA_EXPORT  CallMethodRequest : public TypeBase<UA_CallMethodRequest> {
         public:
@@ -965,6 +1008,7 @@ namespace Open62541 {
             }
     };
 
+    // Request / Response wrappers for monitored items and events
     /*!
         \brief The CreateSubscriptionRequest class
     */
@@ -987,12 +1031,53 @@ namespace Open62541 {
         public:
             UA_TYPE_DEF(MonitoredItemCreateResult)
     };
-
+    /*!
+     * \brief The MonitoredItemCreateRequest class
+     */
     class UA_EXPORT MonitoredItemCreateRequest : public TypeBase<UA_MonitoredItemCreateRequest> {
         public:
             UA_TYPE_DEF(MonitoredItemCreateRequest)
     };
 
+    /*!
+     * \brief The SetMonitoringModeResponse class
+     */
+    class UA_EXPORT SetMonitoringModeResponse : public TypeBase<UA_SetMonitoringModeResponse> {
+        public:
+            UA_TYPE_DEF(SetMonitoringModeResponse)
+    };
+
+    /*!
+     * \brief The SetMonitoringModeRequest class
+     */
+    class UA_EXPORT SetMonitoringModeRequest : public TypeBase<UA_SetMonitoringModeRequest> {
+        public:
+            UA_TYPE_DEF(SetMonitoringModeRequest)
+    };
+
+    /*!
+     * \brief The SetTriggeringResult class
+     */
+    class UA_EXPORT SetTriggeringResponse : public TypeBase<UA_SetTriggeringResponse> {
+        public:
+            UA_TYPE_DEF(SetTriggeringResponse)
+    };
+
+    /*!
+     * \brief The SetTriggeringRequest class
+     */
+    class UA_EXPORT SetTriggeringRequest : public TypeBase<UA_SetTriggeringRequest> {
+        public:
+            UA_TYPE_DEF(SetTriggeringRequest)
+    };
+
+    //
+#if 0
+    class UA_EXPORT PubSubConnectionConfig : public TypeBase<UA_PubSubConnectionConfig> {
+    public:
+        UA_TYPE_DEF(PubSubConnectionConfig)
+    };
+#endif
     //
     // Nodes in a browsable / addressable property tree
     //
@@ -1398,5 +1483,10 @@ namespace Open62541 {
 
     };
 
+
+  // debug helpers
+  std::string  timestampToString(UA_DateTime date);
+  std::string  dataValueToString(UA_DataValue *value);
+  std::string variantToString(UA_Variant &v);
 }
 #endif // OPEN62541OBJECTS_H

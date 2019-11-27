@@ -34,7 +34,7 @@ class ClientBrowser : public Browser<Client> {
         */
         void browse(UA_NodeId start) {
             list().clear();
-            UA_Client_forEachChildNodeCall(obj().client(), start, browseIter, (void *) this);
+            if(obj().client()) UA_Client_forEachChildNodeCall(obj().client(), start, browseIter, (void *) this);
         }
 
 };

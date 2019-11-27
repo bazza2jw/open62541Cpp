@@ -21,7 +21,7 @@ namespace Open62541 {
     */
     class UA_EXPORT DiscoveryServer {
             UA_ServerConfig *_config;
-            UA_Server *_server;
+            UA_Server *_server = nullptr;
             UA_Boolean _running = true;
         public:
             DiscoveryServer(int port, const std::string &url);

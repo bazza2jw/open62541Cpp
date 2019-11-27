@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.11)
 # Build Test Server
-set(APPNAME TestServer)
+set(APPNAME TestHistorianServer)
 
 # Source code
 set(SOURCES

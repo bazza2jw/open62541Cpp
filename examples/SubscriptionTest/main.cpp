@@ -6,6 +6,20 @@
 //
 using namespace std;
 //
+class SubTestClient : public Open62541::Client
+{
+public:
+    void asyncService(void * /*userdata*/, UA_UInt32 requestId, void * /*response*/,
+                                          const UA_DataType *responseType)
+    {
+        cout << "asyncService requerstId = " << requestId << " Type " << responseType->typeName << endl;
+    }
+    void asyncConnectService(UA_UInt32 requestId, void */*userData*/, void */*response*/)
+    {
+       cout << "asyncConnectService requestId = " << requestId  << endl;
+    }
+};
+
 int main() {
     cout << "Client Subscription Test - TestServer must be running" << endl;
     //
@@ -16,13 +30,14 @@ int main() {
     Open62541::Client client;
     if (client.connect("opc.tcp://localhost:4840")) {
         int idx = client.namespaceGetIndex("urn:test:test");
-        if (idx == 2) {
+        if (idx > 1) {
             cout << "Connected" << endl;
             UA_UInt32 subId = 0;
             if (client.addSubscription(subId)) {
                 cout << "Subscription Created id = " << subId << endl;
                 auto f = [](Open62541::ClientSubscription & c, UA_DataValue * v) {
-                    cout << "Data Change SubId " << c.id() << " Value " << v->value.type->typeName << endl;
+                    cout << "Data Change SubId " << c.id() << " Value " << v->value.type->typeName
+                         << " " << Open62541::dataValueToString(v) << endl;
                 };
 
                 auto ef = [](Open62541::ClientSubscription & c, Open62541::VariantArray &) {
@@ -53,16 +68,16 @@ int main() {
                     cout << "Failed to monitor events" << endl;
                 }
                 //
-                // run for 5 second
+                // run for one minute
                 //
-                for (int j = 0; j < 500; j++) {
-                    client.runAsync(1000);
+                for (int j = 0; j < 60; j++) {
+                    client.runIterate(1000);
                 }
                 cout << "Ended Run - Test if deletes work correctly" << endl;
                 client.subscriptions().clear();
                 cout << "Subscriptions cleared - run for another 5 seconds" << endl;
                 for (int j = 0; j < 5; j++) {
-                    client.runAsync(1000);
+                    client.runIterate(1000);
                 }
                 cout << "Finished" << endl;
             }
@@ -71,7 +86,7 @@ int main() {
             }
         }
         else {
-            cout << "TestServer not running" << endl;
+            cout << "TestServer not running idx = " << idx  << endl;
         }
     }
     else {

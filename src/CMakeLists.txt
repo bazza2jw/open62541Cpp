@@ -15,6 +15,7 @@ set(LIB_SOURCES
         clientsubscription.cpp
         discoveryserver.cpp
         servernodetree.cpp
+        historydatabase.cpp
         )
 
 

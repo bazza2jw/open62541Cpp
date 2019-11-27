@@ -107,6 +107,22 @@ namespace  Open62541 {
             UA_UInt32 id() {
                 return _response.get().monitoredItemId;
             }
+protected:
+            /*!
+             * \brief setMonitoringMode
+             * \param request
+             * \param response
+             * \return
+             */
+            bool setMonitoringMode( const SetMonitoringModeRequest &request, SetMonitoringModeResponse &response);
+
+            /*!
+             * \brief setTriggering
+             * \param request
+             * \param request
+             * \return
+             */
+            bool setTriggering(const SetTriggeringRequest &request, SetTriggeringResponse &response);
     };
 
     /*!

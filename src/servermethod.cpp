@@ -63,7 +63,7 @@ Open62541::ServerMethod::ServerMethod(const std::string &n,
  */
 bool Open62541::ServerMethod::setMethodNodeCallBack(Open62541::Server &s, Open62541::NodeId &node)
 {
-    return UA_Server_setMethodNode_callback(s.server(), node, methodCallback) == UA_STATUSCODE_GOOD;
+    return s.server()? (UA_Server_setMethodNode_callback(s.server(), node, methodCallback) == UA_STATUSCODE_GOOD):false;
 }
 
 

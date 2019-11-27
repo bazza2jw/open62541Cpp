@@ -78,7 +78,7 @@ namespace Open62541 {
             */
             void process() {
                 for (auto i = _cache.begin(); i != _cache.end(); i++) {
-                    (i->second)->process();
+                    if((i->second)) (i->second)->process();
                 }
             }
     };

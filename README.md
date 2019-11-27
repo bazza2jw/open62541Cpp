@@ -1,6 +1,6 @@
-# Open62541 C++ Library for Open62541 version 0.3
+# Open62541 C++ Library for Open62541 version 1.0
 
-This is a set of wrapper classes for the Open62541 C OPC UA library version 0.3. The objective is to reduce the code 
+This is a set of wrapper classes for the Open62541 C OPC UA library version 1.0. The objective is to reduce the code 
 required by a considerable amount and allow object orientated coding.
 
 Do not assume any OPC UA feature is implemented or complete or optimally done. Support will be added as and when 
@@ -21,7 +21,7 @@ There is C++ style class support of Object Types.
 
 # Building
 
-The library is Built using cmake. The examples show how to use the classes and should correspond to many of the C 
+The library is built using cmake. The examples show how to use the classes and should correspond to many of the C 
 library examples. These examples can be build with `-Dwith_examples=ON`.
 
 ## Requirements

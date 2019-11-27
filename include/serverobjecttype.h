@@ -73,6 +73,7 @@ namespace Open62541 {
                 return _typeId;
             }
 
+
             /*!
                 \brief addBaseObjectType
                 \param n
@@ -129,6 +130,79 @@ namespace Open62541 {
                 UAPRINTLASTERROR(_server.lastError())
                 return false;
             }
+
+            bool addObjectTypeFolder(const std::string &childName,   NodeId &parent,
+                           NodeId &nodeId, NodeId &requestNodeId = NodeId::Null, bool mandatory = true)
+            {
+                NodeId newNode;
+                newNode.notNull();
+
+                if(_server.addFolder(parent,childName,newNode,requestNodeId))
+                {
+                    if (mandatory) {
+                        return _server.addReference(newNode,
+                                                    NodeId::HasModellingRule,
+                                                    ExpandedNodeId::ModellingRuleMandatory,
+                                                    true);
+                    }
+                    if (!nodeId.isNull()) nodeId = newNode;
+                    return true;
+                }
+                return false;
+            }
+
+            /*!
+                \brief addHistoricalObjectTypeVariable
+                \param n
+                \param parent
+                \param nodeiD
+                \param mandatory
+                \return
+            */
+            template<typename T> bool addHistoricalObjectTypeVariable(const std::string &n, NodeId &parent,
+                                                            NodeId &nodeId = NodeId::Null,
+                                                            NodeContext *context = nullptr,
+                                                            NodeId &requestNodeId = NodeId::Null, // usually want auto generated ids
+                                                            bool mandatory = true) {
+                T a{};
+                Variant value(a);
+                //
+                VariableAttributes var_attr;
+                var_attr.setDefault();
+                var_attr.setDisplayName(n);
+                var_attr.setDescription(n);
+                var_attr.get().accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE | UA_ACCESSLEVELMASK_HISTORYREAD;
+                var_attr.setValue(value);
+                var_attr.get().dataType = value.get().type->typeId;
+                var_attr.get().historizing = true;
+
+                //
+                QualifiedName qn(_nameSpace, n.c_str());
+                //
+                NodeId newNode;
+                newNode.notNull();
+                //
+                if (_server.addVariableNode(requestNodeId,
+                                            parent,
+                                            NodeId::HasComponent,
+                                            qn,
+                                            NodeId::BaseDataVariableType,
+                                            var_attr,
+                                            newNode,
+                                            context)) {
+                    if (mandatory) {
+                        return _server.addReference(newNode,
+                                                    NodeId::HasModellingRule,
+                                                    ExpandedNodeId::ModellingRuleMandatory,
+                                                    true);
+                    }
+                    if (!nodeId.isNull()) nodeId = newNode;
+                    return true;
+                }
+                UAPRINTLASTERROR(_server.lastError())
+                return false;
+            }
+
 
             /*!
                 \brief setMandatory
