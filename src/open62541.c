@@ -57624,6 +57624,62 @@ UA_DateTime UA_DateTime_nowMonotonic(void) {
 
 #endif /* UA_ARCHITECTURE_POSIX */
 
+#ifdef UA_ARCHITECTURE_WIN32
+
+#ifndef _BSD_SOURCE
+# define _BSD_SOURCE
+#endif
+
+#include <time.h>
+/* Backup definition of SLIST_ENTRY on mingw winnt.h */
+#ifdef SLIST_ENTRY
+# pragma push_macro("SLIST_ENTRY")
+# undef SLIST_ENTRY
+# define POP_SLIST_ENTRY
+#endif
+#include <windows.h>
+/* restore definition */
+#ifdef POP_SLIST_ENTRY
+# undef SLIST_ENTRY
+# undef POP_SLIST_ENTRY
+# pragma pop_macro("SLIST_ENTRY")
+#endif
+
+UA_DateTime UA_DateTime_now(void) {
+    /* Windows filetime has the same definition as UA_DateTime */
+    FILETIME ft;
+    SYSTEMTIME st;
+    GetSystemTime(&st);
+    SystemTimeToFileTime(&st, &ft);
+    ULARGE_INTEGER ul;
+    ul.LowPart = ft.dwLowDateTime;
+    ul.HighPart = ft.dwHighDateTime;
+    return (UA_DateTime)ul.QuadPart;
+}
+
+/* Credit to https://stackoverflow.com/questions/13804095/get-the-time-zone-gmt-offset-in-c */
+UA_Int64 UA_DateTime_localTimeUtcOffset(void) {
+    time_t gmt, rawtime = time(NULL);
+
+    struct tm ptm;
+    gmtime_s(&ptm, &rawtime);
+    // Request that mktime() looksup dst in timezone database
+    ptm.tm_isdst = -1;
+    gmt = mktime(&ptm);
+
+    return (UA_Int64)(difftime(rawtime, gmt) * UA_DATETIME_SEC);
+}
+
+UA_DateTime UA_DateTime_nowMonotonic(void) {
+    LARGE_INTEGER freq, ticks;
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&ticks);
+    UA_Double ticks2dt = UA_DATETIME_SEC / (UA_Double)freq.QuadPart;
+    return (UA_DateTime)(ticks.QuadPart * ticks2dt);
+}
+
+#endif /* UA_ARCHITECTURE_WIN32 */
+
 /*********************************** amalgamated original file "/home/barry/Work/Development/Projects/MRL/open62541-open62541-ce5209d/arch/posix/ua_architecture_functions.c" ***********************************/
 
 /* This work is licensed under a Creative Commons CCZero 1.0 Universal License.
@@ -57664,6 +57720,35 @@ void UA_deinitialize_architecture_network(void){
 }
 
 #endif /* UA_ARCHITECTURE_POSIX */
+
+
+#ifdef UA_ARCHITECTURE_WIN32
+
+unsigned int UA_socket_set_blocking(UA_SOCKET sockfd) {
+    u_long iMode = 0;
+    if (ioctlsocket(sockfd, FIONBIO, &iMode) != NO_ERROR)
+        return UA_STATUSCODE_BADINTERNALERROR;
+    return UA_STATUSCODE_GOOD;;
+}
+
+unsigned int UA_socket_set_nonblocking(UA_SOCKET sockfd) {
+    u_long iMode = 1;
+    if (ioctlsocket(sockfd, FIONBIO, &iMode) != NO_ERROR)
+        return UA_STATUSCODE_BADINTERNALERROR;
+    return UA_STATUSCODE_GOOD;;
+}
+
+void UA_initialize_architecture_network(void) {
+    WSADATA wsaData;
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
+}
+
+void UA_deinitialize_architecture_network(void) {
+    WSACleanup();
+}
+
+#endif /* UA_ARCHITECTURE_WIN32 */
+
 
 /*********************************** amalgamated original file "/home/barry/Work/Development/Projects/MRL/open62541-open62541-ce5209d/arch/network_tcp.c" ***********************************/
 
@@ -58093,9 +58178,11 @@ ServerNetworkLayerTCP_listen(UA_ServerNetworkLayer *nl, UA_Server *server,
     setFDSet(layer, &errset);
     struct timeval tmptv = {0, timeout * 1000};
     if (UA_select(highestfd+1, &fdset, NULL, &errset, &tmptv) < 0) {
-        UA_LOG_SOCKET_ERRNO_WRAP(
-            UA_LOG_DEBUG(layer->logger, UA_LOGCATEGORY_NETWORK,
-                           "Socket select failed with %s", errno_str));
+     UA_LOG_SOCKET_ERRNO_WRAP(UA_LOG_DEBUG(
+         layer->logger,
+         UA_LOGCATEGORY_NETWORK,
+         "Socket select failed with %s",
+         errno_str));
         // we will retry, so do not return bad
         return UA_STATUSCODE_GOOD;
     }
@@ -58483,8 +58570,12 @@ UA_ClientConnectionTCP_init(UA_ConnectionConfig config, const UA_String endpoint
 }
 
 UA_Connection
-UA_ClientConnectionTCP(UA_ConnectionConfig config, const UA_String endpointUrl,
-                       UA_UInt32 timeout, UA_Logger *logger) {
+UA_ClientConnectionTCP(
+    UA_ConnectionConfig config,
+    const UA_String     endpointUrl,
+    UA_UInt32           timeout,
+    UA_Logger*          logger)
+{
     UA_initialize_architecture_network();
 
     UA_Connection connection;
