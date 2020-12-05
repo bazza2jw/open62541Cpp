@@ -5,8 +5,6 @@
     This is an example server that registers with the discover y server
 */
 
-
-
 using namespace std;
 #define DISCOVERY_SERVER_ENDPOINT "opc.tcp://localhost:4850"
 
@@ -18,13 +16,13 @@ class TestServer : public Open62541::Server {
         int _idx; // namespace index
         UA_UInt64 _discoveryid;
         //
-        Open62541::SeverRepeatedCallback _repeatedEvent; //
+        Open62541::ServerRepeatedCallback _repeatedEvent; //
         Open62541::Client _client;
 
     public:
         TestServer(int port)
             : Open62541::Server(port),
-              _repeatedEvent(*this, 2000, [ & ](Open62541::SeverRepeatedCallback & s) {
+              _repeatedEvent(*this, 2000, [ & ](Open62541::ServerRepeatedCallback & s) {
             Open62541::NodeId nodeNumber(_idx, "Number_Value");
             int v = std::rand() % 100;
             Open62541::Variant numberValue(v);

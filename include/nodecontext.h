@@ -24,6 +24,8 @@ namespace Open62541 {
             static UA_DataSource _dataSource; //!< Call back for data source operations
             static UA_ValueCallback _valueCallback; //!< call back for value get / set
             static UA_NodeTypeLifecycle _nodeTypeLifeCycle; //!< life cycle callback
+        protected:
+            UA_StatusCode _lastError;
         public:
             /*!
                 \brief NodeContext
@@ -37,6 +39,22 @@ namespace Open62541 {
              * \brief ~NodeContext
              */
             virtual ~NodeContext() {}
+
+            /*!
+                \brief lastError
+                \return
+            */
+            UA_StatusCode lastError() const {
+                return _lastError;
+            }
+
+            /*!
+                \brief lastOK
+                \return last error code
+            */
+            bool lastOK() const {
+                return _lastError == UA_STATUSCODE_GOOD;
+            }
 
             /*!
              * \brief name

@@ -3,7 +3,7 @@
 #include <open62541objects.h>
 using namespace std;
 
-int main(int argc, char *argv[])
+int main(int /*argc*/, char **/*argv[]*/)
 {
     {
         cout << "Variable Test" << endl;
@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
         //
         //
         cout << "Assigning C types Test" << endl;
-        UA_NodeId x = UA_NODEID_NUMERIC(1,1234); // these should be explicity deleted using UA_NodeId_deletemembers
+        UA_NodeId x = UA_NODEID_NUMERIC(1,1234); // these should be explicity deleted using UA_NodeId_clear
         UA_NodeId y = UA_NODEID_NUMERIC(1,4567);
         UA_NodeId z = UA_NODEID_NUMERIC(1,9876);
         //

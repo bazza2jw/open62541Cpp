@@ -141,7 +141,7 @@ namespace MRL {
             double sum = 0.0;
             double sumSquares = 0.0;
             double minimum = 0.0;
-            double maximum = 0.0;
+            double oaximum = 0.0;
             //
             // SPC metrics
             //

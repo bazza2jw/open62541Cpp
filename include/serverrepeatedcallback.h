@@ -14,16 +14,20 @@
 #include "open62541objects.h"
 namespace Open62541 {
 
+class ServerRepeatedCallback;
+typedef std::function<void (ServerRepeatedCallback &)> ServerRepeatedCallbackFunc;
 
-    typedef std::function<void (SeverRepeatedCallback &)> SeverRepeatedCallbackFunc;
     /*!
-        \brief The SeverRepeatedCallback class
+        \brief The ServerRepeatedCallback class
     */
-    class  UA_EXPORT  SeverRepeatedCallback {
+    class  UA_EXPORT  ServerRepeatedCallback {
             Server &_server; // parent server
             UA_UInt32 _interval = 1000;
             UA_UInt64 _id = 0;
-            SeverRepeatedCallbackFunc _func; // functior to handle event
+
+
+
+            ServerRepeatedCallbackFunc _func; // functior to handle event
 
         protected:
             UA_StatusCode _lastError = 0;
@@ -35,18 +39,18 @@ namespace Open62541 {
             */
             static void callbackFunction(UA_Server *server, void *data);
             /*!
-                \brief SeverRepeatedCallback
+                \brief ServerRepeatedCallback
                 \param s
                 \param interval
             */
-            SeverRepeatedCallback(Server &s, UA_UInt32 interval);
-            SeverRepeatedCallback(Server &s, UA_UInt32 interval, SeverRepeatedCallbackFunc func);
+            ServerRepeatedCallback(Server &s, UA_UInt32 interval);
+            ServerRepeatedCallback(Server &s, UA_UInt32 interval, ServerRepeatedCallbackFunc func);
             //
             //
             /*!
-                \brief ~SeverRepeatedCallback
+                \brief ~ServerRepeatedCallback
             */
-            virtual ~SeverRepeatedCallback();
+            virtual ~ServerRepeatedCallback();
 
             /*!
                 \brief start
@@ -104,9 +108,9 @@ namespace Open62541 {
             }
     };
     /*!
-        \brief SeverRepeatedCallbackRef
+        \brief ServerRepeatedCallbackRef
     */
-    typedef std::shared_ptr<SeverRepeatedCallback> SeverRepeatedCallbackRef;
+    typedef std::shared_ptr<ServerRepeatedCallback> ServerRepeatedCallbackRef;
 }
 
 

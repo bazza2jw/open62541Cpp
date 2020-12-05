@@ -12,8 +12,6 @@
     A PARTICULAR PURPOSE.
 */
 
-
-#include "open62541.h"
 #include "open62541objects.h"
 namespace Open62541 {
 
@@ -1134,7 +1132,7 @@ namespace Open62541 {
             }
             virtual ~Historian() {
                 if(_backend.context)
-                    UA_HistoryDataBackend_Memory_deleteMembers(&_backend);
+                    UA_HistoryDataBackend_Memory_clear(&_backend);
             }
 
             // accessors

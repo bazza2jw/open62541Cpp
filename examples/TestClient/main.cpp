@@ -1,5 +1,7 @@
 #include <iostream>
 #include <open62541client.h>
+#include <signal.h>
+#include <stdlib.h>
 using namespace std;
 #define DISCOVERY_SERVER_ENDPOINT "opc.tcp://localhost:4850"
 
@@ -11,6 +13,7 @@ int main(int /*argc*/, char **/*argv*/) {
     // Connect
     if (client.connect("opc.tcp://localhost:4840")) {
         //
+
         int idx = client.namespaceGetIndex("urn:test:test");
         cout << "Get Endpoints" << endl;
         Open62541::EndpointDescriptionArray ea;
@@ -64,6 +67,7 @@ int main(int /*argc*/, char **/*argv*/) {
             Open62541::StringArray localeIds;
             Open62541::ApplicationDescriptionArray registeredServers;
             Open62541::Client discoveryClient;
+            discoveryClient.initialise();
             //
             if (discoveryClient.findServers(DISCOVERY_SERVER_ENDPOINT, serverUris, localeIds, registeredServers)) {
                 cout << "Discovered Number of Servers: " << registeredServers.length() << endl;
@@ -99,11 +103,28 @@ int main(int /*argc*/, char **/*argv*/) {
                     cout << endl;
                 }
 
-
             }
             else {
                 cout << "Failed to find discovery server" << endl;
             }
+
+
+            cout << "Test Timers" << endl;
+
+            // Now run the timer tests
+            // set up timed event for 10 seconds time
+            UA_UInt64 callerId;
+            client.addTimedEvent(UA_DateTime_nowMonotonic() + (UA_DATETIME_SEC * 10),callerId,[](Open62541::Client::Timer &){ std::cerr << "Timed Event Triggered " << time(0) << std::endl;});
+            std::cerr << "Added one shot timer event for 10 seconds time  Now = " << time(0)  << " Id = " << callerId << endl;
+            //
+            // Add a repeated timer event - these can be thought of as event driven tasks
+            //
+            client.addRepeatedTimerEvent(2000,callerId,[](Open62541::Client::Timer &){ std::cerr << "Repeated Event Triggered " << time(0) << std::endl;});
+            std::cerr << "Added repeated timer event for 2 seconds  Now = " << time(0)  << " Id = " << callerId << endl;
+            //
+            client.run(); // this will loop until interrupted
+
+
         }
         else {
             cout << "Failed to create folders" << endl;

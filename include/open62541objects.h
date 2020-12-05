@@ -17,10 +17,60 @@
 #pragma warning(disable:4251)
 #endif
 //
+#ifdef UA_ENABLE_AMALGAMATION
 #include "open62541.h"
+#else
+#include "open62541/config.h"
+#include "open62541/statuscodes.h"
+#include "open62541/nodeids.h"
+#include "open62541/common.h"
+#include "open62541/types.h"
+#include "open62541/util.h"
+#include "open62541/client.h"
+#include "open62541/server.h"
+#include "open62541/architecture_definitions.h"
+#include "open62541/server_pubsub.h"
+#include "open62541/types_generated.h"
+#include "open62541/network_tcp.h"
+#include "open62541/client_config_default.h"
+#include "open62541/client_highlevel_async.h"
+#include "open62541/types_generated_handling.h"
+#include "open62541/architecture_functions.h"
+#include "open62541/posix/ua_architecture.h"
+#include "open62541/server_config_default.h"
+#include "open62541/client_subscriptions.h"
+#include "open62541/client_highlevel.h"
+#include "open62541/plugin/historydatabase.h"
+#include "open62541/plugin/log_syslog.h"
+#include "open62541/plugin/network.h"
+#include "open62541/plugin/historydata/history_database_default.h"
+#include "open62541/plugin/historydata/history_data_backend.h"
+#include "open62541/plugin/historydata/history_data_gathering.h"
+#include "open62541/plugin/historydata/history_data_gathering_default.h"
+#include "open62541/plugin/historydata/history_data_backend_memory.h"
+#include "open62541/plugin/log.h"
+#include "open62541/plugin/nodestore.h"
+#include "open62541/plugin/pki.h"
+#include "open62541/plugin/pubsub.h"
+#include "open62541/plugin/nodestore_default.h"
+#include "open62541/plugin/log_stdout.h"
+#include "open62541/plugin/securitypolicy.h"
+#include "open62541/plugin/accesscontrol.h"
+#include "open62541/plugin/accesscontrol_default.h"
+#include "open62541/plugin/pki_default.h"
+#include "open62541/plugin/securitypolicy_default.h"
+#endif
+//
+#if UA_MULTITHREADING >= 100
+// Sleep is function call in wxWidgets
+#include <pthread.h>
+#undef Sleep
+#endif
+//
 #include "open62541cpp_trace.h"
 //
 #include <string>
+#include <stdint.h>
 #if defined(__GNUC__)
 #include <error.h>
 #endif
@@ -92,12 +142,121 @@ namespace Open62541 {
 #define UA_TYPE_BASE(C,T)\
     C() :  TypeBase(T##_new()) {T##_init(_d.get()); UA_TRC("Construct:" << UA_STRINGIFY(C))}\
     C(const T &t) :  TypeBase(T##_new()){assignFrom(t);UA_TRC("Construct (" << UA_STRINGIFY(T) << ")")}\
-    ~C(){UA_TRC("Delete:" << UA_STRINGIFY(C)); if(_d) T##_deleteMembers(_d.get());}\
+    ~C(){UA_TRC("Delete:" << UA_STRINGIFY(C)); if(_d) T##_clear(_d.get());}\
     C(const C & n) :  TypeBase(T##_new())  { T##_copy(n._d.get(),_d.get()); UA_TRC("Copy Construct:" << UA_STRINGIFY(C))}\
     C & operator = ( const C &n) {UA_TRC("Assign:" << UA_STRINGIFY(C));null(); T##_copy(n._d.get(),_d.get()); return *this;}\
-    void null() {if(_d){UA_TRC("Delete(in null):" << UA_STRINGIFY(C));T##_deleteMembers(_d.get());} _d.reset(T##_new());T##_init(_d.get());}\
+    void null() {if(_d){UA_TRC("Delete(in null):" << UA_STRINGIFY(C));T##_clear(_d.get());} _d.reset(T##_new());T##_init(_d.get());}\
     void assignTo(T &v){ T##_copy(_d.get(),&v);}\
     void assignFrom(const T &v){ T##_copy(&v,_d.get());}
+
+/*!
+ * \brief The String class
+ */
+class String{
+    UA_String _s;
+public:
+    String(const std::string &s)
+    {
+        _s = UA_String_fromChars(s.c_str());
+    }
+
+    String(const String &s)
+    {
+        UA_String_clear(&_s);
+        UA_String_copy(&s._s,&_s);
+    }
+
+    String(const UA_String &s)
+    {
+        UA_String_clear(&_s);
+        UA_String_copy(&s,&_s);
+    }
+
+    ~String()
+    {
+        UA_String_clear(&_s);
+    }
+
+    operator const UA_String & () { return _s;}
+    operator const UA_String * () { return &_s;}
+    operator UA_String * () { return &_s;}
+
+
+    String & operator = (const String &s)
+    {
+        UA_String_clear(&_s);
+        UA_String_copy(&s._s,&_s);
+        return *this;
+    }
+
+    String & operator = (const UA_String &s)
+    {
+        UA_String_clear(&_s);
+        UA_String_copy(&s,&_s);
+        return *this;
+    }
+
+    std::string toStdString()
+    {
+        return std::string((char *)(_s.data),_s.length);
+    }
+
+
+};
+
+
+class ByteString{
+    UA_ByteString _s;
+public:
+    ByteString(const std::string &s)
+    {
+        _s = UA_BYTESTRING_ALLOC(s.c_str());
+    }
+
+    ByteString(const ByteString &s)
+    {
+        UA_ByteString_clear(&_s);
+        UA_ByteString_copy(&s._s,&_s);
+    }
+
+    ByteString(const UA_ByteString &s)
+    {
+        UA_ByteString_clear(&_s);
+        UA_ByteString_copy(&s,&_s);
+    }
+
+    ~ByteString()
+    {
+        UA_ByteString_clear(&_s);
+    }
+
+    operator const UA_ByteString & () { return _s;}
+    operator const UA_ByteString * () { return &_s;}
+    operator UA_ByteString * () { return &_s;}
+
+
+    ByteString & operator = (const ByteString &s)
+    {
+        UA_ByteString_clear(&_s);
+        UA_ByteString_copy(&s._s,&_s);
+        return *this;
+    }
+
+    ByteString & operator = (const UA_ByteString &s)
+    {
+        UA_ByteString_clear(&_s);
+        UA_ByteString_copy(&s,&_s);
+        return *this;
+    }
+
+    std::string toStdString()
+    {
+        return std::string((char *)(_s.data),_s.length);
+    }
+
+
+};
+
 
 
 #define UA_TYPE_DEF(T) UA_TYPE_BASE(T,UA_##T)
@@ -225,7 +384,7 @@ namespace Open62541 {
         \param r
     */
     inline void fromStdString(const std::string &s, UA_String &r) {
-        UA_String_deleteMembers(&r);
+        UA_String_clear(&r);
         r = UA_STRING_ALLOC(s.c_str());
     }
 
@@ -273,8 +432,8 @@ namespace Open62541 {
             }
 
             ~UsernamePasswordLogin() {
-                UA_String_deleteMembers(&ref()->username);
-                UA_String_deleteMembers(&ref()->password);
+                UA_String_clear(&ref()->username);
+                UA_String_clear(&ref()->password);
             }
 
             /*!
@@ -378,14 +537,15 @@ namespace Open62541 {
             static NodeId  HasComponent;
             static NodeId  BaseDataVariableType;
             static NodeId  HasProperty;
+            static NodeId  HasNotifier;
 
             //
             UA_TYPE_DEF(NodeId)
             //
             // null
             //
-            bool isNull() {
-                return UA_NodeId_isNull(ref());
+            bool isNull() const {
+                return UA_NodeId_isNull(constRef());
             }
 
             // equality
@@ -393,10 +553,15 @@ namespace Open62541 {
                 return UA_NodeId_equal(_d.get(), n._d.get());
             }
             /* Returns a non-cryptographic hash for the NodeId */
-            unsigned hash() {
-                return UA_NodeId_hash(ref());
+            unsigned hash() const {
+                return UA_NodeId_hash(constRef());
             }
 
+            // human friendly id string
+            NodeId(const char *id) : TypeBase(UA_NodeId_new())
+            {
+                *(_d.get()) = UA_NODEID(id);
+            }
             // Specialised constructors
             NodeId(unsigned index, unsigned id) : TypeBase(UA_NodeId_new()) {
                 *(_d.get()) = UA_NODEID_NUMERIC(UA_UInt16(index), id);
@@ -412,11 +577,11 @@ namespace Open62541 {
             }
             //
             // accessors
-            int nameSpaceIndex() {
-                return ref()->namespaceIndex;
+            int nameSpaceIndex() const {
+                return constRef()->namespaceIndex;
             }
-            UA_NodeIdType identifierType() {
-                return ref()->identifierType;
+            UA_NodeIdType identifierType() const {
+                return constRef()->identifierType;
             }
             //
             NodeId &notNull() { // makes a node not null so new nodes are returned to references
@@ -424,6 +589,21 @@ namespace Open62541 {
                 *(_d.get()) = UA_NODEID_NUMERIC(1, 0); // force a node not to be null
                 return *this;
             }
+
+            bool toString(std::string &s) const // C library version of nodeid to string
+            {
+                UA_String o;
+                UA_NodeId_print(this->constRef(), &o);
+                s = std::string((char *)o.data,o.length);
+                UA_String_clear(&o);
+                return true;
+            }
+
+            UA_UInt32 numeric() const {return constRef()->identifier.numeric;}
+            const UA_String  &   string() { return constRef()->identifier.string;}
+            const UA_Guid    &   guid() { return constRef()->identifier.guid;}
+            const UA_ByteString & byteString() { return constRef()->identifier.byteString;}
+
 
     };
 
@@ -444,7 +624,7 @@ namespace Open62541 {
             UANodeIdList() {}
             virtual ~UANodeIdList() {
                 for (int i = 0 ; i < int(size()); i++) {
-                    UA_NodeId_deleteMembers(&(at(i))); // delete members
+                    UA_NodeId_clear(&(at(i))); // delete members
                 }
             }
             void put(UA_NodeId &n) {
@@ -465,7 +645,7 @@ namespace Open62541 {
                 // delete node data
                 for (auto i = begin(); i != end(); i++) {
                     UA_NodeId &n = i->second;
-                    UA_NodeId_deleteMembers(&n);
+                    UA_NodeId_clear(&n);
                 }
                 clear();
             }
@@ -493,10 +673,108 @@ namespace Open62541 {
                 ref()->serverIndex = serverIndex;
             }
 
+
+            bool toString(std::string &s) const // C library version of nodeid to string
+            {
+                UA_String o;
+                UA_ExpandedNodeId_print(this->constRef(), &o);
+                s = std::string((char *)o.data,o.length);
+                UA_String_clear(&o);
+                return true;
+            }
+
+            /* Parse the ExpandedNodeId format defined in Part 6, 5.3.1.11:
+             *
+             *   svr=<serverindex>;ns=<namespaceindex>;<type>=<value>
+             *     or
+             *   svr=<serverindex>;nsu=<uri>;<type>=<value>
+             *
+             * The definitions for svr, ns and nsu can be omitted and will be set to zero /
+             * the empty string.*/
+            bool parse(const std::string &s)
+            {
+                UA_String str;
+                str.data = (UA_Byte *)s.c_str();
+                str.length = s.length();
+                return UA_ExpandedNodeId_parse(ref(),str) == UA_STATUSCODE_GOOD;
+            }
+
+            ExpandedNodeId(const char *chars) : TypeBase(UA_ExpandedNodeId_new())
+            {
+                get() =  UA_EXPANDEDNODEID(chars);
+            }
+
+            /** The following functions are shorthand for creating ExpandedNodeIds. */
+            ExpandedNodeId(UA_UInt16 nsIndex, UA_UInt32 identifier) : TypeBase(UA_ExpandedNodeId_new())
+            {
+                get() = UA_EXPANDEDNODEID_NUMERIC(nsIndex, identifier);
+            }
+
+            ExpandedNodeId(UA_UInt16 nsIndex,const std::string &chars) : TypeBase(UA_ExpandedNodeId_new())
+            {
+                get() = UA_EXPANDEDNODEID_STRING_ALLOC(nsIndex, chars.c_str());
+            }
+
+
+            ExpandedNodeId(UA_UInt16 nsIndex, char *chars) : TypeBase(UA_ExpandedNodeId_new())
+            {
+             get() = UA_EXPANDEDNODEID_STRING( nsIndex, chars);
+            }
+
+            ExpandedNodeId(UA_UInt16 nsIndex,const char *chars) : TypeBase(UA_ExpandedNodeId_new())
+            {
+                get() = UA_EXPANDEDNODEID_STRING_ALLOC(nsIndex, chars);
+            }
+
+            ExpandedNodeId(UA_UInt16 nsIndex, UA_Guid guid) : TypeBase(UA_ExpandedNodeId_new())
+            {
+                get() = UA_EXPANDEDNODEID_STRING_GUID(nsIndex,  guid);
+            }
+
+            ExpandedNodeId(UA_UInt16 nsIndex, unsigned char *chars) : TypeBase(UA_ExpandedNodeId_new())
+            {
+                get() = UA_EXPANDEDNODEID_BYTESTRING(nsIndex, (char *)chars);
+            }
+
+            ExpandedNodeId(UA_UInt16 nsIndex,const unsigned char *chars) : TypeBase(UA_ExpandedNodeId_new())
+            {
+                get() = UA_EXPANDEDNODEID_BYTESTRING_ALLOC(nsIndex, (char *)chars);
+            }
+
+            /* Does the ExpandedNodeId point to a local node? That is, are namespaceUri and
+             * serverIndex empty? */
+            bool isLocal() const
+            {
+                return UA_ExpandedNodeId_isLocal(constRef()) == UA_TRUE;
+            }
+
+            /* Total ordering of ExpandedNodeId */
+            static UA_Order order(const UA_ExpandedNodeId *n1, const UA_ExpandedNodeId *n2)
+            {
+                return UA_ExpandedNodeId_order(n1, n2);
+            }
+            bool operator == (const ExpandedNodeId &e )
+            {
+                return UA_ExpandedNodeId_order(constRef(), e.constRef()) == UA_ORDER_EQ;
+            }
+
+            bool operator > (const ExpandedNodeId &e)
+            {
+                return UA_ExpandedNodeId_order(constRef(), e.constRef()) == UA_ORDER_MORE;
+            }
+
+            bool operator < (const ExpandedNodeId &e)
+            {
+                return UA_ExpandedNodeId_order(constRef(), e.constRef()) == UA_ORDER_LESS;
+            }
+
+            /* Returns a non-cryptographic hash for ExpandedNodeId. The hash of an
+             * ExpandedNodeId is identical to the hash of the embedded (simple) NodeId if
+             * the ServerIndex is zero and no NamespaceUri is set. */
+            UA_UInt32 hash() const { return  UA_ExpandedNodeId_hash(constRef());}
             UA_NodeId & nodeId () { return ref()->nodeId;}
             UA_String & namespaceUri() { return ref()->namespaceUri;}
             UA_UInt32 serverIndex() { return ref()->serverIndex;}
-
     };
 
     /*!
@@ -560,8 +838,17 @@ namespace Open62541 {
                 UA_Variant_setScalarCopy((UA_Variant *)ref(), &ss, &UA_TYPES[UA_TYPES_STRING]);
             }
 
+            Variant(const char *locale, const char *text): TypeBase(UA_Variant_new()) {
+                UA_LocalizedText t =  UA_LOCALIZEDTEXT((char *)locale,(char *)text); // just builds does not allocate
+                UA_Variant_setScalarCopy((UA_Variant *)ref(), &t, &UA_TYPES[UA_TYPES_LOCALIZEDTEXT]);
+            }
+
             Variant(UA_UInt64 v) : TypeBase(UA_Variant_new()) {
                 UA_Variant_setScalarCopy((UA_Variant *)ref(), &v, &UA_TYPES[UA_TYPES_UINT64]);
+            }
+
+            Variant(UA_UInt16 v)  : TypeBase(UA_Variant_new()) {
+                UA_Variant_setScalarCopy((UA_Variant *)ref(), &v, &UA_TYPES[UA_TYPES_UINT16]);
             }
 
             Variant(UA_String &v) : TypeBase(UA_Variant_new()) {
@@ -636,7 +923,7 @@ namespace Open62541 {
             void clear() {
                 if (!UA_Variant_isEmpty(ref())) {
                     if (get().storageType == UA_VARIANT_DATA) {
-                        UA_Variant_deleteMembers((UA_Variant *)ref());
+                        UA_Variant_clear((UA_Variant *)ref());
                     }
                 }
             }
@@ -801,7 +1088,7 @@ namespace Open62541 {
             void setDescription(const std::string &s) {
                 get().description = UA_LOCALIZEDTEXT_ALLOC("en_US", s.c_str());
             }
-            void setValue(Variant &v) {
+            void setValue(const Variant &v) {
                 UA_Variant_copy(v,  &get().value); // deep copy the variant - do not know life times
             }
             void setValueRank(int i) {
@@ -819,6 +1106,10 @@ namespace Open62541 {
                 {
                     get().accessLevel &= ~UA_ACCESSLEVELMASK_HISTORYREAD;
                 }
+            }
+            void setAccessLevel(UA_Byte b)
+            {
+                get().accessLevel = b;
             }
     };
 
@@ -1333,6 +1624,8 @@ namespace Open62541 {
             }
 
     };
+
+
 
     /*!
         \brief UAPathArray

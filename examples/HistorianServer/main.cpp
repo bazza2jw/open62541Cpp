@@ -15,10 +15,10 @@ using namespace std;
 class TestServer : public Open62541::Server {
         Open62541::MemoryHistorian _historian; // the historian
         int _idx = 2; // namespace index
-        Open62541::SeverRepeatedCallback _repeatedEvent; // a periodic event - generates random number every 2 seconds
+        Open62541::ServerRepeatedCallback _repeatedEvent; // a periodic event - generates random number every 2 seconds
     public:
         TestServer() :
-            _repeatedEvent(*this, 2000, [ & ](Open62541::SeverRepeatedCallback & s) {
+            _repeatedEvent(*this, 2000, [ & ](Open62541::ServerRepeatedCallback & s) {
             Open62541::NodeId nodeNumber(_idx, "Number_Value");
             int v = std::rand() % 100;
             Open62541::Variant numberValue(v);

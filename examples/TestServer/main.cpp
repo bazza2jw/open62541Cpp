@@ -3,31 +3,38 @@
 #include "testcontext.h"
 #include "testmethod.h"
 #include <serverrepeatedcallback.h>
+#include <servertimedcallback.h>
 #include "testobject.h"
 using namespace std;
-
-// example server
+//
+// example server - this exercises timers as well
+//
 class TestServer : public Open62541::Server {
-        int _idx; // namespace index
-        Open62541::SeverRepeatedCallback _repeatedEvent; //
-        TestMethod _method;
-        TestContext _context;
-        TestObject _object; // object
-    public:
-        TestServer() : _repeatedEvent(*this, 2000, [&](Open62541::SeverRepeatedCallback &s) {
-            Open62541::NodeId nodeNumber(_idx, "Number_Value");
-            int v = std::rand() % 100;
-            Open62541::Variant numberValue(v);
-            cout << "_repeatedEvent called setting number value = " << v <<  endl;
-            s.server().writeValue(nodeNumber,numberValue);
-        }),
-        _object(*this)
+    int _idx; // namespace index
+    Open62541::ServerRepeatedCallback _repeatedEvent;
+    Open62541::ServerTimedCallback _timedEvent;
+    TestMethod _method;
+    TestContext _context;
+    TestObject _object; // object
+public:
+    TestServer() : _repeatedEvent(*this, 2000, [&](Open62541::ServerRepeatedCallback &s) {
+        Open62541::NodeId nodeNumber(_idx, "Number_Value");
+        int v = std::rand() % 100;
+        Open62541::Variant numberValue(v);
+        cout << "_repeatedEvent called setting number value = " << v <<  endl;
+        s.server().writeValue(nodeNumber,numberValue);
+    }),
+    // Trigger timed event in 60 seconds
+    _timedEvent(*this,[&](Open62541::ServerTimedCallback &/*s*/) {
+        cout << "Timed Event Triggered " << time(0) << endl ;
+    }),
+    _object(*this)
 
-        {
+    {
+        cout << "Timed Event Triggers in 60 seconds Now = :" << time(0) << endl;
+    }
 
-        }
-
-        void initialise(); // initialise the server before it runs but after it has been configured
+    void initialise(); // initialise the server before it runs but after it has been configured
 };
 
 void TestServer::initialise() {
@@ -61,6 +68,8 @@ void TestServer::initialise() {
         // Start repeated event
         //
         _repeatedEvent.start();
+        _timedEvent.addSeconds(5); // trigger one shot in 5 seconds time
+        _timedEvent.start();
         //
         // Create TestMethod node
         //
