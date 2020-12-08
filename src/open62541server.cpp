@@ -458,6 +458,8 @@ bool Open62541::Server::browseTree(NodeId &nodeId, NodeIdMap &m) {
 void Open62541::Server::terminate() {
     if (_server) {
         //
+        _timerMap.clear();
+        _conditionMap.clear();
         UA_Server_run_shutdown(_server);
         UA_Server_delete(_server);
         _serverMap.erase(_server);

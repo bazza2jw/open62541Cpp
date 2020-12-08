@@ -404,6 +404,11 @@ void Open62541::Client::stateChange(UA_SecureChannelState channelState,
                                     UA_SessionState sessionState,
                                     UA_StatusCode connectStatus) {
 
+    _channelState = channelState;
+    _sessionState = sessionState;
+    _connectStatus = connectStatus;
+
+
     if(!connectStatus)
     {
         if(_lastSessionState != sessionState)

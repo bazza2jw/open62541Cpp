@@ -114,7 +114,7 @@ int main(int /*argc*/, char **/*argv*/) {
             // Now run the timer tests
             // set up timed event for 10 seconds time
             UA_UInt64 callerId;
-            client.addTimedEvent(UA_DateTime_nowMonotonic() + (UA_DATETIME_SEC * 10),callerId,[](Open62541::Client::Timer &){ std::cerr << "Timed Event Triggered " << time(0) << std::endl;});
+            client.addTimedEvent(10000, callerId,[](Open62541::Client::Timer &){ std::cerr << "Timed Event Triggered " << time(0) << std::endl;});
             std::cerr << "Added one shot timer event for 10 seconds time  Now = " << time(0)  << " Id = " << callerId << endl;
             //
             // Add a repeated timer event - these can be thought of as event driven tasks

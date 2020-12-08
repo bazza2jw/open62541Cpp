@@ -13,22 +13,15 @@ using namespace std;
  * \brief The TestServer class
  */
 class TestServer : public Open62541::Server {
-        Open62541::MemoryHistorian _historian; // the historian
-        int _idx = 2; // namespace index
-        Open62541::ServerRepeatedCallback _repeatedEvent; // a periodic event - generates random number every 2 seconds
-    public:
-        TestServer() :
-            _repeatedEvent(*this, 2000, [ & ](Open62541::ServerRepeatedCallback & s) {
-            Open62541::NodeId nodeNumber(_idx, "Number_Value");
-            int v = std::rand() % 100;
-            Open62541::Variant numberValue(v);
-            s.server().writeValue(nodeNumber, numberValue);
-        }){
-            // Enable server as historian - must be done before starting server
-            serverConfig().historyDatabase = _historian.database();
-            serverConfig().accessHistoryDataCapability = UA_TRUE;
-        }
-        void initialise(); // initialise the server before it runs but after it has been configured
+    Open62541::MemoryHistorian _historian; // the historian
+    int _idx = 2; // namespace index
+public:
+    TestServer() {
+        // Enable server as historian - must be done before starting server
+        serverConfig().historyDatabase = _historian.database();
+        serverConfig().accessHistoryDataCapability = UA_TRUE;
+    }
+    void initialise(); // initialise the server before it runs but after it has been configured
 };
 
 /*!
@@ -37,6 +30,15 @@ class TestServer : public Open62541::Server {
 void TestServer::initialise() {
     cout << "initialise()" << endl;
     _idx = addNamespace("urn:test:test"); // create a name space
+    //
+    UA_UInt64 repeatedcallbackId = 0;
+    addRepeatedTimerEvent(2000, repeatedcallbackId, [&](Open62541::Server::Timer &s) {
+        Open62541::NodeId nodeNumber(_idx, "Number_Value");
+        int v = std::rand() % 100;
+        Open62541::Variant numberValue(v);
+        cout << "RepeatedEvent called setting number value = " << v <<  endl;
+        s.server()->writeValue(nodeNumber,numberValue);
+    });
     //
     cout << "Namespace " << _idx << endl;;
     // Add a node and set its context to test context
@@ -53,9 +55,6 @@ void TestServer::initialise() {
         _historian.setUpdateNode(nodeNumber,*this); // adds the node the the historian - values are buffered as they are updated
     }
     //
-    // Start repeated event
-    //
-    _repeatedEvent.start();
 }
 
 /*!

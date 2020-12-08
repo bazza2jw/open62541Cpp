@@ -10,6 +10,7 @@ add_subdirectory(DiscoveryServer)
 add_subdirectory(ConditionTestServer)
 add_subdirectory(HistorianClient)
 add_subdirectory(HistorianServer)
-
+add_subdirectory(TestEventClient)
+add_subdirectory(TestEventServer)
 
 

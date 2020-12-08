@@ -118,6 +118,11 @@ private:
 
     std::map<UA_UInt64, TimerPtr> _timerMap; // one map per client
 
+    // status
+    UA_SecureChannelState _channelState = UA_SECURECHANNELSTATE_CLOSED;
+    UA_SessionState _sessionState = UA_SESSIONSTATE_CLOSED;
+    UA_StatusCode _connectStatus = UA_STATUSCODE_GOOD;
+
 protected:
     UA_StatusCode _lastError = 0;
 
@@ -205,7 +210,7 @@ public:
      */
     bool runIterate(uint32_t interval = 100)
     {
-        if(_client)
+        if(_client && (_connectStatus == UA_STATUSCODE_GOOD))
         {
             _lastError = UA_Client_run_iterate(_client,interval);
             return lastOK();
@@ -328,6 +333,8 @@ public:
     // Connection state handlers
     //
     virtual void SecureChannelStateClosed() {
+        subscriptions().clear();
+        _timerMap.clear();
         OPEN62541_TRC
     }
     virtual void SecureChannelStateHelSent() {
@@ -349,12 +356,16 @@ public:
         OPEN62541_TRC
     }
     virtual void SecureChannelStateClosing() {
+        subscriptions().clear();
+        _timerMap.clear();
         OPEN62541_TRC
     }
     //
     // Session handlers
     //
     virtual void SessionStateClosed() {
+        subscriptions().clear();
+        _timerMap.clear();
         OPEN62541_TRC
     }
     virtual void SessionStateCreateRequested() {
@@ -370,6 +381,7 @@ public:
         OPEN62541_TRC
     }
     virtual void SessionStateClosing() {
+        subscriptions().clear();
         OPEN62541_TRC
     }
 
@@ -657,6 +669,8 @@ public:
     bool disconnect() {
         WriteLock l(_mutex);
         if (!_client) throw std::runtime_error("Null client");
+        // close subscriptions
+        subscriptions().clear();
         _timerMap.clear(); // remove timer objects
         _lastError = UA_Client_disconnect(_client);
         _connectionType = ConnectionType::NONE;
@@ -1893,10 +1907,11 @@ public:
      * \param callbackId
      * \return
      */
-    bool addTimedEvent(UA_DateTime date, UA_UInt64 &callbackId,std::function<void (Timer &)> func)
+    bool addTimedEvent(unsigned msDelay, UA_UInt64 &callbackId,std::function<void (Timer &)> func)
     {
         if(_client)
         {
+            UA_DateTime date = UA_DateTime_nowMonotonic() + (UA_DATETIME_MSEC * msDelay);
             TimerPtr t(new Timer(this,0,true,func));
             _lastError = UA_Client_addTimedCallback(_client, Client::clientCallback, t.get(), date, &callbackId);
             t->setId(callbackId);
@@ -1958,6 +1973,12 @@ public:
     {
         _timerMap.erase(callbackId);
     }
+
+
+    // connection status - updated in call back
+    UA_SecureChannelState getChannelState() const { return  _channelState;}
+    UA_SessionState getSessionState() const {return _sessionState;}
+    UA_StatusCode getConnectStatus() const { return _connectStatus;}
 
 
 };

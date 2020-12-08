@@ -1,10 +1,10 @@
 #include <iostream>
 #include <open62541server.h>
 #include "testmethod.h"
-#include <serverrepeatedcallback.h>
+
 using namespace std;
 //
-// example server with memory based historian
+// Events - server side
 //
 /*!
     \brief The TestServer class
@@ -24,7 +24,7 @@ class TestServer : public Open62541::Server {
     \brief TestServer::initialise
 */
 void TestServer::initialise() {
-    cout << "initialise()" << endl;
+    cout << "TestEventServer - call the TestEventTriggerMethod from UA Expert (for example) to trigger events " << endl;
     _idx = addNamespace("urn:test:test"); // create a name space
     //
     cout << "Namespace " << _idx << endl;

@@ -37,15 +37,77 @@ class HistoryDataBackend;
     \brief The Server class
 */
 class  UA_EXPORT  Server {
+
+public:
+    /*!
+     * \brief The Timer class - used for timed events
+     */
+    class  Timer
+    {
+        Server * _server = nullptr;
+        UA_UInt64 _id = 0;
+        bool _oneShot = false;
+        std::function<void (Timer &)> _handler;
+
+    public:
+        Timer() {}
+        Timer(Server *c, UA_UInt64 i, bool os, std::function<void (Timer &)> func ) : _server(c),_id(i), _oneShot(os),_handler(func) {}
+        virtual ~Timer() {
+            UA_Server_removeCallback(_server->server(), _id);
+        }
+        virtual void handle()
+        {
+            if(_handler) _handler(*this);
+        }
+        Server * server() const {
+            return  _server;
+        }
+        UA_UInt64 id() const {
+            return  _id;
+        }
+        void setId(UA_UInt64 i)
+        {
+            _id = i;
+        }
+        bool oneShot() const {
+            return _oneShot;
+        }
+    };
+protected:
+    UA_StatusCode _lastError = 0;
+private:
+    //
+    typedef std::unique_ptr<Timer> TimerPtr;
+    std::map<UA_UInt64, TimerPtr> _timerMap; // one map per client
     UA_Server *_server = nullptr; // assume one server per application
     UA_ServerConfig *_config = nullptr;
     UA_Boolean  _running = false;
-    //
-    std::map<std::string, ServerRepeatedCallbackRef> _callbacks;
-    //
     ReadWriteMutex _mutex;
-    //
     std::string _customHostName;
+    std::map<unsigned, ConditionPtr> _conditionMap; // Conditions - SCADA Alarm state handling by any other name
+    typedef std::map<UA_Server *, Server *> ServerMap;
+    static ServerMap _serverMap; // Map of servers key by UA_Server pointer
+    std::map<UA_UInt64, std::string> _discoveryList; // set of discovery servers this server has registered with
+    std::vector<UA_UsernamePasswordLogin> _logins; // set of permitted  logins
+    //
+    static void timerCallback(UA_Server *, void *data)
+    {
+        // timer callback
+        if(data)
+        {
+            Timer *t = static_cast<Timer *>(data);
+            if(t)
+            {
+                t->handle();
+                if(t->oneShot())
+                {
+                    // Potential risk of the client disappearing
+                    t->server()->_timerMap.erase(t->id());
+                }
+            }
+        }
+    }
+
     // Lifecycle call backs
     /* Can be NULL. May replace the nodeContext */
     static UA_StatusCode constructor(UA_Server *server,
@@ -103,15 +165,7 @@ class  UA_EXPORT  Server {
             const UA_NodeId *referenceTypeId,
             UA_NodeId *targetNodeId);
 
-    // Map of servers key by UA_Server pointer
-    typedef std::map<UA_Server *, Server *> ServerMap;
-    static ServerMap _serverMap;
 
-
-    std::map<UA_UInt64, std::string> _discoveryList; // set of discovery servers this server has registered with
-
-
-    std::vector<UA_UsernamePasswordLogin> _logins; // set of permitted  logins
     //
     //
     // Access Control Callbacks - these invoke virtual functions to control access
@@ -190,16 +244,16 @@ class  UA_EXPORT  Server {
 
     /* Allow browsing a node */
     static UA_Boolean allowBrowseNodeHandler (UA_Server *server, UA_AccessControl *ac,
-                                  const UA_NodeId *sessionId, void *sessionContext,
-                                  const UA_NodeId *nodeId, void *nodeContext);
+            const UA_NodeId *sessionId, void *sessionContext,
+            const UA_NodeId *nodeId, void *nodeContext);
 
 #ifdef UA_ENABLE_SUBSCRIPTIONS
     /* Allow transfer of a subscription to another session. The Server shall
      * validate that the Client of that Session is operating on behalf of the
      * same user */
     static UA_Boolean allowTransferSubscriptionHandler(UA_Server *server, UA_AccessControl *ac,
-                                            const UA_NodeId *oldSessionId, void *oldSessionContext,
-                                            const UA_NodeId *newSessionId, void *newSessionContext);
+            const UA_NodeId *oldSessionId, void *oldSessionContext,
+            const UA_NodeId *newSessionId, void *newSessionContext);
 #endif
 
 
@@ -224,17 +278,16 @@ class  UA_EXPORT  Server {
             UA_UInt32 attibuteId, UA_Boolean removed);
 
 
-    // Conditions - SCADA Alarm state handling by any other name
-
-    std::map<unsigned, ConditionPtr> _conditionMap;
 public:
     ConditionPtr & findCondition(const UA_NodeId *condition) {
         return _conditionMap[UA_NodeId_hash(condition)];
     }
 
+    ConditionPtr & findCondition(UA_UInt32 n) {
+        return _conditionMap[n];
+    }
 
-protected:
-    UA_StatusCode _lastError = 0;
+
 public:
 
 
@@ -766,13 +819,15 @@ public:
     //
 
     /*!
-        \brief addServerMethod
-        \param parent
-        \param nodeId
-        \param newNode
-        \param nameSpaceIndex
-        \return true on success
-    */
+     * \brief addServerMethod
+     * \param method - this must persist for the life time of the node !!!!!!
+     * \param browseName
+     * \param parent
+     * \param nodeId
+     * \param newNode
+     * \param nameSpaceIndex
+     * \return
+     */
     bool addServerMethod(ServerMethod *method, const std::string &browseName,
                          NodeId &parent,  NodeId &nodeId,
                          NodeId &newNode,  int nameSpaceIndex = 0) {
@@ -810,42 +865,6 @@ public:
 
 
 
-    /*!
-        \brief addRepeatedCallback
-        \param id
-        \param p
-    */
-    void addRepeatedCallback(const std::string &id, ServerRepeatedCallback  *p) {
-        _callbacks[id] = ServerRepeatedCallbackRef(p);
-    }
-
-    /*!
-        \brief addRepeatedCallback
-        \param id
-        \param interval
-        \param f
-    */
-    void addRepeatedCallback(const std::string &id, int interval, ServerRepeatedCallbackFunc f) {
-        auto p = new ServerRepeatedCallback(*this, interval, f);
-        _callbacks[id] = ServerRepeatedCallbackRef(p);
-    }
-
-    /*!
-        \brief removeRepeatedCallback
-        \param id
-    */
-    void removeRepeatedCallback(const std::string &id) {
-        _callbacks.erase(id);
-    }
-
-    /*!
-        \brief repeatedCallback
-        \param s
-        \return
-    */
-    ServerRepeatedCallbackRef &repeatedCallback(const std::string &s) {
-        return _callbacks[s];
-    }
 
     //
     //
@@ -1340,7 +1359,7 @@ public:
 
     bool readObjectProperty(const NodeId &objectId,const QualifiedName &propertyName, Variant &value)
     {
-            return UA_Server_readObjectProperty(server(), objectId, propertyName, value) == UA_STATUSCODE_GOOD;
+        return UA_Server_readObjectProperty(server(), objectId, propertyName, value) == UA_STATUSCODE_GOOD;
     }
     /*!
         \brief writeBrowseName
@@ -1977,12 +1996,12 @@ public:
         @param outEvent the EventId of the new event
         @param deleteEventNode Specifies whether the node representation of the event should be deleted
         @return The StatusCode of the UA_Server_triggerEvent method */
-    bool triggerEvent(NodeId &eventNodeId,    UA_ByteString *outEventId = nullptr, bool deleteEventNode = true) {
+    bool triggerEvent(NodeId &eventNodeId, NodeId &sourceNode,   UA_ByteString *outEventId = nullptr, bool deleteEventNode = true) {
         if (!server()) return false;
         WriteLock l(_mutex);
         _lastError = UA_Server_triggerEvent(_server,
                                             eventNodeId,
-                                            UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER),
+                                            sourceNode,
                                             outEventId,
                                             deleteEventNode);
         return lastOK();
@@ -1990,11 +2009,7 @@ public:
 
 
 
-
-
-
-
-    /*!
+       /*!
         \brief addNewEventType
         \param name
         \param description
@@ -2037,8 +2052,9 @@ public:
                     ) {
         if (!server()) return false;
         WriteLock l(_mutex);
+        outId.notNull();
         _lastError = UA_Server_createEvent(server(), eventType, outId);
-        if (_lastError == UA_STATUSCODE_GOOD) {
+        if (lastOK()) {
 
             /* Set the Event Attributes */
             /* Setting the Time is required or else the event will not show up in UAExpert! */
@@ -2260,7 +2276,7 @@ public:
      * \return
      */
     virtual bool allowTransferSubscription(UA_AccessControl *ac, const UA_NodeId */*oldSessionId*/, void */*oldSessionContext*/,
-                                            const UA_NodeId */*newSessionId*/, void */*newSessionContext*/)
+                                           const UA_NodeId */*newSessionId*/, void */*newSessionContext*/)
     {
         return false;
     }
@@ -2299,11 +2315,11 @@ public:
         outConditionId.notNull(); // this is the key to the condition dictionary
         outCondition = nullptr;
         _lastError =  UA_Server_createCondition(server(),
-                                     NodeId::Null,
-                                     conditionType,
-                                     qn, conditionSource,
-                                     hierarchialReferenceType,
-                                     outConditionId);
+                                                NodeId::Null,
+                                                conditionType,
+                                                qn, conditionSource,
+                                                hierarchialReferenceType,
+                                                outConditionId.isNull()?nullptr:outConditionId.ref());
         if(lastOK())
         {
             // create the condition object
@@ -2334,7 +2350,6 @@ public:
      */
     bool setConditionTwoStateVariableCallback( const NodeId  &condition, UA_TwoStateVariableCallbackType callbackType, bool removeBranch = false)
     {
-
         ConditionPtr &c = findCondition(condition); // conditions are bound to servers - possible for the same node id to be used in different servers
         if(c)
         {
@@ -2410,6 +2425,84 @@ public:
     }
 
     // object property
+
+    /*!
+     * \brief addTimedCallback
+     * \param data
+     * \param date
+     * \param callbackId
+     * \return
+     */
+    bool addTimedEvent(unsigned msDelay, UA_UInt64 &callbackId,std::function<void (Timer &)> func)
+    {
+        if(_server)
+        {
+            UA_DateTime dt = UA_DateTime_nowMonotonic() + (UA_DATETIME_MSEC * msDelay);
+            TimerPtr t(new Timer(this,0,true,func));
+            _lastError = UA_Server_addTimedCallback(_server, Server::timerCallback, t.get(), dt, &callbackId);
+            t->setId(callbackId);
+            _timerMap[callbackId] = std::move(t);
+            return lastOK();
+        }
+        callbackId = 0;
+        return false;
+    }
+
+    /* Add a callback for cyclic repetition to the client.
+     *
+     * @param client The client object.
+     * @param callback The callback that shall be added.
+     * @param data Data that is forwarded to the callback.
+     * @param interval_ms The callback shall be repeatedly executed with the given
+     *        interval (in ms). The interval must be positive. The first execution
+     *        occurs at now() + interval at the latest.
+     * @param callbackId Set to the identifier of the repeated callback . This can
+     *        be used to cancel the callback later on. If the pointer is null, the
+     *        identifier is not set.
+     * @return Upon success, UA_STATUSCODE_GOOD is returned. An error code
+     *         otherwise. */
+
+    bool  addRepeatedTimerEvent(UA_Double interval_ms, UA_UInt64 &callbackId,std::function<void (Timer &)> func)
+    {
+        if(_server)
+        {
+            TimerPtr t(new Timer(this,0,false,func));
+            _lastError = UA_Server_addRepeatedCallback(_server, Server::timerCallback,t.get(),interval_ms, &callbackId);
+            t->setId(callbackId);
+            _timerMap[callbackId] = std::move(t);
+            return lastOK();
+        }
+        callbackId = 0;
+        return false;
+    }
+    /*!
+     * \brief changeRepeatedCallbackInterval
+     * \param callbackId
+     * \param interval_ms
+     * \return
+     */
+    bool changeRepeatedTimerInterval(UA_UInt64 callbackId, UA_Double interval_ms)
+    {
+        if(_server)
+        {
+            _lastError = UA_Server_changeRepeatedCallbackInterval(_server,callbackId,interval_ms);
+            return lastOK();
+        }
+        return false;
+    }
+    /*!
+     * \brief UA_Client_removeCallback
+     * \param client
+     * \param callbackId
+     */
+    void removeTimerEvent(UA_UInt64 callbackId)
+    {
+        _timerMap.erase(callbackId);
+    }
+
+    //
+    // Publish Subscribe Support - To be added when it is finished
+    //
 
 };
 

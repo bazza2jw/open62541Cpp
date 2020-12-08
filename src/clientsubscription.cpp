@@ -12,6 +12,33 @@
 #include <clientsubscription.h>
 #include <open62541client.h>
 
+void  Open62541::ClientSubscription::deleteSubscriptionCallback(UA_Client *client, UA_UInt32 subId, void *subscriptionContext) {
+    Client * cl = (Client *)UA_Client_getContext(client);
+    if(cl)
+    {
+        ClientSubscription * c = cl->subscription(subId);
+        if (c)c->deleteSubscription();
+    }
+}
+
+/*!
+    \brief statusChangeNotificationCallback
+    \param subscriptionContext
+    \param notification
+*/
+
+void Open62541::ClientSubscription::statusChangeNotificationCallback(UA_Client *client, UA_UInt32 subId, void */*subscriptionContext*/,
+                                             UA_StatusChangeNotification *notification) {
+    Client * cl = (Client *)UA_Client_getContext(client);
+    if(cl)
+    {
+        ClientSubscription * c = cl->subscription(subId);
+        if (c)c->statusChangeNotification(notification);
+    }
+}
+
+
+
 Open62541::ClientSubscription::ClientSubscription(Client &c) : _client(c) {
     _settings.get() = UA_CreateSubscriptionRequest_default();
 
@@ -43,42 +70,6 @@ bool Open62541::ClientSubscription::create() {
 }
 
 
-/*!
-    \brief Open62541::ClientSubscription::addMonitorNodeId
-    \param f functor tp handle item update
-    \param n node id
-*/
-unsigned Open62541::ClientSubscription::addMonitorNodeId(monitorItemFunc f, NodeId &n) {
-    unsigned ret = 0;
-    auto pdc = new Open62541::MonitoredItemDataChange(f, *this);
-    if (pdc->addDataChange(n)) { // make it notify on data change
-        Open62541::MonitoredItemRef mcd(pdc);
-        ret = addMonitorItem(mcd); // add to subscription set
-    }
-    else {
-        delete pdc;
-    }
-    return ret; // returns item id
-}
-
-/*!
-    \brief Open62541::ClientSubscription::addEventMonitor
-    \param f event handler functor
-    \param n node id
-    \param ef event filter
-*/
-unsigned Open62541::ClientSubscription::addEventMonitor(monitorEventFunc f, NodeId &n, EventFilterSelect *ef) {
-    unsigned ret = 0; // item id
-    auto pdc = new Open62541::MonitoredItemEvent(f, *this);
-    if (pdc->addEvent(n, ef)) { // make it notify on data change
-        Open62541::MonitoredItemRef mcd(pdc);
-        ret = addMonitorItem(mcd); // add to subscription set
-    }
-    else {
-        delete pdc;
-    }
-    return ret;
-}
 
 
 

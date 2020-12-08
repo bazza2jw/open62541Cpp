@@ -6,8 +6,6 @@ set(LIB_SOURCES
         clientcache.cpp
         clientcachethread.cpp
         nodecontext.cpp
-        serverrepeatedcallback.cpp
-        servertimedcallback.cpp
         servermethod.cpp
         serverobjecttype.cpp
         clientbrowser.cpp

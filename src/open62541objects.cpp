@@ -28,6 +28,7 @@ Open62541::NodeId   Open62541::NodeId::HasComponent(0, UA_NS0ID_HASCOMPONENT);
 Open62541::NodeId   Open62541::NodeId::HasProperty(0, UA_NS0ID_HASPROPERTY);
 Open62541::NodeId   Open62541::NodeId::BaseDataVariableType(0, UA_NS0ID_BASEDATAVARIABLETYPE);
 Open62541::NodeId   Open62541::NodeId::HasNotifier(0, UA_NS0ID_HASNOTIFIER);
+Open62541::NodeId   Open62541::NodeId::BaseEventType(0, UA_NS0ID_BASEEVENTTYPE);
 
 Open62541::ExpandedNodeId   Open62541::ExpandedNodeId::ModellingRuleMandatory(UA_EXPANDEDNODEID_NUMERIC(0, UA_NS0ID_MODELLINGRULE_MANDATORY));
 

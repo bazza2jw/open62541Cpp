@@ -12,8 +12,15 @@ class UA_EXPORT Condition
     UA_StatusCode _lastError = 0;
 
 
-
 public:
+    typedef std::function<bool (Condition &)> ConditionFunc;
+protected:
+    ConditionFunc _enteringEnabledState;
+    ConditionFunc _enteringAckedState;
+    ConditionFunc _enteringConfirmedState;
+    ConditionFunc _enteringActiveState;
+public:
+
 
     // TO DO add the possible condition type nodes
 
@@ -108,18 +115,46 @@ public:
     {
         return setCallback(UA_ENTERING_ACTIVESTATE,removeBranch);
     }
+
+
+    bool  setEnabled(ConditionFunc f,  bool removeBranch = false)
+    {
+        _enteringEnabledState = f;
+        return setCallback(UA_ENTERING_ENABLEDSTATE,removeBranch);
+    }
+    bool  setConfirmed(ConditionFunc f,bool removeBranch = false)
+    {
+        _enteringConfirmedState = f;
+        return setCallback(UA_ENTERING_CONFIRMEDSTATE,removeBranch);
+    }
+    bool  setAcked(ConditionFunc f,bool removeBranch = false)
+    {
+        _enteringAckedState = f;
+        return setCallback(UA_ENTERING_ACKEDSTATE,removeBranch);
+    }
+    bool  setActive(ConditionFunc f,bool removeBranch = false)
+    {
+        _enteringActiveState = f;
+        return setCallback(UA_ENTERING_ACTIVESTATE,removeBranch);
+    }
+
+
 protected:
-    // Event handlers
+    // Event handlers - default is to use functors if present
     virtual bool enteringEnabledState() {
+        if(_enteringEnabledState) return _enteringEnabledState(*this);
         return false;
     }
     virtual bool enteringAckedState() {
+        if(_enteringAckedState) return _enteringAckedState(*this);
         return false;
     }
     virtual bool enteringConfirmedState() {
+        if(_enteringConfirmedState) return _enteringConfirmedState(*this);
         return false;
     }
     virtual bool enteringActiveState() {
+        if(_enteringActiveState) return _enteringActiveState(*this);
         return false;
     }
 private:
