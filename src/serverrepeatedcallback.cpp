@@ -13,34 +13,34 @@
 #include <open62541server.h>
 /*!
 
-    \brief Open62541::SeverRepeatedCallback::callbackFunction
+    \brief Open62541::ServerRepeatedCallback::callbackFunction
     \param server
     \param data
 */
-void Open62541::SeverRepeatedCallback::callbackFunction(UA_Server * /*server*/, void *data) {
-    Open62541::SeverRepeatedCallback *p = (Open62541::SeverRepeatedCallback *)data;
+void Open62541::ServerRepeatedCallback::callbackFunction(UA_Server * /*server*/, void *data) {
+    Open62541::ServerRepeatedCallback *p = (Open62541::ServerRepeatedCallback *)data;
     if (p) p->callback();
 }
 
 /*!
-    \brief Open62541::SeverRepeatedCallback::SeverRepeatedCallback
+    \brief Open62541::ServerRepeatedCallback::ServerRepeatedCallback
     \param s
     \param interval
 */
-Open62541::SeverRepeatedCallback::SeverRepeatedCallback(Server &s, UA_UInt32 interval)
+Open62541::ServerRepeatedCallback::ServerRepeatedCallback(Server &s, UA_UInt32 interval)
     : _server(s),
       _interval(interval) {
 
 }
 
 /*!
-    \brief Open62541::SeverRepeatedCallback
+    \brief Open62541::ServerRepeatedCallback
     This version takes a functor
     \param s
     \param interval
     \param func
 */
-Open62541::SeverRepeatedCallback::SeverRepeatedCallback(Server &s, UA_UInt32 interval, SeverRepeatedCallbackFunc func)
+Open62541::ServerRepeatedCallback::ServerRepeatedCallback(Server &s, UA_UInt32 interval, ServerRepeatedCallbackFunc func)
     : _server(s),
       _interval(interval),
       _func(func) {
@@ -50,10 +50,10 @@ Open62541::SeverRepeatedCallback::SeverRepeatedCallback(Server &s, UA_UInt32 int
 
 
 /*!
-    \brief Open62541::SeverRepeatedCallback::start
+    \brief Open62541::ServerRepeatedCallback::start
     \return
 */
-bool Open62541::SeverRepeatedCallback::start() {
+bool Open62541::ServerRepeatedCallback::start() {
     if ((_id == 0) && _server.server()) {
         WriteLock l(_server.mutex());
         _lastError = UA_Server_addRepeatedCallback(_server.server(), callbackFunction, this, _interval, &_id);
@@ -62,12 +62,13 @@ bool Open62541::SeverRepeatedCallback::start() {
     return false;
 }
 
+
 /*!
-    \brief Open62541::SeverRepeatedCallback::changeInterval
+    \brief Open62541::ServerRepeatedCallback::changeInterval
     \param i
     \return
 */
-bool Open62541::SeverRepeatedCallback::changeInterval(unsigned i) {
+bool Open62541::ServerRepeatedCallback::changeInterval(unsigned i) {
     if ((_id != 0) && _server.server()) {
         WriteLock l(_server.mutex());
         _lastError = UA_Server_changeRepeatedCallbackInterval(_server.server(), _id, i);
@@ -83,10 +84,10 @@ bool Open62541::SeverRepeatedCallback::changeInterval(unsigned i) {
     @return Upon success, UA_STATUSCODE_GOOD is returned.
            An error code otherwise. */
 /*!
- * \brief Open62541::SeverRepeatedCallback::stop
+ * \brief Open62541::ServerRepeatedCallback::stop
  * \return
  */
-bool Open62541::SeverRepeatedCallback::stop() {
+bool Open62541::ServerRepeatedCallback::stop() {
     if (_id != 0) {
         if(_server.server())
         {
@@ -104,9 +105,9 @@ bool Open62541::SeverRepeatedCallback::stop() {
 //
 //
 /*!
-    \brief Open62541::SeverRepeatedCallback::~SeverRepeatedCallback
+    \brief Open62541::ServerRepeatedCallback::~ServerRepeatedCallback
 */
-Open62541::SeverRepeatedCallback::~SeverRepeatedCallback() {
+Open62541::ServerRepeatedCallback::~ServerRepeatedCallback() {
     if(_server.server())
     {
         WriteLock l(server().mutex());

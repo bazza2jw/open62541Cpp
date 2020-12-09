@@ -6,10 +6,10 @@ project(open62541cpp)
 ## library name
 set(OPEN62541_CPP open62541cpp)
 
-## build settings
-set(VERSION_MAJOR 0)
-set(VERSION_MINOR 3)
-set(VERSION_PATCH 1)
+## build settings - try and match the c library version
+set(VERSION_MAJOR 1)
+set(VERSION_MINOR 1)
+set(VERSION_PATCH 3)
 
 set(PACKAGE_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 

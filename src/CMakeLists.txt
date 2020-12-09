@@ -1,13 +1,11 @@
 
 set(LIB_SOURCES
-        open62541.c
         open62541objects.cpp
         open62541client.cpp
         open62541server.cpp
         clientcache.cpp
         clientcachethread.cpp
         nodecontext.cpp
-        serverrepeatedcallback.cpp
         servermethod.cpp
         serverobjecttype.cpp
         clientbrowser.cpp
@@ -16,11 +14,11 @@ set(LIB_SOURCES
         discoveryserver.cpp
         servernodetree.cpp
         historydatabase.cpp
+        condition.cpp
         )
 
 
 add_library(OBJS OBJECT ${LIB_SOURCES})
-
 # Building shared library
 
 set_property(TARGET OBJS PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -28,8 +26,12 @@ add_library(${OPEN62541_CPP} SHARED $<TARGET_OBJECTS:OBJS>)
 
 # add boost to target
 include(../Common.cmake)
+
+find_library(OPEN62541 open62541 ${CMAKE_INSTALL_PREFIX}/lib)
+
+
 if (Boost_FOUND)
-    target_link_libraries(${OPEN62541_CPP} ${Boost_LIBRARIES})
+    target_link_libraries(${OPEN62541_CPP} ${Boost_LIBRARIES} ${OPEN62541})
 endif ()
 
 ## set the shared library soname

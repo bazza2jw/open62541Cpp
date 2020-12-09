@@ -1,6 +1,6 @@
 
 set(LIB_HEADERS
-        open62541.h
+        condition.h
         open62541objects.h
         open62541client.h
         open62541server.h
@@ -9,7 +9,6 @@ set(LIB_HEADERS
         clientcachethread.h
         nodecontext.h
         servermethod.h
-        serverrepeatedcallback.h
         serverobjecttype.h
         serverbrowser.h
         servernodetree.h

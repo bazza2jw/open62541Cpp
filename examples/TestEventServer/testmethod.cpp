@@ -13,7 +13,7 @@ UA_StatusCode TestMethod::callback(Open62541::Server &server,
        Open62541::NodeId eventNodeId;
        if(server.setUpEvent(eventNodeId,eventType,"TestEvent","TestEventServer"))
        {
-           if(server.triggerEvent(eventNodeId))
+           if(server.triggerEvent(eventNodeId,Open62541::NodeId::Server))
            {
                std::cout << "Event Triggered" << std::endl;
            }
@@ -36,10 +36,12 @@ bool TestMethod::initialise(Open62541::Server &server)
    if(server.addNewEventType("TestEvent", eventType, "Example Event"))
    {
        std::cout << "Added Event Type Event Node " <<  Open62541::toString(eventType) << std::endl;
+       return true;
    }
    else
    {
        std::cout << "Failed to add type " << UA_StatusCode_name(server.lastError())  << std::endl;
    }
+   return false;
 }
 

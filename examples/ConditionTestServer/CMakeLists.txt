@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.11)
 # Build Test Server
-set(APPNAME TestEventClient)
+set(APPNAME ConditionTestServer)
 
 # Source code
-set(SOURCES main.cpp EventClient.cpp)
+set(SOURCES main.cpp conditiontestserver.cpp)
 
 include(../examples_common.cmake)

@@ -1,4 +1,4 @@
-/*
+﻿/*
     Copyright (C) 2017 -  B. J. Hill
 
     This file is part of open62541 C++ classes. open62541 C++ classes are free software: you can
@@ -27,6 +27,7 @@ namespace  Open62541 {
         This is a single monitored event. Monitored events are associated (owned) by subscriptions
     */
     class  UA_EXPORT  MonitoredItem {
+    private:
             ClientSubscription &_sub; // parent subscription
         protected:
             MonitoredItemCreateResult _response; // response
@@ -79,6 +80,7 @@ namespace  Open62541 {
             //
             // Notification handlers
             //
+
             /*!
                 \brief deleteMonitoredItem
             */
@@ -130,7 +132,7 @@ protected:
         Handles value change notifications
     */
     class MonitoredItemDataChange : public MonitoredItem {
-            monitorItemFunc _func; // lambda for callback
+        monitorItemFunc _func; // lambda for callback
 
         public:
             /*!
@@ -168,12 +170,13 @@ protected:
             bool addDataChange(NodeId &n, UA_TimestampsToReturn ts = UA_TIMESTAMPSTORETURN_BOTH);
     };
 
+    typedef std::unique_ptr<MonitoredItem> MonitoredItemPtr;
     /*!
         \brief The MonitoredItemEvent class
     */
     class MonitoredItemEvent : public MonitoredItem {
             monitorEventFunc _func; // the event call functor
-            EventFilterSelect * _events = nullptr; // filter for events
+            MonitoredItemCreateRequest _monitorItem; // must persist
         public:
             /*!
                 \brief MonitoredItem
@@ -195,7 +198,6 @@ protected:
             bool remove()
             {
                 bool ret = MonitoredItem::remove();
-                if(_events) delete _events;
                 return ret;
             }
 
@@ -228,10 +230,90 @@ protected:
                 \param ts timestamp flags
                 \return true on success
             */
-            bool addEvent(NodeId &n,  EventFilterSelect *events, UA_TimestampsToReturn ts = UA_TIMESTAMPSTORETURN_BOTH);
+            virtual bool addEvent(NodeId &n,  UA_TimestampsToReturn ts = UA_TIMESTAMPSTORETURN_BOTH);
+
+            /*!
+             * \brief monitorItem
+             * \return
+             */
+            MonitoredItemCreateRequest & monitorItem()
+            {
+                return _monitorItem;
+            }
+
+            /*!
+             * \brief setItem
+             * \param nodeId
+             * \param filter
+             */
+            void setMonitorItem(const Open62541::NodeId &nodeId, size_t nSelect)
+            {
+                // set up defaults - ownership is tricky with this one - there be dragons!
+                UA_SimpleAttributeOperand *selectClauses = (UA_SimpleAttributeOperand*) UA_Array_new(nSelect, &UA_TYPES[UA_TYPES_SIMPLEATTRIBUTEOPERAND]);
+                UA_EventFilter *f = new UA_EventFilter;
+                UA_EventFilter_init(f);
+                f->selectClauses = selectClauses ;
+                f->selectClausesSize = nSelect;
+                //
+                _monitorItem.null(); // clear it
+                _monitorItem.setItem(nodeId);
+                _monitorItem.setFilter(f); // this object owns the filter now
+            }
+
+            /*!
+             * \brief setClause
+             * \param i
+             * \param browsePath
+             * \param attributeId
+             * \param typeDefintion
+             * \param indexRange
+             */
+            void setClause(size_t i, const std::string &browsePath, UA_UInt32 attributeId = UA_ATTRIBUTEID_VALUE,  const NodeId &typeDefintion = NodeId::BaseEventType, const std::string &indexRange = "")
+            {
+                UA_EventFilter *f =  _monitorItem.filter();
+                if(f && (i < f->selectClausesSize))
+                {
+                    UA_SimpleAttributeOperand_init(f->selectClauses + i);
+                    UA_SimpleAttributeOperand &a = f->selectClauses[i];
+                    a.typeDefinitionId = typeDefintion;
+                    a.browsePathSize = 1;
+                    a.browsePath = (UA_QualifiedName*) UA_Array_new(1, &UA_TYPES[UA_TYPES_QUALIFIEDNAME]);
+                    a.attributeId = attributeId;
+                    a.browsePath[0] = UA_QUALIFIEDNAME_ALLOC(0, browsePath.c_str());
+                    a.indexRange = UA_STRING_ALLOC(indexRange.c_str());                }
+            }
+
+            /*!
+             * \brief setClause
+             * \param i
+             * \param browsePath
+             * \param attributeId
+             * \param typeDefintion
+             * \param indexRange
+             */
+            void setClause(size_t i, StdStringArray &browsePath, UA_UInt32 attributeId = UA_ATTRIBUTEID_VALUE,  const NodeId &typeDefintion = NodeId::BaseEventType, const std::string &indexRange = "")
+            {
+                UA_EventFilter *f =  _monitorItem.filter();
+                if(f && (i < f->selectClausesSize)&& (browsePath.size() > 0))
+                {
+                    UA_SimpleAttributeOperand_init(f->selectClauses + i);
+                    UA_SimpleAttributeOperand &a = f->selectClauses[i];
+                    a.typeDefinitionId = typeDefintion;
+                    a.browsePathSize = browsePath.size();
+                    a.browsePath = (UA_QualifiedName*) UA_Array_new(a.browsePathSize, &UA_TYPES[UA_TYPES_QUALIFIEDNAME]);
+                    a.attributeId = attributeId;
+                    a.indexRange = UA_STRING_ALLOC(indexRange.c_str());
+                    for(size_t j = 0; j < a.browsePathSize; j++)
+                    {
+                        a.browsePath[j] = UA_QUALIFIEDNAME_ALLOC(0, browsePath[j].c_str());
+                    }
+                }
+            }
+
 
 
     };
+    typedef std::unique_ptr<MonitoredItemEvent>  MonitoredItemEventPtr;
 }
 
 

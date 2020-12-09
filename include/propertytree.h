@@ -48,7 +48,7 @@ namespace Open62541 {
                 \param s
                 \param seperator
             */
-            void toList(const T &s, const char *seperator = ".") {
+            void toList(const T &s, const char *seperator = "/") {
                 boost::char_separator<char> sep(seperator);
                 tokenizer tokens(s, sep);
                 for (auto i = tokens.begin(); i != tokens.end(); i++) {
@@ -59,12 +59,12 @@ namespace Open62541 {
                 \brief toString
                 \param s
             */
-            void toString(T &s) {
+            void toString(T &s, const char *seperator = "/") {
                 if (this->size() > 0) {
                     NodePath &n = *this;
                     s = n[0];
                     for (unsigned i = 1; i < this->size(); i++) {
-                        s += ".";
+                        s += seperator;
                         s += n[i];
                     }
                 }

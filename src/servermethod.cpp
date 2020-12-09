@@ -19,14 +19,18 @@
     \param input
     \param outputSize
     \param output
-    \return
+    \return status code
 */
 UA_StatusCode Open62541::ServerMethod::methodCallback(UA_Server *server, const UA_NodeId * /*sessionId*/,
-                     void * /*sessionContext*/, const UA_NodeId * /*methodId*/,
-                     void *methodContext, const UA_NodeId *objectId,
-                     void * /*objectContext*/, size_t inputSize,
-                     const UA_Variant *input, size_t outputSize,
-                     UA_Variant *output)
+        void * /*sessionContext*/,
+        const UA_NodeId * /*methodId*/,
+        void *methodContext, // references the handler
+        const UA_NodeId *objectId,
+        void * /*objectContext*/,
+        size_t inputSize,
+        const UA_Variant *input,
+        size_t outputSize,
+        UA_Variant *output)
 {
     UA_StatusCode ret = UA_STATUSCODE_GOOD;
     if (methodContext) {
@@ -34,6 +38,10 @@ UA_StatusCode Open62541::ServerMethod::methodCallback(UA_Server *server, const U
         if(s)
         {
             Open62541::ServerMethod *p = (Open62541::ServerMethod *)methodContext;
+            if(p->_func)
+            {
+                return p->_func(*s, objectId, inputSize, input, outputSize, output); // was the functor defined
+            }
             ret = p->callback(*s, objectId, inputSize, input, outputSize, output); // adding a method allocates in/out variable space
         }
     }
@@ -50,6 +58,13 @@ UA_StatusCode Open62541::ServerMethod::methodCallback(UA_Server *server, const U
 Open62541::ServerMethod::ServerMethod(const std::string &n,
                                       int nInputs,
                                       int nOutputs) : NodeContext(n) {
+    _in.resize(nInputs + 1); // create parameter space
+    _out.resize(nOutputs + 1);
+}
+
+Open62541::ServerMethod::ServerMethod(const std::string &n,MethodFunc f,
+                                      int nInputs,
+                                      int nOutputs) : NodeContext(n), _func(f) {
     _in.resize(nInputs + 1); // create parameter space
     _out.resize(nOutputs + 1);
 }
@@ -77,8 +92,8 @@ bool Open62541::ServerMethod::setMethodNodeCallBack(Open62541::Server &s, Open62
  * \return
  */
 bool Open62541::ServerMethod::addServerMethod(Open62541::Server &s, const std::string &browseName,
-                     Open62541::NodeId &parent,  Open62541::NodeId &nodeId,
-                     Open62541::NodeId &newNode ,  int nameSpaceIndex )
+        Open62541::NodeId &parent,  Open62541::NodeId &nodeId,
+        Open62541::NodeId &newNode,  int nameSpaceIndex )
 {
     return s.addServerMethod(this,browseName,parent,nodeId,newNode,nameSpaceIndex);
 }

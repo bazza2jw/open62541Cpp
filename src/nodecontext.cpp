@@ -122,7 +122,8 @@ UA_StatusCode Open62541::NodeContext::typeConstructor(UA_Server *server,
  */
 bool Open62541::NodeContext::setTypeLifeCycle(Server &server,NodeId &n)
 {
-    return UA_Server_setNodeTypeLifecycle(server.server(), n,_nodeTypeLifeCycle) == UA_STATUSCODE_GOOD;
+    _lastError = UA_Server_setNodeTypeLifecycle(server.server(), n,_nodeTypeLifeCycle);
+    return lastOK();
 }
 
 
@@ -135,8 +136,9 @@ bool Open62541::NodeContext::setTypeLifeCycle(Server &server,NodeId &n)
 bool Open62541::NodeContext::setAsDataSource(Server &server, NodeId &n)
 {
     // Make this context handle the data source calls
-    return UA_Server_setVariableNode_dataSource(server.server(), n,
-                                         _dataSource) == UA_STATUSCODE_GOOD;
+    _lastError = UA_Server_setVariableNode_dataSource(server.server(), n,
+                                         _dataSource);
+    return lastOK();
 }
 
 
@@ -226,7 +228,8 @@ UA_StatusCode Open62541::NodeContext::writeDataSource(UA_Server *server, const U
  */
 bool Open62541::NodeContext::setValueCallback(Open62541::Server &server, NodeId &n)
 {
-    return UA_Server_setVariableNode_valueCallback(server.server(),n,_valueCallback) == UA_STATUSCODE_GOOD;
+    _lastError =  UA_Server_setVariableNode_valueCallback(server.server(),n,_valueCallback);
+    return lastOK();
 }
 // Value Callbacks
 /*!

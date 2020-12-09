@@ -4,8 +4,9 @@
 #include <servermethod.h>
 class TestMethod : public Open62541::ServerMethod
 {
-    Open62541::NodeId eventType;
 public:
+    Open62541::NodeId eventType;
+    Open62541::NodeId sourceNode;
     TestMethod() : Open62541::ServerMethod("TriggerEvent",0,0)
     {
 

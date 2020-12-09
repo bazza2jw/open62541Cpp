@@ -5,8 +5,6 @@
     This is an example server that registers with the discover y server
 */
 
-
-
 using namespace std;
 #define DISCOVERY_SERVER_ENDPOINT "opc.tcp://localhost:4850"
 
@@ -15,33 +13,40 @@ using namespace std;
  * \brief The TestServer class
  */
 class TestServer : public Open62541::Server {
-        int _idx; // namespace index
-        UA_UInt64 _discoveryid;
-        //
-        Open62541::SeverRepeatedCallback _repeatedEvent; //
-        Open62541::Client _client;
+    int _idx; // namespace index
+    UA_UInt64 _discoveryid;
+    //
+    Open62541::Client _client;
+public:
+    TestServer(int port)
+        : Open62541::Server(port)
+    {
+    }
 
-    public:
-        TestServer(int port)
-            : Open62541::Server(port),
-              _repeatedEvent(*this, 2000, [ & ](Open62541::SeverRepeatedCallback & s) {
-            Open62541::NodeId nodeNumber(_idx, "Number_Value");
-            int v = std::rand() % 100;
-            Open62541::Variant numberValue(v);
-            cout << "_repeatedEvent called setting number value = " << v <<  endl;
-            s.server().writeValue(nodeNumber, numberValue);
-        }) {
-
-
-        }
-
-        void initialise(); // initialise the server before it runs but after it has been configured
+    void initialise(); // initialise the server before it runs but after it has been configured
 };
 /*!
  * \brief TestServer::initialise
  */
 void TestServer::initialise() {
     _idx = addNamespace("urn:test:test"); // create a name space
+
+    // Add the timers
+    UA_UInt64 repeatedcallbackId = 0;
+    addRepeatedTimerEvent(2000, repeatedcallbackId, [&](Open62541::Server::Timer &s) {
+            Open62541::NodeId nodeNumber(_idx, "Number_Value");
+            int v = std::rand() % 100;
+            Open62541::Variant numberValue(v);
+            cout << "_repeatedEvent called setting number value = " << v <<  endl;
+            s.server()->writeValue(nodeNumber,numberValue);
+        });
+
+    // Add one shot timer
+    UA_UInt64 timedCallback = 0;
+    addTimedEvent(5000,timedCallback,[&](Open62541::Server::Timer &/*s*/) {
+        cout << "Timed Event Triggered " << time(0) << endl ;
+    });
+
     // Add a node and set its context to test context
     Open62541::NodeId newFolder(_idx, "ServerItems");
     if (addFolder(Open62541::NodeId::Objects, "ServerItems", newFolder, Open62541::NodeId::Null)) {
@@ -53,12 +58,9 @@ void TestServer::initialise() {
         }
         //
         // Start repeated event - so it does something
-        //
-        _repeatedEvent.start();
         // connect to the discovery server
         if (_client.connect(DISCOVERY_SERVER_ENDPOINT)) {
             cerr << "Register with discovery server" << endl;
-            static std::string endpoint(DISCOVERY_SERVER_ENDPOINT);
             if (!registerDiscovery( _client)) {
                 cerr << "Failed to register with discovery server" << endl;
             }

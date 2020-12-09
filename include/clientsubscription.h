@@ -13,7 +13,6 @@
 #define CLIENTSUBSCRIPTION_H
 #include "open62541objects.h"
 #include "monitoreditem.h"
-
 namespace Open62541 {
 
     /*!
@@ -39,10 +38,7 @@ namespace Open62541 {
                 \brief deleteSubscriptionCallback
                 \param subscriptionContext
             */
-            static void  deleteSubscriptionCallback(UA_Client *, UA_UInt32, void *subscriptionContext) {
-                ClientSubscription *p = (ClientSubscription *)(subscriptionContext);
-                if (p)p->deleteSubscription();
-            }
+            static void  deleteSubscriptionCallback(UA_Client *client, UA_UInt32 subId, void *subscriptionContext) ;
 
             /*!
                 \brief statusChangeNotificationCallback
@@ -50,11 +46,8 @@ namespace Open62541 {
                 \param notification
             */
 
-            static void statusChangeNotificationCallback(UA_Client * /*client*/, UA_UInt32 /*subId*/, void *subscriptionContext,
-                                                         UA_StatusChangeNotification *notification) {
-                ClientSubscription *p = (ClientSubscription *)(subscriptionContext);
-                if (p)p->statusChangeNotification(notification);
-            }
+            static void statusChangeNotificationCallback(UA_Client *client, UA_UInt32 subId, void *subscriptionContext,
+                                                         UA_StatusChangeNotification *notification);
 
         public:
             /*!
@@ -119,7 +112,7 @@ namespace Open62541 {
             */
             unsigned addMonitorItem(MonitoredItemRef &m) {
                 _monitorId++;
-                _map[_monitorId] = m;
+                _map[_monitorId] = std::move(m);
                 return _monitorId;
             }
 
@@ -149,21 +142,52 @@ namespace Open62541 {
                 return nullptr;
             }
 
+
+
             /*!
-             * \brief addMonitorNodeId
-             * \param f Functor to handle item updates
-             * \param n node to monitor
-             */
-            unsigned addMonitorNodeId(monitorItemFunc f, NodeId &n);
+                \brief Open62541::ClientSubscription::addMonitorNodeId
+                \param f functor tp handle item update
+                \param n node id
+            */
+            template <typename T = Open62541::MonitoredItemDataChange>
+            unsigned addMonitorNodeId(monitorItemFunc f, NodeId &n) {
+                unsigned ret = 0;
+                auto pdc = new T(f, *this);
+                if (pdc->addDataChange(n)) { // make it notify on data change
+                    Open62541::MonitoredItemRef mcd(pdc);
+                    ret = addMonitorItem(mcd); // add to subscription set
+                }
+                else {
+                    delete pdc;
+                }
+                return ret; // returns item id
+            }
+
             /*!
-             * \brief addEventMonitor
-             * \param f functor to handle event
-             * \param n node to monitor
-             * \param ef event filter
-             */
-            unsigned addEventMonitor(monitorEventFunc f, NodeId &n, Open62541::EventFilterSelect *ef);
+                \brief Open62541::ClientSubscription::addEventMonitor
+                \param f event handler functor
+                \param n node id
+                \param ef event filter
+            */
+            template<typename T = Open62541::MonitoredItemEvent>
+            unsigned addEventMonitor(monitorEventFunc f, NodeId &n) {
+                unsigned ret = 0; // item id
+                auto pdc = new T(f, *this);
+                if (pdc->addEvent(n)) { // make it notify on data change
+                    Open62541::MonitoredItemRef mcd(pdc);
+                    ret = addMonitorItem(mcd); // add to subscription set
+                }
+                else {
+                    delete pdc;
+                }
+                return ret;
+            }
+
+
 
     };
+
+    typedef std::unique_ptr<ClientSubscription> ClientSubscriptionPtr;
 }
 
 

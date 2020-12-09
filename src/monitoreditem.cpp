@@ -23,6 +23,7 @@ Open62541::MonitoredItem::MonitoredItem(ClientSubscription &s) : _sub(s) {
 
 
 /* Callback for the deletion of a MonitoredItem */
+/* any of the parts may have disappeared */
 /*!
     \brief Open62541::MonitoredItem::deleteMonitoredItemCallback
     \param client
@@ -32,12 +33,21 @@ Open62541::MonitoredItem::MonitoredItem(ClientSubscription &s) : _sub(s) {
     \param monContext
 */
 void Open62541::MonitoredItem::deleteMonitoredItemCallback
-(UA_Client * /*client*/, UA_UInt32 /*subId*/, void *subContext,
+(UA_Client *client, UA_UInt32 subId, void */*subContext*/,
  UA_UInt32 /*monId*/, void *monContext) {
-    Open62541::MonitoredItem *m = (Open62541::MonitoredItem *)(monContext);
-    Open62541::ClientSubscription *c = (Open62541::ClientSubscription *)subContext;
-    if (m && c) {
-        m->deleteMonitoredItem();
+    //
+    // The subscription
+    Client * cl = (Client *)UA_Client_getContext(client);
+    if(cl && (cl->getConnectStatus() == UA_STATUSCODE_GOOD))
+    {
+        ClientSubscription * c = cl->subscription(subId);
+        if(c)
+        {
+            Open62541::MonitoredItem *m = (Open62541::MonitoredItem *)(monContext);
+            if (m) {
+                m->deleteMonitoredItem();
+            }
+        }
     }
 }
 
@@ -52,13 +62,20 @@ void Open62541::MonitoredItem::deleteMonitoredItemCallback
     \param value
 */
 void Open62541::MonitoredItem::dataChangeNotificationCallback
-(UA_Client * /*client*/, UA_UInt32 /*subId*/, void *subContext,
+(UA_Client * client, UA_UInt32 subId, void */*subContext*/,
  UA_UInt32 /*monId*/, void *monContext,
  UA_DataValue *value) {
-    Open62541::MonitoredItem *m = (Open62541::MonitoredItem *)(monContext);
-    Open62541::ClientSubscription *c = (Open62541::ClientSubscription *)subContext;
-    if (m && c) {
-        m->dataChangeNotification(value);
+    Client * cl = (Client *)UA_Client_getContext(client);
+    if(cl && (cl->getConnectStatus() == UA_STATUSCODE_GOOD))
+    {
+        ClientSubscription * c = cl->subscription(subId);
+        if(c)
+        {
+            Open62541::MonitoredItem *m = (Open62541::MonitoredItem *)(monContext);
+            if (m ) {
+                m->dataChangeNotification(value);
+            }
+        }
     }
 }
 
@@ -74,13 +91,20 @@ void Open62541::MonitoredItem::dataChangeNotificationCallback
     \param eventFields
 */
 void Open62541::MonitoredItem::eventNotificationCallback
-(UA_Client * /*client*/, UA_UInt32 /*subId*/, void *subContext,
+(UA_Client * client, UA_UInt32 subId, void */*subContext*/,
  UA_UInt32 /*monId*/, void *monContext,
  size_t nEventFields, UA_Variant *eventFields) {
-    Open62541::MonitoredItem *m = (Open62541::MonitoredItem *)(monContext);
-    Open62541::ClientSubscription *c = (Open62541::ClientSubscription *)subContext;
-    if (m && c) {
-        m->eventNotification(nEventFields, eventFields);
+    Client * cl = (Client *)UA_Client_getContext(client);
+    if(cl && (cl->getConnectStatus() == UA_STATUSCODE_GOOD))
+    {
+        ClientSubscription * c = cl->subscription(subId);
+        if(c)
+        {
+            Open62541::MonitoredItem *m = (Open62541::MonitoredItem *)(monContext);
+            if (m) {
+                m->eventNotification(nEventFields, eventFields);
+            }
+        }
     }
 }
 
@@ -107,7 +131,7 @@ bool  Open62541::MonitoredItem::remove() {
 bool  Open62541::MonitoredItem::setMonitoringMode( const SetMonitoringModeRequest &request, SetMonitoringModeResponse &response)
 {
     response.get() =
-            UA_Client_MonitoredItems_setMonitoringMode(subscription().client().client(), request.get());
+        UA_Client_MonitoredItems_setMonitoringMode(subscription().client().client(), request.get());
     return true;
 
 }
@@ -134,12 +158,12 @@ bool Open62541::MonitoredItemDataChange::addDataChange(NodeId &n, UA_TimestampsT
     MonitoredItemCreateRequest monRequest;
     monRequest = UA_MonitoredItemCreateRequest_default(n);
     _response.get() = UA_Client_MonitoredItems_createDataChange(subscription().client().client(),
-                                                                subscription().id(),
-                                                                ts,
-                                                                monRequest,
-                                                                this,
-                                                                dataChangeNotificationCallback,
-                                                                deleteMonitoredItemCallback);
+                      subscription().id(),
+                      ts,
+                      monRequest,
+                      this,
+                      dataChangeNotificationCallback,
+                      deleteMonitoredItemCallback);
     return _response.get().statusCode == UA_STATUSCODE_GOOD;
 }
 
@@ -149,33 +173,17 @@ bool Open62541::MonitoredItemDataChange::addDataChange(NodeId &n, UA_TimestampsT
     \param ts
     \return
 */
-bool Open62541::MonitoredItemEvent::addEvent(NodeId &n, EventFilterSelect *events, UA_TimestampsToReturn ts) {
-    if (events) {
-        //
-        remove(); // delete any existing item
-        //
-        _events = events; // take ownership - events must be deleted after the item is removed
-        MonitoredItemCreateRequest item;
-        item = UA_MonitoredItemCreateRequest_default(n);
+bool Open62541::MonitoredItemEvent::addEvent(NodeId &n,  UA_TimestampsToReturn ts) {
+    remove(); // delete any existing item
 
-        item.get().itemToMonitor.nodeId = n;
-        item.get().itemToMonitor.attributeId = UA_ATTRIBUTEID_EVENTNOTIFIER;
-        item.get().monitoringMode = UA_MONITORINGMODE_REPORTING;
-
-        item.get().requestedParameters.filter.encoding = UA_EXTENSIONOBJECT_DECODED;
-        item.get().requestedParameters.filter.content.decoded.data = events->ref();
-        item.get().requestedParameters.filter.content.decoded.type = &UA_TYPES[UA_TYPES_EVENTFILTER];
-
-        _response = UA_Client_MonitoredItems_createEvent(subscription().client().client(),
-                                                         subscription().id(),
-                                                         ts,
-                                                         item,
-                                                         this,
-                                                         eventNotificationCallback,
-                                                         deleteMonitoredItemCallback);
-        return _response.get().statusCode == UA_STATUSCODE_GOOD;
-    }
-    return false;
+    _response = UA_Client_MonitoredItems_createEvent(subscription().client().client(),
+                subscription().id(),
+                ts,
+                _monitorItem,
+                this,
+                eventNotificationCallback,
+                deleteMonitoredItemCallback);
+    return _response.get().statusCode == UA_STATUSCODE_GOOD;
 }
 
 

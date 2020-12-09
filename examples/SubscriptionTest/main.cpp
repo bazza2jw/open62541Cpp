@@ -40,9 +40,6 @@ int main() {
                          << " " << Open62541::dataValueToString(v) << endl;
                 };
 
-                auto ef = [](Open62541::ClientSubscription & c, Open62541::VariantArray &) {
-                    cout << "Event SubId " << c.id()  << endl;
-                };
                 //
                 cout << "Adding a data change monitor item" << endl;
                 //
@@ -53,20 +50,6 @@ int main() {
                     cout << "Failed to add monitor data change" << endl;
                 }
                 //
-                cout << "Monitor events" << endl;
-                //
-                // Set up the SELECT clauses
-                auto efs = new Open62541::EventFilterSelect(2); // two select clauses
-                efs->selectClause().setBrowsePath(0, "Message");
-                efs->selectClause().setBrowsePath(1, "Severity");
-                //
-                Open62541::NodeId  en(0, 2253); // Root->Objects->Server
-                //
-                unsigned mev = cs.addEventMonitor(ef, en, efs); // returns monitor id - ownership is transfered to monitoring item
-                //
-                if (!mev) {
-                    cout << "Failed to monitor events" << endl;
-                }
                 //
                 // run for one minute
                 //
@@ -76,9 +59,7 @@ int main() {
                 cout << "Ended Run - Test if deletes work correctly" << endl;
                 client.subscriptions().clear();
                 cout << "Subscriptions cleared - run for another 5 seconds" << endl;
-                for (int j = 0; j < 5; j++) {
-                    client.runIterate(1000);
-                }
+                client.run();
                 cout << "Finished" << endl;
             }
             else {

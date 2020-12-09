@@ -13,110 +13,133 @@
 #define SERVERMETHOD_H
 #include "open62541objects.h"
 #include "nodecontext.h"
+
 namespace Open62541
 {
 
 /*!
-    \brief The ServerMethod class
+    \brief The ServerMethod class - this is a node context
 */
 class  UA_EXPORT  ServerMethod  : public NodeContext {
 
-        const std::string _name;
-        ArgumentList  _in;
-        ArgumentList  _out;
-        /*!
-            \brief methodCallback
-            \param handle
-            \param objectId
-            \param inputSize
-            \param input
-            \param outputSize
-            \param output
-            \return
-        */
+    const std::string _name;
+    ArgumentList  _in;
+    ArgumentList  _out;
+    /*!
+        \brief methodCallback
+        \param handle
+        \param objectId
+        \param inputSize
+        \param input
+        \param outputSize
+        \param output
+        \return
+    */
 public:
-        static UA_StatusCode
-        methodCallback(UA_Server *server, const UA_NodeId *sessionId,
-                             void *sessionContext, const UA_NodeId *methodId,
-                             void *methodContext, const UA_NodeId *objectId,
-                             void *objectContext, size_t inputSize,
-                             const UA_Variant *input, size_t outputSize,
-                             UA_Variant *output);
 
-    protected:
-        UA_StatusCode _lastError;
+    typedef std::function<UA_StatusCode (Server &,const UA_NodeId *,size_t,const UA_Variant *,size_t, UA_Variant *)> MethodFunc;
+    static UA_StatusCode methodCallback(UA_Server *server, const UA_NodeId *sessionId,
+                                        void *sessionContext, const UA_NodeId *methodId,
+                                        void *methodContext, const UA_NodeId *objectId,
+                                        void *objectContext, size_t inputSize,
+                                        const UA_Variant *input, size_t outputSize,
+                                        UA_Variant *output);
 
-    public:
-        /*!
-            \brief ServerMethod
-            \param s
-            \param n
-            \param nInputs
-            \param nOutputs
-        */
-        ServerMethod(const std::string &n,
-                     int nInputs = 1,
-                     int nOutputs = 1);
+protected:
+    UA_StatusCode _lastError;
+    MethodFunc _func; // lambda
+public:
+    /*!
+        \brief ServerMethod
+        \param s
+        \param n
+        \param nInputs
+        \param nOutputs
+    */
+    ServerMethod(const std::string &n,
+                 int nInputs = 0,
+                 int nOutputs = 0);
 
-        virtual ~ServerMethod() {}
-
-        /*!
-            \brief in
-            \return
-        */
-        ArgumentList   &in() {
-            return _in;
-        }
-        /*!
-            \brief out
-            \return
-        */
-        ArgumentList   &out() {
-            return _out;
-        }
+    /*!
+     * \brief ServerMethod
+     * \param n
+     * \param f
+     * \param nInputs
+     * \param nOutputs
+     */
+    ServerMethod(const std::string &n,
+                 MethodFunc f,
+                 int nInputs = 0,
+                 int nOutputs = 0);
 
 
-        /*!
-            \brief callback
-            \return
-        */
-        virtual UA_StatusCode callback(Server &/*server*/,
-                                       const UA_NodeId * /*objectId*/,
-                                       size_t /*inputSize*/,
-                                       const UA_Variant * /*input*/,
-                                       size_t /*outputSize*/,
-                                       UA_Variant * /*output*/) {
+    virtual ~ServerMethod() {}
 
-            return UA_STATUSCODE_GOOD;
-        }
-        /*!
-            \brief lastOK
-            \return
-        */
-        bool lastOK() {
-            return _lastError == UA_STATUSCODE_GOOD;
-        }
+    /*!
+     * \brief setFunction
+     * \param f
+     */
+    void setFunction( MethodFunc f) {
+        _func = f;
+    }
 
-        /*!
-         * \brief setMethodNodeCallBack
-         * \param s
-         * \param node
-         * \return
-         */
-        bool setMethodNodeCallBack(Open62541::Server &s, Open62541::NodeId &node);
+    /*!
+        \brief in
+        \return
+    */
+    ArgumentList   &in() {
+        return _in;
+    }
+    /*!
+        \brief out
+        \return
+    */
+    ArgumentList   &out() {
+        return _out;
+    }
 
-        /*!
-         * \brief addServerMethod
-         * \param browseName
-         * \param parent
-         * \param nodeId
-         * \param newNode
-         * \param nameSpaceIndex
-         * \return
-         */
-        bool addServerMethod(Open62541::Server &s, const std::string &browseName,
-                             Open62541::NodeId &parent,  Open62541::NodeId &nodeId,
-                             Open62541::NodeId &newNode = NodeId::Null,  int nameSpaceIndex = 0);
+
+    /*!
+        \brief callback
+        \return
+    */
+    virtual UA_StatusCode callback(Server &/*server*/,
+                                   const UA_NodeId * /*objectId*/,
+                                   size_t /*inputSize*/,
+                                   const UA_Variant * /*input*/,
+                                   size_t /*outputSize*/,
+                                   UA_Variant * /*output*/) {
+
+        return UA_STATUSCODE_GOOD;
+    }
+    /*!
+        \brief lastOK
+        \return
+    */
+    bool lastOK() {
+        return _lastError == UA_STATUSCODE_GOOD;
+    }
+
+    /*!
+     * \brief setMethodNodeCallBack
+     * \param s
+     * \param node
+     * \return
+     */
+    bool setMethodNodeCallBack(Open62541::Server &s, Open62541::NodeId &node);
+
+    /*!
+     * \brief addServerMethod
+     * \param browseName
+     * \param parent
+     * \param nodeId
+     * \param newNode
+     * \param nameSpaceIndex
+     * \return
+     */
+    bool addServerMethod(Open62541::Server &s, const std::string &browseName,
+                         Open62541::NodeId &parent,  Open62541::NodeId &nodeId,
+                         Open62541::NodeId &newNode = NodeId::Null,  int nameSpaceIndex = 0);
 };
 
 /*!

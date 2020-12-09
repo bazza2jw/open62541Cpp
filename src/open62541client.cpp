@@ -13,7 +13,6 @@
 #include "clientbrowser.h"
 
 
-
 /*!
  * \brief subscriptionInactivityCallback
  * \param client
@@ -39,13 +38,13 @@ void Open62541::Client::subscriptionInactivityCallback(UA_Client *client, UA_UIn
  * \param responseType
  */
 void  Open62541::Client::asyncServiceCallback(UA_Client *client, void *userdata,
-                                 UA_UInt32 requestId, void *response,
-                                 const UA_DataType *responseType)
+        UA_UInt32 requestId, void *response,
+        const UA_DataType *responseType)
 {
     Client *p =   (Client *)(UA_Client_getContext(client));
     if(p)
     {
-       p->asyncService(userdata, requestId, response, responseType);
+        p->asyncService(userdata, requestId, response, responseType);
     }
 }
 
@@ -55,12 +54,12 @@ void  Open62541::Client::asyncServiceCallback(UA_Client *client, void *userdata,
  * \param client
  * \param clientState
  */
-void  Open62541::Client::stateCallback (UA_Client *client, UA_ClientState clientState)
+void  Open62541::Client::stateCallback (UA_Client *client, UA_SecureChannelState channelState, UA_SessionState sessionState, UA_StatusCode connectStatus)
 {
     Client *p =   (Client *)(UA_Client_getContext(client));
     if(p)
     {
-        p->stateChange(clientState);
+        p->stateChange( channelState,  sessionState, connectStatus);
     }
 }
 
@@ -370,11 +369,11 @@ bool Open62541::Client::addVariable(NodeId &parent, const std::string &childName
  * \return
  */
 bool Open62541::Client::addProperty(NodeId &parent,
-                 const std::string &key,
-                 Variant &value,
-                 NodeId &nodeId,
-                 NodeId &newNode,
-                 int nameSpaceIndex )
+                                    const std::string &key,
+                                    Variant &value,
+                                    NodeId &nodeId,
+                                    NodeId &newNode,
+                                    int nameSpaceIndex )
 {
     if(!_client) return false;
     WriteLock l(_mutex);
@@ -395,4 +394,92 @@ bool Open62541::Client::addProperty(NodeId &parent,
     return lastOK();
 }
 
+/*!
+ * \brief Open62541::Client::stateChange
+ * \param channelState
+ * \param sessionState
+ * \param connectStatus
+ */
+void Open62541::Client::stateChange(UA_SecureChannelState channelState,
+                                    UA_SessionState sessionState,
+                                    UA_StatusCode connectStatus) {
 
+    _channelState = channelState;
+    _sessionState = sessionState;
+    _connectStatus = connectStatus;
+
+
+    if(!connectStatus)
+    {
+        if(_lastSessionState != sessionState)
+        {
+            switch (sessionState) {
+            case UA_SESSIONSTATE_CLOSED:
+                SessionStateClosed();
+
+                break;
+            case UA_SESSIONSTATE_CREATE_REQUESTED:
+                SessionStateCreateRequested();
+
+                break;
+            case UA_SESSIONSTATE_CREATED:
+                SessionStateCreated();
+
+                break;
+            case UA_SESSIONSTATE_ACTIVATE_REQUESTED:
+                SessionStateActivateRequested();
+                break;
+            case UA_SESSIONSTATE_ACTIVATED:
+                SessionStateActivated();
+                break;
+            case UA_SESSIONSTATE_CLOSING:
+                SessionStateClosing();
+                break;
+            default:
+                break;
+            }
+            _lastSessionState = sessionState;
+        }
+
+        if(_lastSecureChannelState != channelState)
+        {
+
+            switch(channelState)
+            {
+            case UA_SECURECHANNELSTATE_CLOSED:
+                SecureChannelStateClosed();
+                break;
+            case UA_SECURECHANNELSTATE_HEL_SENT:
+                SecureChannelStateHelSent();
+                break;
+            case UA_SECURECHANNELSTATE_HEL_RECEIVED:
+                SecureChannelStateHelReceived();
+                break;
+            case UA_SECURECHANNELSTATE_ACK_SENT:
+                SecureChannelStateAckSent();
+                break;
+            case UA_SECURECHANNELSTATE_ACK_RECEIVED:
+                SecureChannelStateAckReceived();
+                break;
+            case UA_SECURECHANNELSTATE_OPN_SENT:
+                SecureChannelStateOpenSent();
+                break;
+            case UA_SECURECHANNELSTATE_OPEN:
+                SecureChannelStateOpen();
+                break;
+            case UA_SECURECHANNELSTATE_CLOSING:
+                SecureChannelStateClosing();
+                break;
+            default:
+                break;
+            }
+            _lastSecureChannelState = channelState;
+        }
+    }
+    else
+    {
+        _lastError = connectStatus;
+        connectFail();
+    }
+
+}
