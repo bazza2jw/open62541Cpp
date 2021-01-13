@@ -4,10 +4,10 @@ set(APPNAME TestHistorianServer)
 
 # Source code
 set(SOURCES
-        main.cpp
-        testcontext.cpp
-        testmethod.cpp
-        testobject.cpp
-        )
+    main.cpp
+    testcontext.cpp
+    testmethod.cpp
+    testobject.cpp
+    )
 
 include(../examples_common.cmake)

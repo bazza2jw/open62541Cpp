@@ -4,8 +4,8 @@ set(APPNAME TestEventServer)
 
 # Source code
 set(SOURCES
-        main.cpp
-        testmethod.cpp
-        )
+    main.cpp
+    testmethod.cpp
+    )
 
 include(../examples_common.cmake)
