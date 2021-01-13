@@ -251,7 +251,7 @@ namespace Open62541 {
                 nodeId is the node id of the node for which a value shall be set.
                 historizing is the historizing flag of the node identified by nodeId.
                 value is the value to set in the history data storage. */
-            virtual void setValue(Context &/*c*/, UA_Boolean historizing, const UA_DataValue */*value*/) {}
+            virtual void setValue(Context &/*c*/, UA_Boolean historizing, const UA_DataValue* /*value*/) {}
     };
 
 
@@ -726,7 +726,7 @@ namespace Open62541 {
                 value is the value which shall be stored.
                 historizing is the historizing flag of the node identified by nodeId.
                 If sessionId is NULL, the historizing flag is invalid and must not be used. */
-            virtual  UA_StatusCode serverSetHistoryData(Context &/*c*/, bool /*historizing*/, const UA_DataValue */*value*/) {
+            virtual  UA_StatusCode serverSetHistoryData(Context &/*c*/, bool /*historizing*/, const UA_DataValue* /*value*/) {
                 return UA_STATUSCODE_GOOD;
             }
 
@@ -765,7 +765,7 @@ namespace Open62541 {
                                                  UA_Boolean /*releaseContinuationPoints*/,
                                                  std::string &/*continuationPoint*/,
                                                  std::string &/*outContinuationPoint*/,
-                                                 UA_HistoryData */*result*/) {
+                                                 UA_HistoryData* /*result*/) {
                 return UA_STATUSCODE_GOOD;
             }
 
@@ -859,8 +859,8 @@ namespace Open62541 {
                                                  UA_Boolean /*releaseContinuationPoints*/,
                                                  std::string &/*in*/,
                                                  std::string &/*out*/,
-                                                 size_t */*providedValues*/,
-                                                 UA_DataValue */*values*/) {
+                                                 size_t* /*providedValues*/,
+                                                 UA_DataValue* /*values*/) {
                 return 0;
             }
 
@@ -905,21 +905,21 @@ namespace Open62541 {
                 \brief insertDataValue
                 \return
             */
-            virtual UA_StatusCode insertDataValue(Context &/*c*/, const UA_DataValue */*value*/) {
+            virtual UA_StatusCode insertDataValue(Context &/*c*/, const UA_DataValue* /*value*/) {
                 return 0;
             }
             /*!
                 \brief replaceDataValue
                 \return
             */
-            virtual UA_StatusCode replaceDataValue(Context &/*c*/, const UA_DataValue */*value*/) {
+            virtual UA_StatusCode replaceDataValue(Context &/*c*/, const UA_DataValue* /*value*/) {
                 return 0;
             }
             /*!
                 \brief updateDataValue
                 \return
             */
-            virtual UA_StatusCode updateDataValue(Context &/*c*/, const UA_DataValue */*value*/) {
+            virtual UA_StatusCode updateDataValue(Context &/*c*/, const UA_DataValue* /*value*/) {
                 return 0;
             }
             /*!
@@ -1066,7 +1066,7 @@ namespace Open62541 {
                 nodeId is the node id for which data was set.
                 historizing is the nodes boolean flag for historizing
                 value is the new value. */
-            virtual void setValue(Context & /*c*/, UA_Boolean /*historizing*/, const UA_DataValue */*value*/) {}
+            virtual void setValue(Context & /*c*/, UA_Boolean /*historizing*/, const UA_DataValue* /*value*/) {}
 
             /*  This function is called if a history read is requested with
                 isRawReadModified set to false. Setting it to NULL will result in a
@@ -1090,19 +1090,19 @@ namespace Open62541 {
                            UA_HistoryReadResult extension object. use this to provide
                            result data to the client. Index in the array is the same as
                            in nodesToRead and the UA_HistoryReadResult array. */
-            virtual void readRaw(Context &/*c*/, const UA_RequestHeader */*requestHeader*/,  const UA_ReadRawModifiedDetails */*historyReadDetails*/,
+            virtual void readRaw(Context &/*c*/, const UA_RequestHeader* /*requestHeader*/,  const UA_ReadRawModifiedDetails* /*historyReadDetails*/,
                                  UA_TimestampsToReturn /*timestampsToReturn*/,   UA_Boolean /*releaseContinuationPoints*/, size_t /*nodesToReadSize*/,
-                                 const UA_HistoryReadValueId */*nodesToRead*/, UA_HistoryReadResponse */*response*/, UA_HistoryData *const *const /*historyData*/) {
+                                 const UA_HistoryReadValueId* /*nodesToRead*/, UA_HistoryReadResponse* /*response*/, UA_HistoryData *const *const /*historyData*/) {
 
             }
 
-            virtual void updateData(Context &/*c*/, const UA_RequestHeader */*requestHeader*/, const UA_UpdateDataDetails */*details*/,
-                                    UA_HistoryUpdateResult */*result*/) {
+            virtual void updateData(Context &/*c*/, const UA_RequestHeader* /*requestHeader*/, const UA_UpdateDataDetails* /*details*/,
+                                    UA_HistoryUpdateResult* /*result*/) {
 
             }
 
-            virtual void deleteRawModified(Context &/*c*/, const UA_RequestHeader */*requestHeader*/,
-                                           const UA_DeleteRawModifiedDetails */*details*/, UA_HistoryUpdateResult */*result*/) {
+            virtual void deleteRawModified(Context &/*c*/, const UA_RequestHeader* /*requestHeader*/,
+                                           const UA_DeleteRawModifiedDetails* /*details*/, UA_HistoryUpdateResult* /*result*/) {
 
             }
 

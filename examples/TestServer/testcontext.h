@@ -67,7 +67,7 @@ public:
         \param value
         \return
     */
-    virtual bool readData(Open62541::Server &/*server*/, Open62541::NodeId &node, const UA_NumericRange */*range*/, UA_DataValue &/*value*/) {
+    virtual bool readData(Open62541::Server &/*server*/, Open62541::NodeId &node, const UA_NumericRange* /*range*/, UA_DataValue &/*value*/) {
         cout << __FUNCTION__ << " " << name() << " NodeId " << Open62541::toString(node.get()) <<  endl;
         return false;
     }
@@ -80,7 +80,7 @@ public:
         \param value
         \return
     */
-    virtual bool writeData(Open62541::Server &/*server*/,  Open62541::NodeId &node, const UA_NumericRange */*range*/, const UA_DataValue &/*value*/) {
+    virtual bool writeData(Open62541::Server &/*server*/,  Open62541::NodeId &node, const UA_NumericRange* /*range*/, const UA_DataValue &/*value*/) {
         cout << __FUNCTION__ << " " << name() << " NodeId " << Open62541::toString(node.get()) <<  endl;
         return false;
     }
@@ -90,7 +90,7 @@ public:
         \brief readValue
         \param node
     */
-    virtual void readValue(Open62541::Server &/*server*/, Open62541::NodeId &node, const UA_NumericRange */*range*/, const UA_DataValue */*value*/)
+    virtual void readValue(Open62541::Server &/*server*/, Open62541::NodeId &node, const UA_NumericRange* /*range*/, const UA_DataValue* /*value*/)
     {
         cout << __FUNCTION__ << " " << name() << " NodeId " << Open62541::toString(node.get()) <<  endl;
     }
@@ -99,7 +99,7 @@ public:
         \brief writeValue
         \param node
     */
-    virtual void writeValue(Open62541::Server &/*server*/, Open62541::NodeId &node, const UA_NumericRange */*range*/, const UA_DataValue &/*value*/)
+    virtual void writeValue(Open62541::Server &/*server*/, Open62541::NodeId &node, const UA_NumericRange* /*range*/, const UA_DataValue &/*value*/)
     {
         cout << __FUNCTION__ << " " << name() << " NodeId " << Open62541::toString(node.get()) <<  endl;
     }

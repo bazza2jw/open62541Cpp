@@ -17,7 +17,7 @@ public:
         \return
     */
     virtual UA_StatusCode callback(Open62541::Server &/*server*/,
-                                   const UA_NodeId */*objectId*/,
+                                   const UA_NodeId* /*objectId*/,
                                    size_t /*inputSize*/,
                                    const UA_Variant * /*input*/,
                                    size_t /*outputSize*/,

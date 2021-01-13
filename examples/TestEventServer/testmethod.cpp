@@ -3,7 +3,7 @@
 #include <open62541server.h>
 
 UA_StatusCode TestMethod::callback(Open62541::Server &server,
-                               const UA_NodeId */*objectId*/,
+                               const UA_NodeId* /*objectId*/,
                                size_t /*inputSize*/,
                                const UA_Variant * /*input*/,
                                size_t /*outputSize*/,

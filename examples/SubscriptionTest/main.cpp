@@ -14,7 +14,7 @@ public:
     {
         cout << "asyncService requerstId = " << requestId << " Type " << responseType->typeName << endl;
     }
-    void asyncConnectService(UA_UInt32 requestId, void */*userData*/, void */*response*/)
+    void asyncConnectService(UA_UInt32 requestId, void* /*userData*/, void* /*response*/)
     {
        cout << "asyncConnectService requestId = " << requestId  << endl;
     }

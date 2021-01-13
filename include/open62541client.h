@@ -139,7 +139,7 @@ namespace Open62541 {
                 \param requestId
                 \param response
             */
-            virtual void asyncConnectService(UA_UInt32 /*requestId*/, void */*userData*/, void */*response*/) {
+            virtual void asyncConnectService(UA_UInt32 /*requestId*/, void* /*userData*/, void* /*response*/) {
 
             }
             /*!

@@ -32,7 +32,7 @@ Open62541::MonitoredItem::MonitoredItem(ClientSubscription &s) : _sub(s) {
     \param monContext
 */
 void Open62541::MonitoredItem::deleteMonitoredItemCallback
-(UA_Client * /*client*/, UA_UInt32 /*subId*/, void *subContext,
+(UA_Client* /*client*/, UA_UInt32 /*subId*/, void* subContext,
  UA_UInt32 /*monId*/, void *monContext) {
     Open62541::MonitoredItem *m = (Open62541::MonitoredItem *)(monContext);
     Open62541::ClientSubscription *c = (Open62541::ClientSubscription *)subContext;
@@ -52,9 +52,9 @@ void Open62541::MonitoredItem::deleteMonitoredItemCallback
     \param value
 */
 void Open62541::MonitoredItem::dataChangeNotificationCallback
-(UA_Client * /*client*/, UA_UInt32 /*subId*/, void *subContext,
- UA_UInt32 /*monId*/, void *monContext,
- UA_DataValue *value) {
+(UA_Client* /*client*/, UA_UInt32 /*subId*/, void* subContext,
+ UA_UInt32 /*monId*/, void* monContext,
+ UA_DataValue* value) {
     Open62541::MonitoredItem *m = (Open62541::MonitoredItem *)(monContext);
     Open62541::ClientSubscription *c = (Open62541::ClientSubscription *)subContext;
     if (m && c) {

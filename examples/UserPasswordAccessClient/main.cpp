@@ -3,7 +3,7 @@
 using namespace std;
 
 
-int main(int /*argc*/, char **/*argv*/) {
+int main(int /*argc*/, char** /*argv*/) {
     cout << "Test Client - User/Password access test" << endl;
     //
     // Construct client

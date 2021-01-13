@@ -93,7 +93,7 @@ void TestServer::initialise() {
 
 }
 
-int main(int/* argc*/, char **/*argv[]*/) {
+int main(int/* argc*/, char** /*argv[]*/) {
     TestServer server;
     cerr << "Starting server" << endl;
     server.start();

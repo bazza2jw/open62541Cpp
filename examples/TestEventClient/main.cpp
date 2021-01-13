@@ -23,7 +23,7 @@ public:
 };
 
 
-int main(int /*argc*/, char **/*argv*/) {
+int main(int /*argc*/, char** /*argv*/) {
     cout << "Test Event Client - requires the TestEventServer running" << endl;
     //
     // Construct client

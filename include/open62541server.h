@@ -1855,9 +1855,9 @@ namespace Open62541 {
                 \param item
                 \return
             */
-            virtual bool allowAddNode(UA_AccessControl */*ac*/,
-                                      const UA_NodeId */*sessionId*/, void */*sessionContext*/,
-                                      const UA_AddNodesItem */*item*/) {
+            virtual bool allowAddNode(UA_AccessControl* /*ac*/,
+                                      const UA_NodeId* /*sessionId*/, void* /*sessionContext*/,
+                                      const UA_AddNodesItem* /*item*/) {
                 return true;
             }
 
@@ -1869,9 +1869,9 @@ namespace Open62541 {
                 \param item
                 \return
             */
-            virtual bool allowAddReference(UA_AccessControl */*ac*/,
-                                           const UA_NodeId */*sessionId*/, void */*sessionContext*/,
-                                           const UA_AddReferencesItem */*item*/) {
+            virtual bool allowAddReference(UA_AccessControl* /*ac*/,
+                                           const UA_NodeId* /*sessionId*/, void* /*sessionContext*/,
+                                           const UA_AddReferencesItem* /*item*/) {
                 return true;
             }
 
@@ -1883,9 +1883,9 @@ namespace Open62541 {
                 \param item
                 \return
             */
-            virtual bool allowDeleteNode(UA_AccessControl */*ac*/,
-                                         const UA_NodeId */*sessionId*/, void */*sessionContext*/,
-                                         const UA_DeleteNodesItem */*item*/) {
+            virtual bool allowDeleteNode(UA_AccessControl* /*ac*/,
+                                         const UA_NodeId* /*sessionId*/, void* /*sessionContext*/,
+                                         const UA_DeleteNodesItem* /*item*/) {
                 return false; // Do not allow deletion from client
             }
 
@@ -1897,9 +1897,9 @@ namespace Open62541 {
                 \param item
                 \return
             */
-            virtual bool allowDeleteReference(UA_AccessControl */*ac*/,
-                                              const UA_NodeId */*sessionId*/, void */*sessionContext*/,
-                                              const UA_DeleteReferencesItem */*item*/) {
+            virtual bool allowDeleteReference(UA_AccessControl* /*ac*/,
+                                              const UA_NodeId* /*sessionId*/, void* /*sessionContext*/,
+                                              const UA_DeleteReferencesItem* /*item*/) {
                 return true;
             }
 
@@ -1907,39 +1907,39 @@ namespace Open62541 {
                 \brief activateSession
                 \return
             */
-            virtual UA_StatusCode activateSession(UA_AccessControl */*ac*/,
-                                                  const UA_EndpointDescription */*endpointDescription*/,
-                                                  const UA_ByteString */*secureChannelRemoteCertificate*/,
-                                                  const UA_NodeId */*sessionId*/,
-                                                  const UA_ExtensionObject */*userIdentityToken*/,
-                                                  void **/*sessionContext*/) {
+            virtual UA_StatusCode activateSession(UA_AccessControl* /*ac*/,
+                                                  const UA_EndpointDescription* /*endpointDescription*/,
+                                                  const UA_ByteString* /*secureChannelRemoteCertificate*/,
+                                                  const UA_NodeId* /*sessionId*/,
+                                                  const UA_ExtensionObject* /*userIdentityToken*/,
+                                                  void** /*sessionContext*/) {
                 return UA_STATUSCODE_BADSESSIONIDINVALID;
             }
 
             /* Deauthenticate a session and cleanup */
-            virtual void closeSession(UA_AccessControl */*ac*/,
-                                      const UA_NodeId */*sessionId*/, void */*sessionContext*/) {
+            virtual void closeSession(UA_AccessControl* /*ac*/,
+                                      const UA_NodeId* /*sessionId*/, void* /*sessionContext*/) {
 
             }
 
             /* Access control for all nodes*/
-            virtual uint32_t getUserRightsMask(UA_AccessControl */*ac*/,
-                                               const UA_NodeId */*sessionId*/, void */*sessionContext*/,
-                                               const UA_NodeId */*nodeId*/, void */*nodeContext*/) {
+            virtual uint32_t getUserRightsMask(UA_AccessControl* /*ac*/,
+                                               const UA_NodeId* /*sessionId*/, void* /*sessionContext*/,
+                                               const UA_NodeId* /*nodeId*/, void* /*nodeContext*/) {
                 return 0;
             }
 
             /* Additional access control for variable nodes */
-            virtual uint8_t getUserAccessLevel(UA_AccessControl */*ac*/,
-                                               const UA_NodeId */*sessionId*/, void */*sessionContext*/,
-                                               const UA_NodeId */*nodeId*/, void */*nodeContext*/) {
+            virtual uint8_t getUserAccessLevel(UA_AccessControl* /*ac*/,
+                                               const UA_NodeId* /*sessionId*/, void* /*sessionContext*/,
+                                               const UA_NodeId* /*nodeId*/, void* /*nodeContext*/) {
                 return 0;
             }
 
             /* Additional access control for method nodes */
-            virtual bool getUserExecutable(UA_AccessControl */*ac*/,
-                                           const UA_NodeId */*sessionId*/, void */*sessionContext*/,
-                                           const UA_NodeId */*methodId*/, void */*methodContext*/) {
+            virtual bool getUserExecutable(UA_AccessControl* /*ac*/,
+                                           const UA_NodeId* /*sessionId*/, void* /*sessionContext*/,
+                                           const UA_NodeId* /*methodId*/, void* /*methodContext*/) {
                 return false;
             }
 
@@ -1952,19 +1952,19 @@ namespace Open62541 {
                 return false;
             }
             /* Allow insert,replace,update of historical data */
-            virtual bool allowHistoryUpdateUpdateData(UA_AccessControl */*ac*/,
-                                                      const UA_NodeId */*sessionId*/, void */*sessionContext*/,
-                                                      const UA_NodeId */*nodeId*/,
+            virtual bool allowHistoryUpdateUpdateData(UA_AccessControl* /*ac*/,
+                                                      const UA_NodeId* /*sessionId*/, void* /*sessionContext*/,
+                                                      const UA_NodeId* /*nodeId*/,
                                                       UA_PerformUpdateType /*performInsertReplace*/,
-                                                      const UA_DataValue */*value*/) {
+                                                      const UA_DataValue* /*value*/) {
                 return false;
             }
 
             /* Allow delete of historical data */
-            virtual bool allowHistoryUpdateDeleteRawModified(UA_AccessControl */*ac*/,
-                                                             const UA_NodeId */*sessionId*/,
-                                                             void */*sessionContext*/,
-                                                             const UA_NodeId */*nodeId*/,
+            virtual bool allowHistoryUpdateDeleteRawModified(UA_AccessControl* /*ac*/,
+                                                             const UA_NodeId* /*sessionId*/,
+                                                             void* /*sessionContext*/,
+                                                             const UA_NodeId* /*nodeId*/,
                                                              UA_DateTime /*startTimestamp*/,
                                                              UA_DateTime/* endTimestamp*/,
                                                              bool /*isDeleteModified*/) {
