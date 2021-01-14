@@ -6,6 +6,7 @@ set(APPNAME TestEventServer)
 set(SOURCES
     main.cpp
     testmethod.cpp
+    testmethod.h
     )
 
 include(../examples_common.cmake)

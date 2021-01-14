@@ -8,6 +8,9 @@ set(SOURCES
     testcontext.cpp
     testmethod.cpp
     testobject.cpp
+    testcontext.h
+    testmethod.h
+    testobject.h
     )
 
 include(../examples_common.cmake)
