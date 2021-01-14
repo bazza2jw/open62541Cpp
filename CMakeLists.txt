@@ -3,9 +3,6 @@ cmake_minimum_required(VERSION 3.5)
 ## project name
 project(open62541cpp)
 
-## library name
-set(OPEN62541_CPP open62541cpp)
-
 ## build settings
 set(VERSION_MAJOR 0)
 set(VERSION_MINOR 3)
@@ -35,10 +32,7 @@ set(INCLUDE_INSTALL_DIR include)
 set(LIB_INSTALL_DIR lib)
 
 ## include directories
-include_directories(include)
-
 add_subdirectory(src)
-add_subdirectory(include)
 
 if (BUILD_EXAMPLES)
     add_subdirectory(examples)
