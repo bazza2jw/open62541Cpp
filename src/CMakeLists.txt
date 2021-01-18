@@ -44,10 +44,14 @@ set(LIB_HEADERS
 set(OPEN62541_CPP open62541cpp)
 
 # Building shared library
-add_library(open62541cpp SHARED ${LIB_SOURCES} ${LIB_HEADERS})
+add_library(               open62541cpp SHARED ${LIB_SOURCES} ${LIB_HEADERS})
 target_compile_definitions(open62541cpp PRIVATE -DUA_DYNAMIC_LINKING_EXPORT)
 target_include_directories(open62541cpp PUBLIC ../include)
-
+set_target_properties(     open62541cpp PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    )
 # add boost to target
 include(../Common.cmake)
 add_boost_lib(${OPEN62541_CPP})
