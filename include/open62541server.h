@@ -451,7 +451,7 @@ namespace Open62541 {
 
             /*!
                 \brief deleteTree
-                \param nodeId node to be delted with its children
+                \param nodeId node to be deleted with its children
                 \return true on success
             */
             bool deleteTree(NodeId &nodeId);
@@ -478,7 +478,7 @@ namespace Open62541 {
             bool browseTree(NodeId &nodeId, UANode *tree);
             /*!
                 \brief browseTree
-                browse and create a map of string version of nodeids ids to node ids
+                browse and create a map of string version of node ids to node ids
                 \param nodeId
                 \param tree
                 \return true on success
@@ -486,7 +486,7 @@ namespace Open62541 {
             bool browseTree(NodeId &nodeId, NodeIdMap &m); //
             /*!
                 \brief browseChildren
-                \param nodeId parent of childrent ot browse
+                \param nodeId parent of children to browse
                 \param m map to fill
                 \return true on success
             */
