@@ -9,10 +9,7 @@ add_library(OpcServiceCommon SHARED ${LIB_SOURCES})
 #
 # 2. Link...
 target_link_libraries(OpcServiceCommon ${WTLIBS})
-target_link_libraries(OpcServiceCommon ${OPEN62541})
-if(Boost_FOUND)
-  target_link_libraries(OpcServiceCommon ${Boost_LIBRARIES})
-endif()
+target_link_libraries(OpcServiceCommon PRIVATE open62541cpp)
 #
 # now add each of the server builds 
 #
@@ -26,12 +23,8 @@ foreach(SERVER_EXE Simulator)
 
   ## 2. Link...
   target_link_libraries(${SERVER_EXE} ${WTLIBS})
-  target_link_libraries(${SERVER_EXE} ${OPEN62541})
+  target_link_libraries(${SERVER_EXE} PRIVATE open62541cpp)
   target_link_libraries(${SERVER_EXE} OpcServiceCommon)
-
-  if(Boost_FOUND)
-    target_link_libraries(${SERVER_EXE} ${Boost_LIBRARIES})
-  endif()
 
   ## 3. Install...
   install(TARGETS ${SERVER_EXE} RUNTIME DESTINATION bin)

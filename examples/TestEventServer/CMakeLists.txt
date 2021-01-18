@@ -1,12 +1,8 @@
 cmake_minimum_required(VERSION 3.11)
-# Build Test Server
-set(APPNAME TestEventServer)
 
-# Source code
-set(SOURCES
+include(../examples_common.cmake)
+add_example("TestEventServer"
     main.cpp
     testmethod.cpp
     testmethod.h
     )
-
-include(../examples_common.cmake)

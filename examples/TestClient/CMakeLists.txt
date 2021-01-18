@@ -1,7 +1,4 @@
-# Build Test Server
-set(APPNAME TestClient)
-
-# Source code
-set(SOURCES main.cpp)
+cmake_minimum_required(VERSION 3.11)
 
 include(../examples_common.cmake)
+add_example(TestClient main.cpp)

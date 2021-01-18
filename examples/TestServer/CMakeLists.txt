@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 3.11)
-# Build Test Server
-set(APPNAME TestServer)
 
-# Source code
-set(SOURCES
+include(../examples_common.cmake)
+add_example("TestServer"
     main.cpp
     testcontext.cpp
     testmethod.cpp
@@ -12,5 +10,3 @@ set(SOURCES
     testmethod.h
     testobject.h
     )
-
-include(../examples_common.cmake)
