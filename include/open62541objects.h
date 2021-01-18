@@ -1485,8 +1485,7 @@ namespace Open62541 {
 
 
   // debug helpers
-  std::string  timestampToString(UA_DateTime date);
-  std::string  dataValueToString(UA_DataValue *value);
-  std::string variantToString(UA_Variant &v);
+  UA_EXPORT std::string timestampToString(UA_DateTime date);
+  UA_EXPORT std::string dataValueToString(UA_DataValue *value);
 }
 #endif // OPEN62541OBJECTS_H
