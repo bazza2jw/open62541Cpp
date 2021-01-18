@@ -45,13 +45,13 @@ set(OPEN62541_CPP open62541cpp)
 
 # Building shared library
 add_library(open62541cpp SHARED ${LIB_SOURCES} ${LIB_HEADERS})
+target_compile_definitions(open62541cpp PRIVATE -DUA_DYNAMIC_LINKING_EXPORT)
 target_include_directories(open62541cpp PUBLIC ../include)
 
 # add boost to target
 include(../Common.cmake)
-if (Boost_FOUND)
-    target_link_libraries(${OPEN62541_CPP} ${Boost_LIBRARIES})
-endif ()
+add_boost_lib(${OPEN62541_CPP})
+set_build_system_option(${OPEN62541_CPP})
 
 ## set the shared library soname
 set_target_properties(${OPEN62541_CPP} PROPERTIES
