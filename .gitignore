@@ -126,5 +126,8 @@ ui_*.h
 qrc_*.cpp
 *.res
 *.rc
+*.cmd
+*.bat
 /.qmake.cache
 /.qmake.stash
+/.vscode
