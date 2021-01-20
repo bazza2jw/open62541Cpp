@@ -23,7 +23,7 @@ There is C++ style class support of Object Types.
 
 The library is built using cmake. Once cmake installed, type the following in a command prompt located at the root of the project.
 ```bash
-md build
+mkdir build
 cd build
 cmake ..
 cmake --build . --config Release
