@@ -21,7 +21,14 @@ There is C++ style class support of Object Types.
 
 # Building
 
-The library is built using cmake. The examples show how to use the classes and should correspond to many of the C 
+The library is built using cmake. Once cmake installed, type the following in a command prompt located at the root of the project.
+```bash
+md build
+cd build
+cmake ..
+cmake --build . --config Release
+```
+The examples show how to use the classes and should correspond to many of the C 
 library examples. These examples can be build with `-Dwith_examples=ON`.
 
 ## Requirements
