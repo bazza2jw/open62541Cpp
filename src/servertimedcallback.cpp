@@ -1,5 +1,5 @@
 #include <servertimedcallback.h>
-#include <open62541server.h>
+#include <open62541cpp/open62541server.h>
 
 //
 std::set<Open62541::ServerTimedCallback *> Open62541::ServerTimedCallback::_map;

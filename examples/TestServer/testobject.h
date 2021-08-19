@@ -1,6 +1,6 @@
 #ifndef TESTOBJECT_H
 #define TESTOBJECT_H
-#include <serverobjecttype.h>
+#include <open62541cpp/serverobjecttype.h>
 #include "testmethod.h"
 // Object Type Example
 class TestObject : public Open62541::ServerObjectType

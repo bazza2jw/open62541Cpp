@@ -11,8 +11,8 @@
  */
 #ifndef SERVERMETHOD_H
 #define SERVERMETHOD_H
-#include "open62541objects.h"
-#include "nodecontext.h"
+#include <open62541cpp/open62541objects.h>
+#include <open62541cpp/nodecontext.h>
 
 namespace Open62541
 {

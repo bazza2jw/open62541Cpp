@@ -13,7 +13,7 @@
 #define CLIENTCACHETHREAD_H
 
 #include <thread>
-#include "clientcache.h"
+#include <open62541cpp/clientcache.h>
 
 namespace Open62541 {
 

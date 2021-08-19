@@ -9,7 +9,7 @@
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
  * A PARTICULAR PURPOSE.
  */
-#include "serverobjecttype.h"
+#include <open62541cpp/serverobjecttype.h>
 
 
 /*!

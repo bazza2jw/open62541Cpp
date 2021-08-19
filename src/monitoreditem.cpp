@@ -9,9 +9,9 @@
     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
     A PARTICULAR PURPOSE.
 */
-#include <monitoreditem.h>
-#include <open62541client.h>
-#include <clientsubscription.h>
+#include <open62541cpp/monitoreditem.h>
+#include <open62541cpp/open62541client.h>
+#include <open62541cpp/clientsubscription.h>
 
 /*!
     \brief Open62541::MonitoredItem::MonitoredItem

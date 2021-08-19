@@ -1,10 +1,10 @@
 #include <iostream>
-#include <open62541server.h>
+#include <open62541cpp/open62541server.h>
 #include "testcontext.h"
 #include "testmethod.h"
-#include <serverrepeatedcallback.h>
+#include <open62541cpp/serverrepeatedcallback.h>
 #include "testobject.h"
-#include "historydatabase.h"
+#include <open62541cpp/historydatabase.h>
 using namespace std;
 //
 // example server with memory based historian

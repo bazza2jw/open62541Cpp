@@ -1,5 +1,5 @@
 #include <iostream>
-#include <open62541client.h>
+#include <open62541cpp/open62541client.h>
 #include <signal.h>
 #include <stdlib.h>
 using namespace std;

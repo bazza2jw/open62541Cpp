@@ -10,7 +10,7 @@
  * A PARTICULAR PURPOSE.
  */
 #include <serverrepeatedcallback.h>
-#include <open62541server.h>
+#include <open62541cpp/open62541server.h>
 /*!
 
     \brief Open62541::ServerRepeatedCallback::callbackFunction

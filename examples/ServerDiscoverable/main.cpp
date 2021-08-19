@@ -1,6 +1,6 @@
-#include <open62541server.h>
-#include <open62541client.h>
-#include <serverrepeatedcallback.h>
+#include <open62541cpp/open62541server.h>
+#include <open62541cpp/open62541client.h>
+#include <open62541cpp/serverrepeatedcallback.h>
 /*!
     This is an example server that registers with the discover y server
 */

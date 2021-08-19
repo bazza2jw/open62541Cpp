@@ -1,7 +1,7 @@
 #ifndef TESTMETHOD_H
 #define TESTMETHOD_H
 
-#include <servermethod.h>
+#include <open62541cpp/servermethod.h>
 class TestMethod : public Open62541::ServerMethod
 {
 public:

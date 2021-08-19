@@ -9,35 +9,35 @@
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
  * A PARTICULAR PURPOSE.
  */
-#ifndef SERVERBROWSER_H
-#define SERVERBROWSER_H
-#include <open62541objects.h>
+#ifndef CLIENTBROWSER_H
+#define CLIENTBROWSER_H
+#include <open62541cpp/open62541client.h>
 namespace Open62541
 {
-// browsing object
+
 /*!
-    \brief The ServerBrowser class
-    Browse a server node
+      \brief The ClientBrowser class
+      Browse nodes helper.
 */
-class  UA_EXPORT  ServerBrowser : public Browser<Server> {
+
+class ClientBrowser : public Browser<Client> {
         //
     public:
         /*!
-            \brief ServerBrowser
-            \param c
+            \brief ClientBrowser
+            \param c client connection
         */
-        ServerBrowser(Server &c) : Browser(c) {}
+        ClientBrowser(Client &c) : Browser(c) {}
         /*!
             \brief browse
-            \param start
+            \param start node ID
         */
         void browse(UA_NodeId start) {
             list().clear();
-            {
-                UA_Server_forEachChildNodeCall(obj().server(), start, browseIter, (void *) this);
-            }
+            if(obj().client()) UA_Client_forEachChildNodeCall(obj().client(), start, browseIter, (void *) this);
         }
+
 };
 
 }
-#endif // SERVERBROWSER_H
+#endif // CLIENTBROWSER_H

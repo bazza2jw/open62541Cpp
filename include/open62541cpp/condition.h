@@ -1,6 +1,6 @@
 #ifndef CONDITION_H
 #define CONDITION_H
-#include "open62541objects.h"
+#include <open62541cpp/open62541objects.h>
 
 namespace Open62541 {
 class Server;

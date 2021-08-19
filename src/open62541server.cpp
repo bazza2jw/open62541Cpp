@@ -9,11 +9,11 @@
     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
     A PARTICULAR PURPOSE.
 */
-#include "open62541server.h"
-#include "nodecontext.h"
-#include "serverbrowser.h"
-#include "open62541client.h"
-#include "historydatabase.h"
+#include <open62541cpp/open62541server.h>
+#include <open62541cpp/nodecontext.h>
+#include <open62541cpp/serverbrowser.h>
+#include <open62541cpp/open62541client.h>
+#include <open62541cpp/historydatabase.h>
 
 // map UA_SERVER to Server objects
 Open62541::Server::ServerMap  Open62541::Server::_serverMap;

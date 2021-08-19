@@ -1,5 +1,5 @@
 #include <iostream>
-#include <open62541server.h>
+#include <open62541cpp/open62541server.h>
 using namespace std;
 //
 // example server with memory based historian

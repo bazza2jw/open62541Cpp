@@ -11,8 +11,8 @@
 */
 #ifndef OPEN62541CLIENT_H
 #define OPEN62541CLIENT_H
-#include "open62541objects.h"
-#include <clientsubscription.h>
+#include <open62541cpp/open62541objects.h>
+#include <open62541cpp/clientsubscription.h>
 
 /*
     OPC nodes are just data objects they do not need to be in a property tree
