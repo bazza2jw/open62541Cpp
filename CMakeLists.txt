@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.5)
 ## project name
 project(open62541cpp)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR})
+
 ## library name
 set(OPEN62541_CPP open62541cpp)
 
@@ -18,11 +20,11 @@ set(CPACK_PACKAGE_VERSION_MINOR ${VERSION_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${VERSION_PATCH})
 
 ## Set the UA log level.
-IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
-    add_definitions(-DUA_LOGLEVEL=100)
-ELSE()
-    add_definitions(-DUA_LOGLEVEL=500)
-ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+# IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+#     add_definitions(-DUA_LOGLEVEL=100)
+# ELSE()
+#     add_definitions(-DUA_LOGLEVEL=500)
+# ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
 ## --- Build options ---
 set(BUILD_EXAMPLES FALSE CACHE BOOL "Build example programs")

@@ -14,7 +14,6 @@ using namespace std;
  */
 class TestServer : public Open62541::Server {
     int _idx; // namespace index
-    UA_UInt64 _discoveryid;
     //
     Open62541::Client _client;
 public:

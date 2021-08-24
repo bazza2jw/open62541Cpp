@@ -14,18 +14,19 @@ using namespace std;
  * \param data
  * \return
  */
-static UA_Boolean readRaw(const UA_HistoryData *data) {
+/* static UA_Boolean readRaw(const UA_HistoryData *data) {
     cout << "readRaw Value count:" <<  ((long unsigned)data->dataValuesSize) << endl;
 
-    /* Iterate over all values */
+    // Iterate over all values
     for (UA_UInt32 i = 0; i < data->dataValuesSize; ++i)
     {
         cout << Open62541::dataValueToString(&data->dataValues[i]) << endl;
     }
 
-    /* We want more data! */
+    // We want more data!
     return true;
 }
+*/
 
 // read a historical node
 /*!

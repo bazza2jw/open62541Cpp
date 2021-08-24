@@ -14,7 +14,7 @@
 #include <boost/optional/optional.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/locks.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <string>
 #include <vector>
 #include <map>

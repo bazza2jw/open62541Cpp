@@ -46,9 +46,8 @@ namespace Open62541 {
                 if (_cache.find(endpoint) != _cache.end()) {
                     return _cache[endpoint];
                 }
-                else {
-                    _cache[endpoint] = ClientRef(new Client());
-                }
+                _cache[endpoint] = ClientRef(new Client());
+                return _cache[endpoint];
             }
             /*!
                 \brief remove

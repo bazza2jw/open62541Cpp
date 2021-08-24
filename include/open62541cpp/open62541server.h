@@ -970,7 +970,7 @@ public:
                      int nameSpaceIndex = 0) {
         NodeContext *cp = findContext(c);
         if (cp) {
-            Variant v(T());
+            Variant v((T()));
             return  addVariable(parent, childName, v, nodeId,  newNode, cp, nameSpaceIndex);
         }
         return false;
@@ -1007,7 +1007,7 @@ public:
                                int nameSpaceIndex = 0) {
         NodeContext *cp = findContext(c);
         if (cp) {
-            Variant v(T());
+            Variant v((T()));
             return  addHistoricalVariable(parent, childName, v, nodeId,  newNode, cp, nameSpaceIndex);
         }
         return false;

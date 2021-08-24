@@ -14,7 +14,7 @@ public:
         in()[0] = inputArgument1.set(UA_TYPES_DOUBLE,"Argument 1","Argument 1");
         in()[1] = inputArgument2.set(UA_TYPES_DOUBLE,"Argument 2","Argument 2");
         out()[0] = outputArguments.set(UA_TYPES_DOUBLE,"Sum","Addition of Numbers");
-        setFunction( [this](Open62541::Server &/*server*/,const UA_NodeId */*objectId*/, size_t inputSize, const UA_Variant *input, size_t outputSize,UA_Variant *output) {
+        setFunction( [](Open62541::Server &/*server*/,const UA_NodeId */*objectId*/, size_t inputSize, const UA_Variant *input, size_t outputSize,UA_Variant *output) {
             // This method adds two numbers and returns the result
             if(inputSize == 2 && outputSize == 1) // validate argument lists are the correct length
             {
