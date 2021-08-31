@@ -11,7 +11,7 @@ public:
     {
     }
 
-    virtual bool addChildren(Open62541::NodeId& parent)
+    bool addChildren(const Open62541::NodeId& parent) override
     {
         Open62541::NodeId n;
         Open62541::NodeId a;

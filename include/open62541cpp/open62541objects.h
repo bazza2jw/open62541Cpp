@@ -119,6 +119,16 @@ protected:
     };
 
     std::unique_ptr<T, Deleter> _d;  // shared pointer - there is no copy on change
+
+private:
+    void init()
+    {
+        if (_d) {
+            clear();
+        }
+        _d = std::unique_ptr<T, Deleter>(static_cast<T*>(UA_new(data_type)), Deleter());
+    }
+
 public:
     explicit TypeBase(T* t)
         : _d(t, Deleter())
@@ -141,52 +151,59 @@ public:
 
     T* ref() const { return _d.get(); }
 
-    T* clearRef() const
+    T* clearRef()
     {
-        UA_clear(_d.get(), data_type);
+        clear();
         return _d.get();
     }
 
     TypeBase(const T& t)
     {
-        UA_clear(_d.get(), data_type);
+        init();
         UA_copy(t, _d.get(), data_type);
     }
 
     TypeBase(const TypeBase<T, TYPES_ARRAY_INDEX>& t)
     {
-        UA_clear(_d.get(), data_type);
+        init();
         UA_copy(t._d.get(), _d.get(), data_type);
     }
 
     TypeBase<T, TYPES_ARRAY_INDEX>& operator=(const TypeBase<T, TYPES_ARRAY_INDEX>& t)
     {
-        UA_clear(_d.get(), data_type);
+        init();
         UA_copy(t._d.get(), _d.get(), data_type);
         return *this;
     }
 
     TypeBase<T, TYPES_ARRAY_INDEX>& operator=(const T& t)
     {
-        UA_clear(_d.get(), data_type);
+        init();
         UA_copy(&t, _d.get(), data_type);
         return *this;
     }
 
+    void clear()
+    {
+        if (_d) {
+            UA_clear(_d.get(), data_type);
+        }
+    }
+
     void null()
     {
-        UA_clear(_d.get(), data_type);
+        clear();
         UA_init(_d.get(), data_type);
     }
 
     void assignTo(T& v)
     {
-        UA_clear(&v, data_type);
+        clear();
         UA_copy(_d.get(), &v, data_type);
     }
     void assignFrom(const T& v)
     {
-        UA_clear(_d.get(), data_type);
+        clear();
         UA_copy(&v, _d.get(), data_type);
     }
 };

@@ -2003,7 +2003,7 @@ public:
      \return true on success
  */
     bool addNewEventType(const std::string& name,
-                         const NodeId& eventType,
+                         NodeId& eventType,
                          const std::string& description = std::string())
     {
         if (!server())
