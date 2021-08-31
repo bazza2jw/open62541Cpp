@@ -659,7 +659,7 @@ public:
         \param c pointer to context
         \return true on success
     */
-    bool getNodeContext(NodeId &n, NodeContext *&c) {
+    bool getNodeContext(const NodeId &n, NodeContext *&c) {
         if (!server()) return false;
         void *p = (void *)(c);
         _lastError = UA_Server_getNodeContext(_server, n.get(), &p);
@@ -680,7 +680,7 @@ public:
         \param c context
         \return true on success
     */
-    bool setNodeContext(NodeId &n, const NodeContext *c) {
+    bool setNodeContext(const NodeId &n, const NodeContext *c) {
         if (!server()) return false;
         _lastError = UA_Server_setNodeContext(_server, n.get(), (void *)(c));
         return lastOK();
@@ -728,28 +728,28 @@ public:
         \param nodeId node to be delted with its children
         \return true on success
     */
-    bool deleteTree(NodeId &nodeId);
+    bool deleteTree(const NodeId &nodeId);
     /*!
         \brief browseTree
         \param nodeId  start point
         \param node point in tree to add nodes to
         \return true on success
     */
-    bool browseTree(UA_NodeId &nodeId, Open62541::UANode *node); // add child nodes to property tree node
+    bool browseTree(const UA_NodeId &nodeId, Open62541::UANode *node); // add child nodes to property tree node
 
     /*!
         \brief browseTree
         \param nodeId start point to browse from
         \return true on success
     */
-    bool browseTree(NodeId &nodeId, UANodeTree &tree); // produces an addressable tree using dot seperated browse path
+    bool browseTree(const NodeId &nodeId, UANodeTree &tree); // produces an addressable tree using dot seperated browse path
     /*!
         \brief browseTree
         \param nodeId start node to browse from
         \param tree tree to fill
         \return true on success
     */
-    bool browseTree(NodeId &nodeId, UANode *tree);
+    bool browseTree(const NodeId &nodeId, UANode *tree);
     /*!
         \brief browseTree
         browse and create a map of string version of nodeids ids to node ids
@@ -757,14 +757,14 @@ public:
         \param tree
         \return true on success
     */
-    bool browseTree(NodeId &nodeId, NodeIdMap &m); //
+    bool browseTree(const NodeId &nodeId, NodeIdMap &m); //
     /*!
         \brief browseChildren
         \param nodeId parent of childrent ot browse
         \param m map to fill
         \return true on success
     */
-    bool browseChildren(UA_NodeId &nodeId, NodeIdMap &m);
+    bool browseChildren(const UA_NodeId &nodeId, NodeIdMap &m);
 
 
     /*  A simplified TranslateBrowsePathsToNodeIds based on the
@@ -775,9 +775,9 @@ public:
         RelativePath that specifies forward references which are subtypes of the
         HierarchicalReferences ReferenceType. All Nodes followed by the browsePath
         shall be of the NodeClass Object or Variable. */
-    bool browseSimplifiedBrowsePath(NodeId origin,
+    bool browseSimplifiedBrowsePath(const NodeId& origin,
                                     size_t browsePathSize,
-                                    QualifiedName &browsePath, BrowsePathResult &result) {
+                                    const QualifiedName &browsePath, BrowsePathResult &result) {
         result.get() = UA_Server_browseSimplifiedBrowsePath(_server,
                        origin,
                        browsePathSize,
@@ -793,13 +793,13 @@ public:
         \param tree
         \return true on success
     */
-    bool createBrowsePath(NodeId &parent, UAPath &p, UANodeTree &tree); // create a browse path and add it to the tree
+    bool createBrowsePath(const NodeId &parent, UAPath &p, UANodeTree &tree); // create a browse path and add it to the tree
     /*!
         \brief addNamespace
         \param s name of name space
         \return name space index
     */
-    UA_UInt16 addNamespace(const std::string s) {
+    UA_UInt16 addNamespace(const std::string& s) {
         if (!server()) return 0;
         UA_UInt16 ret = 0;
         {
@@ -829,7 +829,7 @@ public:
      * \return
      */
     bool addServerMethod(ServerMethod *method, const std::string &browseName,
-                         NodeId &parent,  NodeId &nodeId,
+                         const NodeId &parent,  const NodeId &nodeId,
                          NodeId &newNode,  int nameSpaceIndex = 0) {
         //
         if (!server()) return false;
@@ -890,7 +890,7 @@ public:
         \param nameSpaceIndex
         \param name
     */
-    void setBrowseName(NodeId &nodeId, int nameSpaceIndex, const std::string &name) {
+    void setBrowseName(const NodeId &nodeId, int nameSpaceIndex, const std::string &name) {
         if (!server()) return;
         QualifiedName newBrowseName(nameSpaceIndex, name);
         WriteLock l(_mutex);
@@ -904,7 +904,7 @@ public:
         \param nodeId
         \return true on success
     */
-    bool nodeIdFromPath(NodeId &start, Path &path,  NodeId &nodeId);
+    bool nodeIdFromPath(const NodeId &start, const Path &path,  NodeId &nodeId);
 
     /*!
         \brief createPath
@@ -915,7 +915,7 @@ public:
         \param nodeId
         \return true on success
     */
-    bool createFolderPath(NodeId &start, Path &path, int nameSpaceIndex, NodeId &nodeId);
+    bool createFolderPath(const NodeId &start, const Path &path, int nameSpaceIndex, NodeId &nodeId);
 
     /*!
         \brief getChild
@@ -923,7 +923,7 @@ public:
         \param childName
         \return true on success
     */
-    bool  getChild(NodeId &start, const std::string &childName, NodeId &ret);
+    bool  getChild(const NodeId &start, const std::string &childName, NodeId &ret);
 
 
 
@@ -936,8 +936,8 @@ public:
         \param nameSpaceIndex name space index of new node, if non-zero otherwise namespace of parent
         \return true on success
     */
-    bool addFolder(NodeId &parent,  const std::string &childName,
-                   NodeId &nodeId, NodeId &newNode = NodeId::Null, int nameSpaceIndex = 0);
+    bool addFolder(const NodeId &parent,  const std::string &childName,
+                   const NodeId &nodeId, NodeId &newNode = NodeId::Null, int nameSpaceIndex = 0);
 
 
     /*!
@@ -947,8 +947,8 @@ public:
         \param childName
         \return true on success
     */
-    bool addVariable(NodeId &parent, const std::string &childName,
-                     const Variant &value, NodeId &nodeId,  NodeId &newNode = NodeId::Null,
+    bool addVariable(const NodeId &parent, const std::string &childName,
+                     const Variant &value, const NodeId &nodeId,  NodeId &newNode = NodeId::Null,
                      NodeContext *c = nullptr,
                      int nameSpaceIndex = 0);
 
@@ -964,8 +964,8 @@ public:
         \param nameSpaceIndex
         \return true on success
     */
-    bool addVariable(NodeId &parent,  const std::string &childName,
-                     NodeId &nodeId, const std::string &c,
+    bool addVariable(const NodeId &parent,  const std::string &childName,
+                     const NodeId &nodeId, const std::string &c,
                      NodeId &newNode = NodeId::Null,
                      int nameSpaceIndex = 0) {
         NodeContext *cp = findContext(c);
@@ -983,8 +983,8 @@ public:
         \param childName
         \return true on success
     */
-    bool addHistoricalVariable(NodeId &parent, const std::string &childName,
-                               const Variant &value, NodeId &nodeId,
+    bool addHistoricalVariable(const NodeId &parent, const std::string &childName,
+                               const Variant &value, const NodeId &nodeId,
                                NodeId &newNode = NodeId::Null,
                                NodeContext *c = nullptr,
                                int nameSpaceIndex = 0);
@@ -1001,8 +1001,8 @@ public:
         \param nameSpaceIndex
         \return true on success
     */
-    bool addHistoricalVariable(NodeId &parent,  const std::string &childName,
-                               NodeId &nodeId, const std::string &c,
+    bool addHistoricalVariable(const NodeId &parent,  const std::string &childName,
+                               const NodeId &nodeId, const std::string &c,
                                NodeId &newNode = NodeId::Null,
                                int nameSpaceIndex = 0) {
         NodeContext *cp = findContext(c);
@@ -1030,10 +1030,10 @@ public:
         \param nameSpaceIndex
         \return true on success
     */
-    bool addProperty(NodeId &parent,
+    bool addProperty(const NodeId &parent,
                      const std::string &key,
                      const T &value,
-                     NodeId &nodeId  = NodeId::Null,
+                     const NodeId &nodeId  = NodeId::Null,
                      NodeId &newNode = NodeId::Null,
                      NodeContext *c = nullptr,
                      int nameSpaceIndex = 0) {
@@ -1052,10 +1052,10 @@ public:
         \param nameSpaceIndex
         \return true on success
     */
-    bool addProperty(NodeId &parent,
+    bool addProperty(const NodeId &parent,
                      const std::string &key,
                      const Variant &value,
-                     NodeId &nodeId  = NodeId::Null,
+                     const NodeId &nodeId  = NodeId::Null,
                      NodeId &newNode = NodeId::Null,
                      NodeContext *c = nullptr,
                      int nameSpaceIndex = 0);
@@ -1066,7 +1066,7 @@ public:
         \param value
         \return true on success
     */
-    bool  variable(NodeId &nodeId,  Variant &value) {
+    bool  variable(const NodeId &nodeId,  Variant &value) {
         if (!server()) return false;
 
         // outValue is managed by caller - transfer to output value
@@ -1081,7 +1081,7 @@ public:
         \param deleteReferences
         \return true on success
     */
-    bool deleteNode(NodeId &nodeId, bool  deleteReferences) {
+    bool deleteNode(const NodeId &nodeId, bool  deleteReferences) {
         if (!server()) return false;
 
         WriteLock l(_mutex);
@@ -1095,7 +1095,7 @@ public:
         \param ret
         \return true on sucess
     */
-    bool call(CallMethodRequest &request, CallMethodResult &ret) {
+    bool call(const CallMethodRequest &request, CallMethodResult &ret) {
         if (!server()) return false;
 
         WriteLock l(_mutex);
@@ -1109,7 +1109,7 @@ public:
         \param result
         \return true on sucess
     */
-    bool translateBrowsePathToNodeIds(BrowsePath &path, BrowsePathResult &result) {
+    bool translateBrowsePathToNodeIds(const BrowsePath &path, BrowsePathResult &result) {
         if (!server()) return false;
 
         WriteLock l(_mutex);
@@ -1134,7 +1134,7 @@ public:
         \return true on sucess
     */
     bool
-    readNodeId(NodeId &nodeId,
+    readNodeId(const NodeId &nodeId,
                NodeId &outNodeId) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_NODEID, outNodeId);
     }
@@ -1145,7 +1145,7 @@ public:
         \return true on success
     */
     bool
-    readNodeClass(NodeId &nodeId,
+    readNodeClass(const NodeId &nodeId,
                   UA_NodeClass &outNodeClass) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_NODECLASS,
                               &outNodeClass);
@@ -1157,7 +1157,7 @@ public:
         \return true on success
     */
     bool
-    readBrowseName(NodeId &nodeId,
+    readBrowseName(const NodeId &nodeId,
                    QualifiedName &outBrowseName) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_BROWSENAME,
                               outBrowseName);
@@ -1169,7 +1169,7 @@ public:
         \return true on sucess
     */
     bool
-    readDisplayName(NodeId &nodeId,
+    readDisplayName(const NodeId &nodeId,
                     LocalizedText &outDisplayName) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_DISPLAYNAME,
                               outDisplayName);
@@ -1181,7 +1181,7 @@ public:
         \return true on success
     */
     bool
-    readDescription(NodeId &nodeId,
+    readDescription(const NodeId &nodeId,
                     LocalizedText &outDescription) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_DESCRIPTION,
                               outDescription);
@@ -1193,7 +1193,7 @@ public:
         \return true on sucess
     */
     bool
-    readWriteMask(NodeId &nodeId,
+    readWriteMask(const NodeId &nodeId,
                   UA_UInt32 &outWriteMask) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_WRITEMASK,
                               &outWriteMask);
@@ -1205,7 +1205,7 @@ public:
         \return true on success
     */
     bool
-    readIsAbstract(NodeId &nodeId,
+    readIsAbstract(const NodeId &nodeId,
                    UA_Boolean &outIsAbstract) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_ISABSTRACT,
                               &outIsAbstract);
@@ -1217,7 +1217,7 @@ public:
         \return true on success
     */
     bool
-    readSymmetric(NodeId &nodeId,
+    readSymmetric(const NodeId &nodeId,
                   UA_Boolean &outSymmetric) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_SYMMETRIC,
                               &outSymmetric);
@@ -1229,7 +1229,7 @@ public:
         \return true on success
     */
     bool
-    readInverseName(NodeId &nodeId,
+    readInverseName(const NodeId &nodeId,
                     LocalizedText &outInverseName) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_INVERSENAME,
                               outInverseName);
@@ -1241,7 +1241,7 @@ public:
         \return true on success
     */
     bool
-    readContainsNoLoop(NodeId &nodeId,
+    readContainsNoLoop(const NodeId &nodeId,
                        UA_Boolean &outContainsNoLoops) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_CONTAINSNOLOOPS,
                               &outContainsNoLoops);
@@ -1253,7 +1253,7 @@ public:
         \return
     */
     bool
-    readEventNotifier(NodeId &nodeId,
+    readEventNotifier(const NodeId &nodeId,
                       UA_Byte &outEventNotifier) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_EVENTNOTIFIER,
                               &outEventNotifier);
@@ -1265,7 +1265,7 @@ public:
         \return
     */
     bool
-    readValue(NodeId &nodeId,
+    readValue(const NodeId &nodeId,
               Variant &outValue) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_VALUE, outValue);
     }
@@ -1276,7 +1276,7 @@ public:
         \return
     */
     bool
-    readDataType(NodeId &nodeId,
+    readDataType(const NodeId &nodeId,
                  NodeId &outDataType) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_DATATYPE,
                               outDataType);
@@ -1288,7 +1288,7 @@ public:
         \return
     */
     bool
-    readValueRank(NodeId &nodeId,
+    readValueRank(const NodeId &nodeId,
                   UA_Int32 &outValueRank) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_VALUERANK,
                               &outValueRank);
@@ -1302,7 +1302,7 @@ public:
         \return
     */
     bool
-    readArrayDimensions(NodeId &nodeId,
+    readArrayDimensions(const NodeId &nodeId,
                         Variant &outArrayDimensions) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_ARRAYDIMENSIONS,
                               outArrayDimensions);
@@ -1314,7 +1314,7 @@ public:
         \return
     */
     bool
-    readAccessLevel(NodeId &nodeId,
+    readAccessLevel(const NodeId &nodeId,
                     UA_Byte &outAccessLevel) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_ACCESSLEVEL,
                               &outAccessLevel);
@@ -1326,7 +1326,7 @@ public:
         \return
     */
     bool
-    readMinimumSamplingInterval(NodeId &nodeId,
+    readMinimumSamplingInterval(const NodeId &nodeId,
                                 UA_Double &outMinimumSamplingInterval) {
         return  readAttribute(nodeId,
                               UA_ATTRIBUTEID_MINIMUMSAMPLINGINTERVAL,
@@ -1339,7 +1339,7 @@ public:
         \return
     */
     bool
-    readHistorizing(NodeId &nodeId,
+    readHistorizing(const NodeId &nodeId,
                     UA_Boolean &outHistorizing) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_HISTORIZING,
                               &outHistorizing);
@@ -1351,7 +1351,7 @@ public:
         \return
     */
     bool
-    readExecutable(NodeId &nodeId,
+    readExecutable(const NodeId &nodeId,
                    UA_Boolean &outExecutable) {
         return  readAttribute(nodeId, UA_ATTRIBUTEID_EXECUTABLE,
                               &outExecutable);
@@ -1368,7 +1368,7 @@ public:
         \return
     */
     bool
-    writeBrowseName(NodeId &nodeId,
+    writeBrowseName(const NodeId &nodeId,
                     QualifiedName &browseName) {
         return  writeAttribute(nodeId, UA_ATTRIBUTEID_BROWSENAME,
                                &UA_TYPES[UA_TYPES_QUALIFIEDNAME], browseName);
@@ -1380,7 +1380,7 @@ public:
         \return
     */
     bool
-    writeDisplayName(NodeId &nodeId,
+    writeDisplayName(const NodeId &nodeId,
                      LocalizedText &displayName) {
         return  writeAttribute(nodeId, UA_ATTRIBUTEID_DISPLAYNAME,
                                &UA_TYPES[UA_TYPES_LOCALIZEDTEXT], displayName);
@@ -1392,7 +1392,7 @@ public:
         \return
     */
     bool
-    writeDescription(NodeId &nodeId,
+    writeDescription(const NodeId &nodeId,
                      LocalizedText &description) {
         return  writeAttribute(nodeId, UA_ATTRIBUTEID_DESCRIPTION,
                                &UA_TYPES[UA_TYPES_LOCALIZEDTEXT], description);
@@ -1404,7 +1404,7 @@ public:
         \return
     */
     bool
-    writeWriteMask(NodeId &nodeId,
+    writeWriteMask(const NodeId &nodeId,
                    const UA_UInt32 writeMask) {
         return  writeAttribute(nodeId, UA_ATTRIBUTEID_WRITEMASK,
                                &UA_TYPES[UA_TYPES_UINT32], &writeMask);
@@ -1416,7 +1416,7 @@ public:
         \return
     */
     bool
-    writeIsAbstract(NodeId &nodeId,
+    writeIsAbstract(const NodeId &nodeId,
                     const UA_Boolean isAbstract) {
         return  writeAttribute(nodeId, UA_ATTRIBUTEID_ISABSTRACT,
                                &UA_TYPES[UA_TYPES_BOOLEAN], &isAbstract);
@@ -1428,7 +1428,7 @@ public:
         \return
     */
     bool
-    writeInverseName(NodeId &nodeId,
+    writeInverseName(const NodeId &nodeId,
                      const UA_LocalizedText inverseName) {
         return  writeAttribute(nodeId, UA_ATTRIBUTEID_INVERSENAME,
                                &UA_TYPES[UA_TYPES_LOCALIZEDTEXT], &inverseName);
@@ -1440,7 +1440,7 @@ public:
         \return
     */
     bool
-    writeEventNotifier(NodeId &nodeId,
+    writeEventNotifier(const NodeId &nodeId,
                        const UA_Byte eventNotifier) {
         return  writeAttribute(nodeId, UA_ATTRIBUTEID_EVENTNOTIFIER,
                                &UA_TYPES[UA_TYPES_BYTE], &eventNotifier);
@@ -1452,7 +1452,7 @@ public:
         \return
     */
     bool
-    writeValue(NodeId &nodeId,
+    writeValue(const NodeId &nodeId,
                const Variant &value) {
         if (!server()) return false;
 
@@ -1466,8 +1466,8 @@ public:
         \return
     */
     bool
-    writeDataType(NodeId &nodeId,
-                  NodeId &dataType) {
+    writeDataType(const NodeId &nodeId,
+                  const NodeId &dataType) {
         return  writeAttribute(nodeId, UA_ATTRIBUTEID_DATATYPE,
                                &UA_TYPES[UA_TYPES_NODEID], dataType);
     }
@@ -1478,7 +1478,7 @@ public:
         \return
     */
     bool
-    writeValueRank(NodeId &nodeId,
+    writeValueRank(const NodeId &nodeId,
                    const UA_Int32 valueRank) {
         return  writeAttribute(nodeId, UA_ATTRIBUTEID_VALUERANK,
                                &UA_TYPES[UA_TYPES_INT32], &valueRank);
@@ -1491,8 +1491,8 @@ public:
         \return
     */
     bool
-    writeArrayDimensions(NodeId &nodeId,
-                         Variant arrayDimensions) {
+    writeArrayDimensions(const NodeId &nodeId,
+                         const Variant arrayDimensions) {
         return  writeAttribute(nodeId, UA_ATTRIBUTEID_VALUE,
                                &UA_TYPES[UA_TYPES_VARIANT], arrayDimensions.constRef());
     }
@@ -1503,7 +1503,7 @@ public:
         \return
     */
     bool
-    writeAccessLevel(NodeId &nodeId,
+    writeAccessLevel(const NodeId &nodeId,
                      const UA_Byte accessLevel) {
         return  writeAttribute(nodeId, UA_ATTRIBUTEID_ACCESSLEVEL,
                                &UA_TYPES[UA_TYPES_BYTE], &accessLevel);
@@ -1515,7 +1515,7 @@ public:
         \param nodeId
         \return
     */
-    bool writeEnable(NodeId &nodeId) {
+    bool writeEnable(const NodeId &nodeId) {
         UA_Byte accessLevel;
         if (readAccessLevel(nodeId, accessLevel)) {
             accessLevel |= UA_ACCESSLEVELMASK_WRITE;
@@ -1529,7 +1529,7 @@ public:
         \param historyEnable
         \return
     */
-    bool setReadOnly(NodeId &nodeId, bool historyEnable = false) {
+    bool setReadOnly(const NodeId &nodeId, bool historyEnable = false) {
         UA_Byte accessLevel;
         if (readAccessLevel(nodeId, accessLevel)) {
             // remove the write bits
@@ -1550,7 +1550,7 @@ public:
         \return
     */
     bool
-    writeMinimumSamplingInterval(NodeId &nodeId,
+    writeMinimumSamplingInterval(const NodeId &nodeId,
                                  const UA_Double miniumSamplingInterval) {
         return  writeAttribute(nodeId,
                                UA_ATTRIBUTEID_MINIMUMSAMPLINGINTERVAL,
@@ -1564,7 +1564,7 @@ public:
         \return
     */
     bool
-    writeExecutable(NodeId &nodeId,
+    writeExecutable(const NodeId &nodeId,
                     const UA_Boolean executable) {
         return  writeAttribute(nodeId, UA_ATTRIBUTEID_EXECUTABLE,
                                &UA_TYPES[UA_TYPES_BOOLEAN], &executable);
@@ -1629,12 +1629,12 @@ public:
         \return
     */
     bool
-    addVariableNode(NodeId &requestedNewNodeId,
-                    NodeId &parentNodeId,
-                    NodeId &referenceTypeId,
-                    QualifiedName &browseName,
-                    NodeId &typeDefinition,
-                    VariableAttributes &attr,
+    addVariableNode(const NodeId &requestedNewNodeId,
+                    const NodeId &parentNodeId,
+                    const NodeId &referenceTypeId,
+                    const QualifiedName &browseName,
+                    const NodeId &typeDefinition,
+                    const VariableAttributes &attr,
                     NodeId &outNewNodeId = NodeId::Null,
                     NodeContext *nc = nullptr) {
         if (!server()) return false;
@@ -1666,14 +1666,14 @@ public:
     */
     bool
     addVariableTypeNode(
-        NodeId &requestedNewNodeId,
-        NodeId &parentNodeId,
-        NodeId &referenceTypeId,
-        QualifiedName &browseName,
-        NodeId &typeDefinition,
-        VariableTypeAttributes &attr,
-        NodeId &outNewNodeId = NodeId::Null,
-        NodeContext *instantiationCallback = nullptr) {
+            const NodeId &requestedNewNodeId,
+            const NodeId &parentNodeId,
+            const NodeId &referenceTypeId,
+            const QualifiedName &browseName,
+            const NodeId &typeDefinition,
+            const VariableTypeAttributes &attr,
+            NodeId &outNewNodeId = NodeId::Null,
+            NodeContext *instantiationCallback = nullptr) {
         if (!server()) return false;
         WriteLock l(_mutex);
         _lastError =  UA_Server_addVariableTypeNode(_server,
@@ -1701,12 +1701,12 @@ public:
         \return
     */
     bool
-    addObjectNode(NodeId &requestedNewNodeId,
-                  NodeId &parentNodeId,
-                  NodeId &referenceTypeId,
-                  QualifiedName &browseName,
-                  NodeId &typeDefinition,
-                  ObjectAttributes &attr,
+    addObjectNode(const NodeId &requestedNewNodeId,
+                  const NodeId &parentNodeId,
+                  const NodeId &referenceTypeId,
+                  const QualifiedName &browseName,
+                  const NodeId &typeDefinition,
+                  const ObjectAttributes &attr,
                   NodeId &outNewNodeId = NodeId::Null,
                   NodeContext *instantiationCallback = nullptr) {
         if (!server()) return false;
@@ -1720,7 +1720,7 @@ public:
                                              typeDefinition,
                                              attr,
                                              instantiationCallback,
-                                             outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
+                                             outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef());
         return lastOK();
     }
 
@@ -1736,11 +1736,11 @@ public:
         \return
     */
     bool
-    addObjectTypeNode(NodeId &requestedNewNodeId,
-                      NodeId &parentNodeId,
-                      NodeId &referenceTypeId,
-                      QualifiedName &browseName,
-                      ObjectTypeAttributes &attr,
+    addObjectTypeNode(const NodeId &requestedNewNodeId,
+                      const NodeId &parentNodeId,
+                      const NodeId &referenceTypeId,
+                      const QualifiedName &browseName,
+                      const ObjectTypeAttributes &attr,
                       NodeId &outNewNodeId = NodeId::Null,
                       NodeContext *instantiationCallback = nullptr) {
         if (!server()) return false;
@@ -1752,7 +1752,7 @@ public:
                      browseName,
                      attr,
                      instantiationCallback,
-                     outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
+                     outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef());
         return lastOK();
     }
 
@@ -1768,11 +1768,11 @@ public:
         \return
     */
     bool
-    addViewNode(NodeId &requestedNewNodeId,
-                NodeId &parentNodeId,
-                NodeId &referenceTypeId,
-                QualifiedName &browseName,
-                ViewAttributes &attr,
+    addViewNode(const NodeId &requestedNewNodeId,
+                const NodeId &parentNodeId,
+                const NodeId &referenceTypeId,
+                const QualifiedName &browseName,
+                const ViewAttributes &attr,
                 NodeId &outNewNodeId = NodeId::Null,
                 NodeContext *instantiationCallback = nullptr
                ) {
@@ -1786,7 +1786,7 @@ public:
                                            browseName,
                                            attr,
                                            instantiationCallback,
-                                           outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
+                                           outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef());
         return lastOK();
     }
 
@@ -1803,11 +1803,11 @@ public:
     */
     bool
     addReferenceTypeNode(
-        NodeId &requestedNewNodeId,
-        NodeId &parentNodeId,
-        NodeId &referenceTypeId,
-        QualifiedName &browseName,
-        ReferenceTypeAttributes &attr,
+        const NodeId &requestedNewNodeId,
+        const NodeId &parentNodeId,
+        const NodeId &referenceTypeId,
+        const QualifiedName &browseName,
+        const ReferenceTypeAttributes &attr,
         NodeId &outNewNodeId = NodeId::Null,
         NodeContext *instantiationCallback = nullptr
     ) {
@@ -1821,7 +1821,7 @@ public:
                      browseName,
                      attr,
                      instantiationCallback,
-                     outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
+                     outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef());
         return lastOK();
     }
 
@@ -1838,11 +1838,11 @@ public:
     */
     bool
     addDataTypeNode(
-        NodeId &requestedNewNodeId,
-        NodeId &parentNodeId,
-        NodeId &referenceTypeId,
-        QualifiedName &browseName,
-        DataTypeAttributes &attr,
+        const NodeId &requestedNewNodeId,
+        const NodeId &parentNodeId,
+        const NodeId &referenceTypeId,
+        const QualifiedName &browseName,
+        const DataTypeAttributes &attr,
         NodeId &outNewNodeId = NodeId::Null,
         NodeContext *instantiationCallback = nullptr
     ) {
@@ -1856,7 +1856,7 @@ public:
                                                browseName,
                                                attr,
                                                instantiationCallback,
-                                               outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
+                                               outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef());
         return lastOK();
     }
 
@@ -1874,13 +1874,13 @@ public:
     */
     bool
     addDataSourceVariableNode(
-        NodeId &requestedNewNodeId,
-        NodeId &parentNodeId,
-        NodeId &referenceTypeId,
-        QualifiedName &browseName,
-        NodeId &typeDefinition,
-        VariableAttributes &attr,
-        DataSource &dataSource,
+        const NodeId &requestedNewNodeId,
+        const NodeId &parentNodeId,
+        const NodeId &referenceTypeId,
+        const QualifiedName &browseName,
+        const NodeId &typeDefinition,
+        const VariableAttributes &attr,
+        const DataSource &dataSource,
         NodeId &outNewNodeId = NodeId::Null,
         NodeContext *instantiationCallback = nullptr
     ) {
@@ -1910,7 +1910,7 @@ public:
         \param isForward
         \return
     */
-    bool addReference(NodeId &sourceId, NodeId &refTypeId, ExpandedNodeId &targetId, bool isForward) {
+    bool addReference(const NodeId &sourceId, const NodeId &refTypeId, const ExpandedNodeId &targetId, bool isForward) {
         if (!server()) return false;
         WriteLock l(_mutex);
         _lastError =  UA_Server_addReference(server(), sourceId, refTypeId, targetId, isForward);
@@ -1922,7 +1922,7 @@ public:
         \param nodeId
         \return
     */
-    bool markMandatory(NodeId &nodeId) {
+    bool markMandatory(const NodeId &nodeId) {
         return addReference(nodeId, NodeId::HasModellingRule, ExpandedNodeId::ModellingRuleMandatory, true);
     }
 
@@ -1935,9 +1935,9 @@ public:
         \param deleteBidirectional
         \return
     */
-    bool deleteReference(NodeId &sourceNodeId,
-                         NodeId &referenceTypeId, bool isForward,
-                         ExpandedNodeId &targetNodeId,
+    bool deleteReference(const NodeId &sourceNodeId,
+                         const NodeId &referenceTypeId, bool isForward,
+                         const ExpandedNodeId &targetNodeId,
                          bool deleteBidirectional) {
         if (!server()) return false;
 
@@ -1956,8 +1956,8 @@ public:
         \param nodeId
         \return
     */
-    bool addInstance(const std::string &n, NodeId &requestedNewNodeId, NodeId &parent,
-                     NodeId &typeId, NodeId &nodeId = NodeId::Null, NodeContext *context = nullptr) {
+    bool addInstance(const std::string &n, const NodeId &requestedNewNodeId, const NodeId &parent,
+                     const NodeId &typeId, NodeId &nodeId = NodeId::Null, NodeContext *context = nullptr) {
         if (!server()) return false;
 
         ObjectAttributes oAttr;
@@ -1996,7 +1996,7 @@ public:
         @param outEvent the EventId of the new event
         @param deleteEventNode Specifies whether the node representation of the event should be deleted
         @return The StatusCode of the UA_Server_triggerEvent method */
-    bool triggerEvent(NodeId &eventNodeId, NodeId &sourceNode,   UA_ByteString *outEventId = nullptr, bool deleteEventNode = true) {
+    bool triggerEvent(const NodeId &eventNodeId, const NodeId &sourceNode,   UA_ByteString *outEventId = nullptr, bool deleteEventNode = true) {
         if (!server()) return false;
         WriteLock l(_mutex);
         _lastError = UA_Server_triggerEvent(_server,
@@ -2016,7 +2016,7 @@ public:
         \param eventType  the event type node
         \return true on success
     */
-    bool  addNewEventType(const std::string &name, NodeId &eventType, const std::string &description = std::string()) {
+    bool  addNewEventType(const std::string &name, const NodeId &eventType, const std::string &description = std::string()) {
         if (!server()) return false;
         ObjectTypeAttributes attr;
         attr.setDefault();
@@ -2031,7 +2031,7 @@ public:
                       qn,
                       attr,
                       NULL,
-                      eventType.ref());
+                      eventType.clearRef());
         return lastOK();
     }
 
@@ -2046,7 +2046,7 @@ public:
         \return true on success
     */
 
-    bool  setUpEvent(NodeId &outId, NodeId &eventType, const std::string &eventMessage,
+    bool  setUpEvent(NodeId &outId, const NodeId &eventType, const std::string &eventMessage,
                      const std::string &eventSourceName, int eventSeverity = 100,
                      UA_DateTime eventTime = UA_DateTime_now()
                     ) {
@@ -2066,7 +2066,7 @@ public:
 
             LocalizedText eM(const_cast<char *>("en-US"), eventMessage);
             UA_Server_writeObjectProperty_scalar(server(), outId, UA_QUALIFIEDNAME(0, const_cast<char *>("Message")),
-                                                 eM.ref(), &UA_TYPES[UA_TYPES_LOCALIZEDTEXT]);
+                                                 eM.clearRef(), &UA_TYPES[UA_TYPES_LOCALIZEDTEXT]);
 
             UA_String eSN = UA_STRING(const_cast<char *>(eventSourceName.c_str()));
             UA_Server_writeObjectProperty_scalar(server(), outId, UA_QUALIFIEDNAME(0, const_cast<char *>("SourceName")),
@@ -2319,13 +2319,13 @@ public:
                                                 conditionType,
                                                 qn, conditionSource,
                                                 hierarchialReferenceType,
-                                                outConditionId.isNull()?nullptr:outConditionId.ref());
+                                                outConditionId.isNull()?nullptr:outConditionId.clearRef());
         if(lastOK())
         {
             // create the condition object
             ConditionPtr c(new T(*this,outConditionId,conditionSource));
             outCondition = c.get();
-            unsigned key = UA_NodeId_hash(outConditionId.ref());
+            unsigned key = UA_NodeId_hash(outConditionId.clearRef());
             _conditionMap[key] = std::move(c); // servers own the condition objects
             return true;
         }

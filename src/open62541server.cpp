@@ -337,7 +337,7 @@ UA_Boolean Open62541::Server::allowTransferSubscriptionHandler(UA_Server *server
     \param nodeId
     \return
 */
-bool Open62541::Server::deleteTree(NodeId &nodeId) {
+bool Open62541::Server::deleteTree(const NodeId &nodeId) {
     if (!_server) return false;
     NodeIdMap m; // set of nodes to delete
     browseTree(nodeId, m);
@@ -377,7 +377,7 @@ static UA_StatusCode browseTreeCallBack(UA_NodeId childId, UA_Boolean isInverse,
     \return
 */
 
-bool Open62541::Server::browseChildren(UA_NodeId &nodeId, NodeIdMap &m) {
+bool Open62541::Server::browseChildren(const UA_NodeId &nodeId, NodeIdMap &m) {
     if (!_server) return false;
     Open62541::UANodeIdList l;
     {
@@ -403,7 +403,7 @@ bool Open62541::Server::browseChildren(UA_NodeId &nodeId, NodeIdMap &m) {
     \param tree
     \return
 */
-bool Open62541::Server::browseTree(Open62541::NodeId &nodeId, Open62541::UANodeTree &tree) {
+bool Open62541::Server::browseTree(const Open62541::NodeId &nodeId, Open62541::UANodeTree &tree) {
     // form a heirachical tree of nodes given node is not added to tree
     return browseTree(nodeId.get(), tree.rootNode());
 }
@@ -414,7 +414,7 @@ bool Open62541::Server::browseTree(Open62541::NodeId &nodeId, Open62541::UANodeT
     \param node
     \return
 */
-bool Open62541::Server::browseTree(UA_NodeId &nodeId, Open62541::UANode *node) {
+bool Open62541::Server::browseTree(const UA_NodeId &nodeId, Open62541::UANode *node) {
     if (!_server) return false;
     // form a heirachical tree of nodes
     Open62541::UANodeIdList l; // shallow copy node IDs and take ownership
@@ -447,7 +447,7 @@ bool Open62541::Server::browseTree(UA_NodeId &nodeId, Open62541::UANode *node) {
     \param tree
     \return
 */
-bool Open62541::Server::browseTree(NodeId &nodeId, NodeIdMap &m) {
+bool Open62541::Server::browseTree(const NodeId &nodeId, NodeIdMap &m) {
     m.put(nodeId);
     return browseChildren(nodeId, m);
 }
@@ -519,7 +519,7 @@ void Open62541::Server::initialise() {
     \param nodeId
     \return
 */
-bool Open62541::Server::nodeIdFromPath(NodeId &start, Path &path,  NodeId &nodeId) {
+bool Open62541::Server::nodeIdFromPath(const NodeId &start, const Path &path,  NodeId &nodeId) {
     //
     nodeId = start;
     //
@@ -547,7 +547,7 @@ bool Open62541::Server::nodeIdFromPath(NodeId &start, Path &path,  NodeId &nodeI
     \param nodeId
     \return
 */
-bool Open62541::Server::createFolderPath(NodeId &start, Path &path, int nameSpaceIndex, NodeId &nodeId) {
+bool Open62541::Server::createFolderPath(const NodeId &start, const Path &path, int nameSpaceIndex, NodeId &nodeId) {
     // nodeId is a shallow copy - do not delete and is volatile
     // create folder path first then add varaibles to path's end leaf
     // create folder path first then add varaibles to path's end leaf
@@ -580,7 +580,7 @@ bool Open62541::Server::createFolderPath(NodeId &start, Path &path, int nameSpac
     \param childName
     \return
 */
-bool Open62541::Server::getChild(NodeId &start,  const std::string &childName, NodeId &ret) {
+bool Open62541::Server::getChild(const NodeId &start,  const std::string &childName, NodeId &ret) {
     Path p;
     p.push_back(childName);
     return nodeIdFromPath(start, p, ret);
@@ -593,7 +593,7 @@ bool Open62541::Server::getChild(NodeId &start,  const std::string &childName, N
     \param childName
     \return
 */
-bool Open62541::Server::addFolder(NodeId &parent, const std::string &childName, NodeId &nodeId,
+bool Open62541::Server::addFolder(const NodeId &parent, const std::string &childName, const NodeId &nodeId,
                                   NodeId &newNode, int nameSpaceIndex) {
     if (!_server) return false;
     if (nameSpaceIndex == 0) nameSpaceIndex = parent.nameSpaceIndex(); // inherit parent by default
@@ -611,7 +611,7 @@ bool Open62541::Server::addFolder(NodeId &parent, const std::string &childName, 
                                          NodeId::FolderType,
                                          attr.get(),
                                          NULL,
-                                         newNode.isNull() ? nullptr : newNode.ref());
+                                         newNode.isNull() ? nullptr : newNode.clearRef());
     return lastOK();
 }
 
@@ -622,8 +622,8 @@ bool Open62541::Server::addFolder(NodeId &parent, const std::string &childName, 
     \param childName
     \return
 */
-bool Open62541::Server::addVariable(NodeId &parent,  const std::string &childName, const Variant &value,
-                                    NodeId &nodeId,  NodeId &newNode,  NodeContext *c,  int nameSpaceIndex) {
+bool Open62541::Server::addVariable(const NodeId &parent,  const std::string &childName, const Variant &value,
+                                    const NodeId &nodeId,  NodeId &newNode,  NodeContext *c,  int nameSpaceIndex) {
     if (!_server) return false;
     if (nameSpaceIndex == 0) nameSpaceIndex = parent.nameSpaceIndex(); // inherit parent by default
 
@@ -644,7 +644,7 @@ bool Open62541::Server::addVariable(NodeId &parent,  const std::string &childNam
                                            UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), // no variable type
                                            var_attr,
                                            c,
-                                           newNode.isNull() ? nullptr : newNode.ref());
+                                           newNode.isNull() ? nullptr : newNode.clearRef());
     return lastOK();
 }
 
@@ -656,8 +656,8 @@ bool Open62541::Server::addVariable(NodeId &parent,  const std::string &childNam
     \param childName
     \return true on success
 */
-bool Open62541::Server::addHistoricalVariable(NodeId &parent,  const std::string &childName, const Variant &value,
-        NodeId &nodeId,  NodeId &newNode,  NodeContext *c,  int nameSpaceIndex) {
+bool Open62541::Server::addHistoricalVariable(const NodeId &parent,  const std::string &childName, const Variant &value,
+                                              const NodeId &nodeId,  NodeId &newNode,  NodeContext *c,  int nameSpaceIndex) {
     if (!_server) return false;
     if (nameSpaceIndex == 0) nameSpaceIndex = parent.nameSpaceIndex(); // inherit parent by default
 
@@ -679,7 +679,7 @@ bool Open62541::Server::addHistoricalVariable(NodeId &parent,  const std::string
                                            UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),
                                            var_attr,
                                            c,
-                                           newNode.isNull() ? nullptr : newNode.ref());
+                                           newNode.isNull() ? nullptr : newNode.clearRef());
     return lastOK();
 }
 
@@ -697,10 +697,10 @@ bool Open62541::Server::addHistoricalVariable(NodeId &parent,  const std::string
     \param nameSpaceIndex
     \return
 */
-bool Open62541::Server::addProperty(NodeId &parent,
+bool Open62541::Server::addProperty(const NodeId &parent,
                                     const std::string &key,
                                     const Variant &value,
-                                    NodeId &nodeId,
+                                    const NodeId &nodeId,
                                     NodeId &newNode,
                                     NodeContext *c,
                                     int nameSpaceIndex) {
@@ -719,7 +719,7 @@ bool Open62541::Server::addProperty(NodeId &parent,
                                            UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),
                                            var_attr,
                                            c,
-                                           newNode.isNull() ? nullptr : newNode.ref());
+                                           newNode.isNull() ? nullptr : newNode.clearRef());
     return lastOK();
 }
 

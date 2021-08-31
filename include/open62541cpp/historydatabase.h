@@ -139,7 +139,7 @@ namespace Open62541 {
                 if (hdgContext) {
                     Context c(server, nodeId);
                     c.sessionContext = sessionContext;
-                    if (sessionId) c.sessionId.assignFrom(*sessionId);
+                    if (sessionId) c.sessionId = *sessionId;
                     HistoryDataGathering *p = static_cast<HistoryDataGathering *>(hdgContext);
                     return p->setValue(c,historizing, value);
                 }

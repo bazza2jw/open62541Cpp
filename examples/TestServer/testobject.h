@@ -11,12 +11,11 @@ public:
 
     }
 
-    virtual bool addChildren(Open62541::NodeId &parent) {
+    bool addChildren(const Open62541::NodeId &parent) override {
         Open62541::NodeId n;
         Open62541::NodeId a;
-        addObjectTypeVariable<double>("Current", parent, n.notNull());
-        addObjectTypeVariable<double>("Average", n, a.notNull());
-        return true;
+        return addObjectTypeVariable<double>("Current", parent, n.notNull()) &&
+            addObjectTypeVariable<double>("Average", parent, a.notNull());
     }
 
 };

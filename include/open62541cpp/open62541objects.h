@@ -105,11 +105,30 @@ namespace Open62541 {
 // Base wrapper for most C open62541 object types
 // use unique_ptr
 //
-template<typename T> class UA_EXPORT TypeBase {
+template<typename T, int TYPES_ARRAY_INDEX> class UA_EXPORT TypeBase {
+    static_assert(TYPES_ARRAY_INDEX < UA_TYPES_COUNT, "TYPES_ARRAY_INDEX muste smaller than UA_TYPES_COUNT");
 protected:
-    std::unique_ptr<T> _d; // shared pointer - there is no copy on change
+
+    static constexpr const UA_DataType *data_type = &UA_TYPES[TYPES_ARRAY_INDEX];
+
+    struct Deleter {
+        // Called by unique_ptr to destroy/free the Resource
+        void operator()(T *r) {
+            UA_delete(r, data_type);
+        }
+    };
+
+    std::unique_ptr<T, Deleter> _d; // shared pointer - there is no copy on change
 public:
-    TypeBase(T *t) : _d(t) {}
+    explicit TypeBase(T *t) : _d(t, Deleter()) {
+
+    }
+    TypeBase() : _d(static_cast<T*>(UA_new(data_type)), Deleter()) {
+        UA_init(_d.get(), data_type);
+    }
+
+    virtual ~TypeBase() = default;
+
     T &get() const {
         return *(_d.get());
     }
@@ -129,6 +148,47 @@ public:
         return _d.get();
     }
 
+    T   *clearRef() const {
+        UA_clear(_d.get(), data_type);
+        return _d.get();
+    }
+
+    TypeBase(const T &t) {
+        UA_clear(_d.get(), data_type);
+        UA_copy(t, _d.get(), data_type);
+    }
+
+    TypeBase(const TypeBase<T, TYPES_ARRAY_INDEX> &t) {
+        UA_clear(_d.get(), data_type);
+        UA_copy(t._d.get(), _d.get(), data_type);
+    }
+
+    TypeBase<T, TYPES_ARRAY_INDEX> & operator= (const TypeBase<T, TYPES_ARRAY_INDEX> &t) {
+        UA_clear(_d.get(), data_type);
+        UA_copy(t._d.get(), _d.get(), data_type);
+        return *this;
+    }
+
+    TypeBase<T, TYPES_ARRAY_INDEX> & operator= (const T &t) {
+        UA_clear(_d.get(), data_type);
+        UA_copy(&t, _d.get(), data_type);
+        return *this;
+    }
+
+    void null() {
+        UA_clear(_d.get(), data_type);
+        UA_init(_d.get(), data_type);
+    }
+
+    void assignTo(T &v){
+        UA_clear(&v, data_type);
+        UA_copy(_d.get(), &v, data_type);
+    }
+    void assignFrom(const T &v){
+        UA_clear(_d.get(), data_type);
+        UA_copy(&v, _d.get(), data_type);
+    }
+
 };
 //
 // Repeated for each type but cannot use C++ templates because we must also wrap the C function calls for each type
@@ -143,18 +203,7 @@ public:
 #else
 #define UA_TRC(s)
 #endif
-//
-// copies are all deep copies
-//
-#define UA_TYPE_BASE(C,T)\
-    C() :  TypeBase(T##_new()) {T##_init(_d.get()); UA_TRC("Construct:" << UA_STRINGIFY(C))}\
-    C(const T &t) :  TypeBase(T##_new()){assignFrom(t);UA_TRC("Construct (" << UA_STRINGIFY(T) << ")")}\
-    ~C(){UA_TRC("Delete:" << UA_STRINGIFY(C)); if(_d) T##_clear(_d.get());}\
-    C(const C & n) :  TypeBase(T##_new())  { T##_copy(n._d.get(),_d.get()); UA_TRC("Copy Construct:" << UA_STRINGIFY(C))}\
-    C & operator = ( const C &n) {UA_TRC("Assign:" << UA_STRINGIFY(C));null(); T##_copy(n._d.get(),_d.get()); return *this;}\
-    void null() {if(_d){UA_TRC("Delete(in null):" << UA_STRINGIFY(C));T##_clear(_d.get());} _d.reset(T##_new());T##_init(_d.get());}\
-    void assignTo(T &v){ T##_copy(_d.get(),&v);}\
-    void assignFrom(const T &v){ T##_copy(&v,_d.get());}
+
 
 /*!
  * \brief The String class
@@ -275,10 +324,6 @@ public:
 
 
 };
-
-
-
-#define UA_TYPE_DEF(T) UA_TYPE_BASE(T,UA_##T)
 
 
 template <typename T, const UA_UInt32 I>
@@ -459,7 +504,11 @@ inline UA_String  toUA_String(const std::string &s) {
 */
 inline void fromStdString(const std::string &s, UA_String &r) {
     UA_String_clear(&r);
-    r = UA_STRING_ALLOC(s.c_str());
+    r.length = s.size();
+    r.data = static_cast<UA_Byte*>(malloc(r.length));
+    if (!r.data)
+        throw std::bad_alloc();
+    memcpy(&r.data, s.c_str(), r.length);
 }
 
 /*!
@@ -495,43 +544,54 @@ inline std::string toString(UA_StatusCode c) {
 /*!
        \brief The UsernamePasswordLogin class
 */
-class UA_EXPORT UsernamePasswordLogin : public TypeBase<UA_UsernamePasswordLogin> {
+class UA_EXPORT UsernamePasswordLogin {
+
+private:
+
+    struct Deleter {
+        // Called by unique_ptr to destroy/free the Resource
+        void operator()(UA_UsernamePasswordLogin *r) {
+            UA_String_clear(&r->username);
+            UA_String_clear(&r->password);
+        }
+    };
+
+    std::unique_ptr<UA_UsernamePasswordLogin, Deleter> _d;
 public:
 
-    UsernamePasswordLogin(const std::string &u = "", const std::string &p = "")  :  TypeBase(new UA_UsernamePasswordLogin()) {
-        UA_String_init(&ref()->username);
-        UA_String_init(&ref()->password);
+    UsernamePasswordLogin(const std::string &u = "", const std::string &p = ""): _d(nullptr, Deleter()) {
+        UA_String_init(&_d->username);
+        UA_String_init(&_d->password);
         setUserName(u);
         setPassword(p);
     }
 
-    ~UsernamePasswordLogin() {
-        UA_String_clear(&ref()->username);
-        UA_String_clear(&ref()->password);
-    }
+    virtual ~UsernamePasswordLogin() = default;
 
     /*!
         \brief setUserName
         \param s
     */
     void setUserName(const std::string &s) {
-        fromStdString(s, ref()->username);
+        fromStdString(s, _d->username);
     }
     /*!
         \brief setPassword
         \param s
     */
     void setPassword(const std::string &s) {
-        fromStdString(s, ref()->password);
+        fromStdString(s, _d->password);
     }
 
 };
 /*!
     \brief The ObjectAttributes class
 */
-class  UA_EXPORT  ObjectAttributes : public TypeBase<UA_ObjectAttributes> {
+class  UA_EXPORT  ObjectAttributes : public TypeBase<UA_ObjectAttributes, UA_TYPES_OBJECTATTRIBUTES> {
 public:
-    UA_TYPE_DEF(ObjectAttributes)
+
+    using TypeBase<UA_ObjectAttributes, UA_TYPES_OBJECTATTRIBUTES>::operator=;
+
     void setDefault() {
         *this = UA_ObjectAttributes_default;
     }
@@ -559,9 +619,10 @@ public:
 /*!
     \brief The ObjectTypeAttributes class
 */
-class  UA_EXPORT  ObjectTypeAttributes : public TypeBase<UA_ObjectTypeAttributes> {
+class  UA_EXPORT  ObjectTypeAttributes : public TypeBase<UA_ObjectTypeAttributes, UA_TYPES_OBJECTTYPEATTRIBUTES> {
 public:
-    UA_TYPE_DEF(ObjectTypeAttributes)
+    using TypeBase<UA_ObjectTypeAttributes, UA_TYPES_OBJECTTYPEATTRIBUTES>::operator=;
+
     void setDefault() {
         *this = UA_ObjectTypeAttributes_default;
     }
@@ -594,7 +655,7 @@ typedef UA_NodeClass NodeClass;
 /*!
        \brief The NodeId class
 */
-class  UA_EXPORT  NodeId : public TypeBase<UA_NodeId> {
+class  UA_EXPORT  NodeId : public TypeBase<UA_NodeId, UA_TYPES_NODEID> {
 public:
 
     // Common constant nodes
@@ -615,7 +676,6 @@ public:
     static NodeId  BaseEventType;
 
     //
-    UA_TYPE_DEF(NodeId)
     //
     // null
     //
@@ -632,22 +692,36 @@ public:
         return UA_NodeId_hash(constRef());
     }
 
+    NodeId() : TypeBase()
+    {
+    }
+
     // human friendly id string
     NodeId(const char *id) : TypeBase(UA_NodeId_new())
     {
         *(_d.get()) = UA_NODEID(id); // parses the string to a node id
     }
+    NodeId(const UA_NodeId &t) : TypeBase(UA_NodeId_new()) {
+        UA_copy(&t, _d.get(), data_type);
+    }
+
     // Specialised constructors
     NodeId(unsigned index, unsigned id) : TypeBase(UA_NodeId_new()) {
+        null();
         *(_d.get()) = UA_NODEID_NUMERIC(UA_UInt16(index), id);
     }
 
     NodeId(unsigned index, const std::string &id) : TypeBase(UA_NodeId_new()) {
-        *(_d.get()) = UA_NODEID_STRING_ALLOC(UA_UInt16(index), id.c_str());
+        null();
+        _d->namespaceIndex = index;
+        _d->identifierType = UA_NODEIDTYPE_STRING;
+        UA_String ua_id = toUA_String(id);
+        UA_String_copy(&ua_id, &_d->identifier.string);
     }
 
 
     NodeId(unsigned index, UA_Guid guid) : TypeBase(UA_NodeId_new()) {
+        null();
         *(_d.get()) = UA_NODEID_GUID(UA_UInt16(index), guid);
     }
     //
@@ -747,9 +821,11 @@ public:
 /*!
     \brief The ExpandedNodeId class
 */
-class  UA_EXPORT  ExpandedNodeId : public TypeBase<UA_ExpandedNodeId> {
+class  UA_EXPORT  ExpandedNodeId : public TypeBase<UA_ExpandedNodeId, UA_TYPES_EXPANDEDNODEID> {
 public:
-    UA_TYPE_DEF(ExpandedNodeId)
+
+    using TypeBase<UA_ExpandedNodeId, UA_TYPES_EXPANDEDNODEID>::operator=;
+
     static ExpandedNodeId  ModellingRuleMandatory;
 
     ExpandedNodeId(const std::string namespaceUri, UA_NodeId &node, int serverIndex) : TypeBase(UA_ExpandedNodeId_new()) {
@@ -757,6 +833,12 @@ public:
         UA_NodeId_copy(&get().nodeId, &node); // deep copy across
         ref()->serverIndex = serverIndex;
     }
+
+
+    ExpandedNodeId(const UA_ExpandedNodeId& id) : TypeBase(UA_ExpandedNodeId_new()) {
+        UA_ExpandedNodeId_copy(&id, _d.get());
+    }
+
 
 
     bool toString(std::string &s) const // C library version of nodeid to string
@@ -873,10 +955,9 @@ public:
 /*!
  * \brief The BrowsePathResult class
  */
-class UA_EXPORT BrowsePathResult : public TypeBase<UA_BrowsePathResult> {
+class UA_EXPORT BrowsePathResult : public TypeBase<UA_BrowsePathResult, UA_TYPES_BROWSEPATHRESULT> {
     static UA_BrowsePathTarget nullResult;
 public:
-    UA_TYPE_DEF(BrowsePathResult)
     UA_StatusCode statusCode() const
     {
         return ref()->statusCode;
@@ -912,10 +993,9 @@ inline std::string toString(UA_String &r) {
 // Memory Leak Risk - TODO Check this
 //
 std::string variantToString(UA_Variant &v);
-class  UA_EXPORT  Variant  : public TypeBase<UA_Variant> {
+class  UA_EXPORT  Variant  : public TypeBase<UA_Variant, UA_TYPES_VARIANT> {
 public:
     // It would be nice to template but ...
-    UA_TYPE_DEF(Variant)
 
     //
     // Construct Variant from ...
@@ -1052,9 +1132,10 @@ TYPEDEF_ARRAY(Variant,UA_TYPES_VARIANT)
 /*!
     \brief The QualifiedName class
 */
-class  UA_EXPORT  QualifiedName  : public TypeBase<UA_QualifiedName> {
+class  UA_EXPORT  QualifiedName  : public TypeBase<UA_QualifiedName, UA_TYPES_QUALIFIEDNAME> {
 public:
-    UA_TYPE_DEF(QualifiedName)
+    QualifiedName() = default;
+
     QualifiedName(int ns, const char *s) : TypeBase(UA_QualifiedName_new()) {
         *(_d.get()) = UA_QUALIFIEDNAME_ALLOC(ns, s);
     }
@@ -1187,9 +1268,9 @@ public:
 /*!
     \brief The VariableAttributes class
 */
-class  UA_EXPORT  VariableAttributes : public TypeBase<UA_VariableAttributes> {
+class  UA_EXPORT  VariableAttributes : public TypeBase<UA_VariableAttributes, UA_TYPES_VARIABLEATTRIBUTES> {
 public:
-    UA_TYPE_DEF(VariableAttributes)
+    using TypeBase<UA_VariableAttributes, UA_TYPES_VARIABLEATTRIBUTES>::operator=;
     void setDefault() {
         *this = UA_VariableAttributes_default;
     }
@@ -1228,9 +1309,9 @@ public:
 /*!
     \brief The VariableTypeAttributes class
 */
-class  UA_EXPORT  VariableTypeAttributes : public TypeBase<UA_VariableTypeAttributes> {
+class  UA_EXPORT  VariableTypeAttributes : public TypeBase<UA_VariableTypeAttributes, UA_TYPES_VARIABLETYPEATTRIBUTES> {
 public:
-    UA_TYPE_DEF(VariableTypeAttributes)
+    using TypeBase<UA_VariableTypeAttributes, UA_TYPES_VARIABLETYPEATTRIBUTES>::operator=;
     void setDefault() {
         *this = UA_VariableTypeAttributes_default;
     }
@@ -1244,9 +1325,9 @@ public:
 /*!
     \brief The MethodAttributes class
 */
-class  UA_EXPORT  MethodAttributes : public TypeBase<UA_MethodAttributes> {
+class  UA_EXPORT  MethodAttributes : public TypeBase<UA_MethodAttributes, UA_TYPES_METHODATTRIBUTES> {
 public:
-    UA_TYPE_DEF(MethodAttributes)
+    using TypeBase<UA_MethodAttributes, UA_TYPES_METHODATTRIBUTES>::operator=;
     void setDefault() {
         *this = UA_MethodAttributes_default;
     }
@@ -1274,9 +1355,8 @@ public:
 /*!
     \brief The Argument class
 */
-class  UA_EXPORT  Argument : public TypeBase<UA_Argument> {
+class  UA_EXPORT  Argument : public TypeBase<UA_Argument, UA_TYPES_ARGUMENT> {
 public:
-    UA_TYPE_DEF(Argument)
     void setDataType(int i) {
         get().dataType = UA_TYPES[i].typeId;
     }
@@ -1302,9 +1382,8 @@ public:
 /*!
     \brief The LocalizedText class
 */
-class  UA_EXPORT  LocalizedText : public TypeBase<UA_LocalizedText> {
+class  UA_EXPORT  LocalizedText : public TypeBase<UA_LocalizedText, UA_TYPES_LOCALIZEDTEXT> {
 public:
-    UA_TYPE_DEF(LocalizedText)
     LocalizedText(const std::string &locale, const std::string &text) : TypeBase(UA_LocalizedText_new()) {
         get() = UA_LOCALIZEDTEXT_ALLOC(locale.c_str(), text.c_str());
     }
@@ -1313,9 +1392,8 @@ public:
 /*!
     \brief The RelativePathElement class
 */
-class  UA_EXPORT  RelativePathElement : public TypeBase<UA_RelativePathElement> {
+class  UA_EXPORT  RelativePathElement : public TypeBase<UA_RelativePathElement, UA_TYPES_RELATIVEPATHELEMENT> {
 public:
-    UA_TYPE_DEF(RelativePathElement)
     RelativePathElement(QualifiedName &item, NodeId &typeId, bool inverse = false, bool includeSubTypes = false) :
         TypeBase(UA_RelativePathElement_new()) {
         get().referenceTypeId = typeId.get();
@@ -1330,18 +1408,16 @@ public:
 /*!
     \brief The RelativePath class
 */
-class  UA_EXPORT  RelativePath : public TypeBase<UA_RelativePath> {
+class  UA_EXPORT  RelativePath : public TypeBase<UA_RelativePath, UA_TYPES_RELATIVEPATH> {
 public:
-    UA_TYPE_DEF(RelativePath)
 };
 
 /*!
     \brief The BrowsePath class
 */
 
-class  UA_EXPORT  BrowsePath : public TypeBase<UA_BrowsePath> {
+class  UA_EXPORT  BrowsePath : public TypeBase<UA_BrowsePath, UA_TYPES_BROWSEPATH> {
 public:
-    UA_TYPE_DEF(BrowsePath)
     /*!
         \brief BrowsePath
         \param start
@@ -1367,55 +1443,71 @@ public:
     \brief The BrowseResult class
 */
 
-class  UA_EXPORT  BrowseResult : public TypeBase<UA_BrowseResult> {
+class  UA_EXPORT  BrowseResult : public TypeBase<UA_BrowseResult, UA_TYPES_BROWSERESULT> {
 public:
-    UA_TYPE_DEF(BrowseResult)
 };
 
 
 
-class  UA_EXPORT  CallMethodRequest : public TypeBase<UA_CallMethodRequest> {
+class  UA_EXPORT  CallMethodRequest : public TypeBase<UA_CallMethodRequest, UA_TYPES_CALLMETHODREQUEST> {
 public:
-    UA_TYPE_DEF(CallMethodRequest)
 };
 
-class  UA_EXPORT  CallMethodResult  : public TypeBase<UA_CallMethodResult> {
+class  UA_EXPORT  CallMethodResult  : public TypeBase<UA_CallMethodResult, UA_TYPES_CALLMETHODRESULT> {
 public:
-    UA_TYPE_DEF(CallMethodResult)
 };
 
-class  UA_EXPORT  ViewAttributes  : public TypeBase<UA_ViewAttributes> {
+class  UA_EXPORT  ViewAttributes  : public TypeBase<UA_ViewAttributes, UA_TYPES_VIEWATTRIBUTES> {
 public:
-    UA_TYPE_DEF(ViewAttributes)
+    using TypeBase<UA_ViewAttributes, UA_TYPES_VIEWATTRIBUTES>::operator=;
     void setDefault() {
         *this = UA_ViewAttributes_default;
     }
 
 };
 
-class  UA_EXPORT  ReferenceTypeAttributes : public TypeBase< UA_ReferenceTypeAttributes> {
+class  UA_EXPORT  ReferenceTypeAttributes : public TypeBase<UA_ReferenceTypeAttributes, UA_TYPES_REFERENCETYPEATTRIBUTES> {
 public:
-    UA_TYPE_DEF(ReferenceTypeAttributes)
+    using TypeBase<UA_ReferenceTypeAttributes, UA_TYPES_REFERENCETYPEATTRIBUTES>::operator=;
     void setDefault() {
         *this = UA_ReferenceTypeAttributes_default;
     }
 
 };
 
-class  UA_EXPORT  DataTypeAttributes : public TypeBase<UA_DataTypeAttributes> {
+class  UA_EXPORT  DataTypeAttributes : public TypeBase<UA_DataTypeAttributes, UA_TYPES_DATATYPEATTRIBUTES> {
 public:
-    UA_TYPE_DEF(DataTypeAttributes)
+    using TypeBase<UA_DataTypeAttributes, UA_TYPES_DATATYPEATTRIBUTES>::operator=;
     void setDefault() {
         *this = UA_DataTypeAttributes_default;
     }
 
 };
 
-class  UA_EXPORT  DataSource : public TypeBase<UA_DataSource> {
+class  UA_EXPORT  DataSource {
+private:
+
+    std::unique_ptr<UA_DataSource> _d;
 public:
-    DataSource()  : TypeBase(new UA_DataSource()) {
-        get().read = nullptr;
-        get().write = nullptr;
+    DataSource() {
+        _d->read = nullptr;
+        _d->write = nullptr;
+    }
+
+    UA_DataSource &get() const {
+        return *(_d.get());
+    }
+    operator UA_DataSource &() const {
+        return get();
+    }
+    operator UA_DataSource *() const {
+        return _d.get();
+    }
+    const UA_DataSource *constRef() const {
+        return _d.get();
+    }
+    UA_DataSource   *ref() const {
+        return _d.get();
     }
 };
 
@@ -1423,42 +1515,42 @@ public:
 /*!
     \brief The CreateSubscriptionRequest class
 */
-class UA_EXPORT CreateSubscriptionRequest : public TypeBase<UA_CreateSubscriptionRequest> {
+class UA_EXPORT CreateSubscriptionRequest : public TypeBase<UA_CreateSubscriptionRequest, UA_TYPES_CREATESUBSCRIPTIONREQUEST> {
 public:
-    UA_TYPE_DEF(CreateSubscriptionRequest)
+    using TypeBase<UA_CreateSubscriptionRequest, UA_TYPES_CREATESUBSCRIPTIONREQUEST>::operator=;
 };
 /*!
     \brief The CreateSubscriptionResponse class
 */
-class UA_EXPORT CreateSubscriptionResponse : public TypeBase<UA_CreateSubscriptionResponse> {
+class UA_EXPORT CreateSubscriptionResponse : public TypeBase<UA_CreateSubscriptionResponse, UA_TYPES_CREATESUBSCRIPTIONRESPONSE> {
 public:
-    UA_TYPE_DEF(CreateSubscriptionResponse)
+    using TypeBase<UA_CreateSubscriptionResponse, UA_TYPES_CREATESUBSCRIPTIONRESPONSE>::operator=;
 };
 //
 /*!
     \brief The MonitoredItemCreateResult class
 */
-class UA_EXPORT MonitoredItemCreateResult : public TypeBase<UA_MonitoredItemCreateResult> {
+class UA_EXPORT MonitoredItemCreateResult : public TypeBase<UA_MonitoredItemCreateResult, UA_TYPES_MONITOREDITEMCREATERESULT> {
 public:
-    UA_TYPE_DEF(MonitoredItemCreateResult)
+    using TypeBase<UA_MonitoredItemCreateResult, UA_TYPES_MONITOREDITEMCREATERESULT>::operator=;
 };
 
 
 /*!
     \brief The EventFilter class
 */
-class UA_EXPORT EventFilter : public TypeBase<UA_EventFilter> {
+class UA_EXPORT EventFilter : public TypeBase<UA_EventFilter, UA_TYPES_EVENTFILTER> {
 public:
-    UA_TYPE_DEF(EventFilter)
+    using TypeBase<UA_EventFilter, UA_TYPES_EVENTFILTER>::operator=;
 };
 /*!
  * \brief The MonitoredItemCreateRequest class
  */
-class UA_EXPORT MonitoredItemCreateRequest : public TypeBase<UA_MonitoredItemCreateRequest> {
+class UA_EXPORT MonitoredItemCreateRequest : public TypeBase<UA_MonitoredItemCreateRequest, UA_TYPES_MONITOREDITEMCREATEREQUEST> {
     //
 public:
-    UA_TYPE_DEF(MonitoredItemCreateRequest)
 
+    using TypeBase<UA_MonitoredItemCreateRequest, UA_TYPES_MONITOREDITEMCREATEREQUEST>::operator=;
     void setItem(const NodeId &nodeId, UA_UInt32 attributeId = UA_ATTRIBUTEID_EVENTNOTIFIER, UA_MonitoringMode monitoringMode = UA_MONITORINGMODE_REPORTING)
     {
         get().itemToMonitor.nodeId = nodeId;
@@ -1480,40 +1572,39 @@ public:
 /*!
  * \brief The SetMonitoringModeResponse class
  */
-class UA_EXPORT SetMonitoringModeResponse : public TypeBase<UA_SetMonitoringModeResponse> {
+class UA_EXPORT SetMonitoringModeResponse : public TypeBase<UA_SetMonitoringModeResponse, UA_TYPES_SETMONITORINGMODERESPONSE> {
 public:
-    UA_TYPE_DEF(SetMonitoringModeResponse)
+    using TypeBase<UA_SetMonitoringModeResponse, UA_TYPES_SETMONITORINGMODERESPONSE>::operator=;
 };
 
 /*!
  * \brief The SetMonitoringModeRequest class
  */
-class UA_EXPORT SetMonitoringModeRequest : public TypeBase<UA_SetMonitoringModeRequest> {
+class UA_EXPORT SetMonitoringModeRequest : public TypeBase<UA_SetMonitoringModeRequest, UA_TYPES_SETMONITORINGMODEREQUEST> {
 public:
-    UA_TYPE_DEF(SetMonitoringModeRequest)
+    using TypeBase<UA_SetMonitoringModeRequest, UA_TYPES_SETMONITORINGMODEREQUEST>::operator=;
 };
 
 /*!
  * \brief The SetTriggeringResult class
  */
-class UA_EXPORT SetTriggeringResponse : public TypeBase<UA_SetTriggeringResponse> {
+class UA_EXPORT SetTriggeringResponse : public TypeBase<UA_SetTriggeringResponse, UA_TYPES_SETTRIGGERINGRESPONSE> {
 public:
-    UA_TYPE_DEF(SetTriggeringResponse)
+    using TypeBase<UA_SetTriggeringResponse, UA_TYPES_SETTRIGGERINGRESPONSE>::operator=;
 };
 
 /*!
  * \brief The SetTriggeringRequest class
  */
-class UA_EXPORT SetTriggeringRequest : public TypeBase<UA_SetTriggeringRequest> {
+class UA_EXPORT SetTriggeringRequest : public TypeBase<UA_SetTriggeringRequest, UA_TYPES_SETTRIGGERINGREQUEST> {
 public:
-    UA_TYPE_DEF(SetTriggeringRequest)
+    using TypeBase<UA_SetTriggeringRequest, UA_TYPES_SETTRIGGERINGREQUEST>::operator=;
 };
 
 //
 #if 0
-class UA_EXPORT PubSubConnectionConfig : public TypeBase<UA_PubSubConnectionConfig> {
+class UA_EXPORT PubSubConnectionConfig : public TypeBase<UA_PubSubConnectionConfig, UA_TYPES_PUBSUBCONNECTIONCONFIG> {
 public:
-    UA_TYPE_DEF(PubSubConnectionConfig)
 };
 #endif
 //
@@ -1710,9 +1801,8 @@ public:
 };
 //
 
-class UA_EXPORT CreateMonitoredItemsRequest : public TypeBase<UA_CreateMonitoredItemsRequest> {
+class UA_EXPORT CreateMonitoredItemsRequest : public TypeBase<UA_CreateMonitoredItemsRequest, UA_TYPES_CREATEMONITOREDITEMSREQUEST> {
 public:
-    UA_TYPE_DEF(CreateMonitoredItemsRequest)
 };
 
 
@@ -1829,9 +1919,8 @@ typedef std::vector<UAPath> UAPathArray;
 
 
 
-class UA_EXPORT RegisteredServer : public TypeBase<UA_RegisteredServer> {
+class UA_EXPORT RegisteredServer : public TypeBase<UA_RegisteredServer, UA_TYPES_REGISTEREDSERVER> {
 public:
-    UA_TYPE_DEF(RegisteredServer)
 };
 
 

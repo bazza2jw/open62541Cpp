@@ -80,7 +80,7 @@ namespace Open62541 {
                 \param typeId
                 \return
             */
-            bool addBaseObjectType(const std::string &n, NodeId &requestNodeId = NodeId::Null, NodeContext *context = nullptr);
+            bool addBaseObjectType(const std::string &n, const NodeId &requestNodeId = NodeId::Null, NodeContext *context = nullptr);
             /*!
                 \brief addObjectTypeVariable
                 \param n
@@ -89,10 +89,10 @@ namespace Open62541 {
                 \param mandatory
                 \return
             */
-            template<typename T> bool addObjectTypeVariable(const std::string &n, NodeId &parent,
+            template<typename T> bool addObjectTypeVariable(const std::string &n, const NodeId &parent,
                                                             NodeId &nodeId = NodeId::Null,
                                                             NodeContext *context = nullptr,
-                                                            NodeId &requestNodeId = NodeId::Null, // usually want auto generated ids
+                                                            const NodeId &requestNodeId = NodeId::Null, // usually want auto generated ids
                                                             bool mandatory = true) {
                 T a{};
                 Variant value(a);
@@ -209,7 +209,7 @@ namespace Open62541 {
                 \param n1
                 \return
             */
-            bool setMandatory(NodeId &n1) {
+            bool setMandatory(const NodeId &n1) {
                 return _server.addReference(n1, Open62541::NodeId::HasModellingRule, Open62541::ExpandedNodeId::ModellingRuleMandatory, true)
                        == UA_STATUSCODE_GOOD;
             }
@@ -222,13 +222,13 @@ namespace Open62541 {
                 \param typeId
                 \return
             */
-            bool addDerivedObjectType(const std::string &n, NodeId &parent, NodeId &typeId,
-                                      NodeId &requestNodeId = NodeId::Null, NodeContext *context = nullptr);
+            bool addDerivedObjectType(const std::string &n, const NodeId &parent, NodeId &typeId,
+                                      const NodeId &requestNodeId = NodeId::Null, NodeContext *context = nullptr);
             /*!
                 \brief addChildren
                 \return
             */
-            virtual bool addChildren(NodeId &/*parent*/) {
+            virtual bool addChildren(const NodeId &/*parent*/) {
                 return true;
             }
             /*!
@@ -237,14 +237,14 @@ namespace Open62541 {
                 \param baseId
                 \return
             */
-            virtual bool addType(NodeId &nodeId);  // base node of type
+            virtual bool addType(const NodeId &nodeId);  // base node of type
             /*!
                 \brief append
                 \param parent
                 \param nodeId
                 \return
             */
-            virtual bool append(NodeId &parent, NodeId &nodeId, NodeId &requestNodeId = NodeId::Null); // derived type
+            virtual bool append(const NodeId &parent, NodeId &nodeId, const NodeId &requestNodeId = NodeId::Null); // derived type
             /*!
                 \brief addInstance
                 \param n
@@ -252,8 +252,8 @@ namespace Open62541 {
                 \param nodeId
                 \return
             */
-            virtual bool addInstance(const std::string &n, NodeId &parent,  NodeId &nodeId,
-                                     NodeId &requestNodeId = NodeId::Null, NodeContext *context = nullptr);
+            virtual bool addInstance(const std::string &n, const NodeId &parent,  NodeId &nodeId,
+                                     const NodeId &requestNodeId = NodeId::Null, NodeContext *context = nullptr);
 
 
 
