@@ -10,5 +10,3 @@
  * A PARTICULAR PURPOSE.
  */
 #include <open62541cpp/clientcache.h>
-
-

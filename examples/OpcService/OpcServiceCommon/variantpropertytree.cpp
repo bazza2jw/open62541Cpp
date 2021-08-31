@@ -1,4 +1,1 @@
 #include "variantpropertytree.h"
-
-
-

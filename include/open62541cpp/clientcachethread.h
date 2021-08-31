@@ -17,39 +17,41 @@
 
 namespace Open62541 {
 
+/*!
+    \brief The ClientCacheThread class
+*/
+
+class ClientCacheThread
+{
+    ClientCache& _cache;
+    std::thread _thread;
+    bool _running = false;
+
+public:
     /*!
-        \brief The ClientCacheThread class
+           \brief ClientCacheThread
+           \param c
     */
+    ClientCacheThread(ClientCache& c)
+        : _cache(c)
+    {
+    }
+    /*!
+        \brief start
+        \return
+    */
+    bool start();
+    /*!
+        \brief stop
+        \return
+    */
+    bool stop();
+    /*!
+        \brief cache
+        \return
+    */
+    ClientCache& cache() { return _cache; }
+};
+}  // namespace Open62541
 
-    class ClientCacheThread {
-            ClientCache &_cache;
-            std::thread _thread;
-            bool _running = false;
-        public:
-            /*!
-                   \brief ClientCacheThread
-                   \param c
-            */
-            ClientCacheThread(ClientCache &c) : _cache(c) {}
-            /*!
-                \brief start
-                \return
-            */
-            bool start();
-            /*!
-                \brief stop
-                \return
-            */
-            bool stop();
-            /*!
-                \brief cache
-                \return
-            */
-            ClientCache &cache() {
-                return _cache;
-            }
-
-    };
-}
-
-#endif // CLIENTCACHETHREAD_H
+#endif  // CLIENTCACHETHREAD_H

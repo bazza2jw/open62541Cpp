@@ -9,18 +9,18 @@ using namespace std;
 class SubTestClient : public Open62541::Client
 {
 public:
-    void asyncService(void * /*userdata*/, UA_UInt32 requestId, void * /*response*/,
-                                          const UA_DataType *responseType)
+    void asyncService(void* /*userdata*/, UA_UInt32 requestId, void* /*response*/, const UA_DataType* responseType)
     {
         cout << "asyncService requerstId = " << requestId << " Type " << responseType->typeName << endl;
     }
-    void asyncConnectService(UA_UInt32 requestId, void */*userData*/, void */*response*/)
+    void asyncConnectService(UA_UInt32 requestId, void* /*userData*/, void* /*response*/)
     {
-       cout << "asyncConnectService requestId = " << requestId  << endl;
+        cout << "asyncConnectService requestId = " << requestId << endl;
     }
 };
 
-int main() {
+int main()
+{
     cout << "Client Subscription Test - TestServer must be running" << endl;
     //
     // Test subscription create
@@ -35,17 +35,17 @@ int main() {
             UA_UInt32 subId = 0;
             if (client.addSubscription(subId)) {
                 cout << "Subscription Created id = " << subId << endl;
-                auto f = [](Open62541::ClientSubscription & c, UA_DataValue * v) {
-                    cout << "Data Change SubId " << c.id() << " Value " << v->value.type->typeName
-                         << " " << Open62541::dataValueToString(v) << endl;
+                auto f = [](Open62541::ClientSubscription& c, UA_DataValue* v) {
+                    cout << "Data Change SubId " << c.id() << " Value " << v->value.type->typeName << " "
+                         << Open62541::dataValueToString(v) << endl;
                 };
 
                 //
                 cout << "Adding a data change monitor item" << endl;
                 //
                 Open62541::NodeId nodeNumber(idx, "Number_Value");
-                Open62541::ClientSubscription &cs = *client.subscription(subId);
-                unsigned mdc = cs.addMonitorNodeId(f, nodeNumber); // returns monitor id
+                Open62541::ClientSubscription& cs = *client.subscription(subId);
+                unsigned mdc                      = cs.addMonitorNodeId(f, nodeNumber);  // returns monitor id
                 if (!mdc) {
                     cout << "Failed to add monitor data change" << endl;
                 }
@@ -67,7 +67,7 @@ int main() {
             }
         }
         else {
-            cout << "TestServer not running idx = " << idx  << endl;
+            cout << "TestServer not running idx = " << idx << endl;
         }
     }
     else {

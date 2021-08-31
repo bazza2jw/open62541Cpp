@@ -17,9 +17,11 @@
     \param server
     \param data
 */
-void Open62541::ServerRepeatedCallback::callbackFunction(UA_Server * /*server*/, void *data) {
-    Open62541::ServerRepeatedCallback *p = (Open62541::ServerRepeatedCallback *)data;
-    if (p) p->callback();
+void Open62541::ServerRepeatedCallback::callbackFunction(UA_Server* /*server*/, void* data)
+{
+    Open62541::ServerRepeatedCallback* p = (Open62541::ServerRepeatedCallback*)data;
+    if (p)
+        p->callback();
 }
 
 /*!
@@ -27,10 +29,10 @@ void Open62541::ServerRepeatedCallback::callbackFunction(UA_Server * /*server*/,
     \param s
     \param interval
 */
-Open62541::ServerRepeatedCallback::ServerRepeatedCallback(Server &s, UA_UInt32 interval)
-    : _server(s),
-      _interval(interval) {
-
+Open62541::ServerRepeatedCallback::ServerRepeatedCallback(Server& s, UA_UInt32 interval)
+    : _server(s)
+    , _interval(interval)
+{
 }
 
 /*!
@@ -40,20 +42,21 @@ Open62541::ServerRepeatedCallback::ServerRepeatedCallback(Server &s, UA_UInt32 i
     \param interval
     \param func
 */
-Open62541::ServerRepeatedCallback::ServerRepeatedCallback(Server &s, UA_UInt32 interval, ServerRepeatedCallbackFunc func)
-    : _server(s),
-      _interval(interval),
-      _func(func) {
-
-
+Open62541::ServerRepeatedCallback::ServerRepeatedCallback(Server& s,
+                                                          UA_UInt32 interval,
+                                                          ServerRepeatedCallbackFunc func)
+    : _server(s)
+    , _interval(interval)
+    , _func(func)
+{
 }
-
 
 /*!
     \brief Open62541::ServerRepeatedCallback::start
     \return
 */
-bool Open62541::ServerRepeatedCallback::start() {
+bool Open62541::ServerRepeatedCallback::start()
+{
     if ((_id == 0) && _server.server()) {
         WriteLock l(_server.mutex());
         _lastError = UA_Server_addRepeatedCallback(_server.server(), callbackFunction, this, _interval, &_id);
@@ -62,13 +65,13 @@ bool Open62541::ServerRepeatedCallback::start() {
     return false;
 }
 
-
 /*!
     \brief Open62541::ServerRepeatedCallback::changeInterval
     \param i
     \return
 */
-bool Open62541::ServerRepeatedCallback::changeInterval(unsigned i) {
+bool Open62541::ServerRepeatedCallback::changeInterval(unsigned i)
+{
     if ((_id != 0) && _server.server()) {
         WriteLock l(_server.mutex());
         _lastError = UA_Server_changeRepeatedCallbackInterval(_server.server(), _id, i);
@@ -87,10 +90,10 @@ bool Open62541::ServerRepeatedCallback::changeInterval(unsigned i) {
  * \brief Open62541::ServerRepeatedCallback::stop
  * \return
  */
-bool Open62541::ServerRepeatedCallback::stop() {
+bool Open62541::ServerRepeatedCallback::stop()
+{
     if (_id != 0) {
-        if(_server.server())
-        {
+        if (_server.server()) {
             WriteLock l(_server.mutex());
             UA_Server_removeRepeatedCallback(_server.server(), _id);
             _id = 0;
@@ -101,18 +104,15 @@ bool Open62541::ServerRepeatedCallback::stop() {
     return false;
 }
 
-
 //
 //
 /*!
     \brief Open62541::ServerRepeatedCallback::~ServerRepeatedCallback
 */
-Open62541::ServerRepeatedCallback::~ServerRepeatedCallback() {
-    if(_server.server())
-    {
+Open62541::ServerRepeatedCallback::~ServerRepeatedCallback()
+{
+    if (_server.server()) {
         WriteLock l(server().mutex());
         UA_Server_removeRepeatedCallback(_server.server(), _id);
     }
 }
-
-

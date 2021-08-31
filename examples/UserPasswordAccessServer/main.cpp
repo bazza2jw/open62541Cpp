@@ -7,26 +7,28 @@ using namespace std;
 /*!
     \brief The TestServer class
 */
-class TestServer : public Open62541::Server {
-        int _idx = 2; // namespace index
+class TestServer : public Open62541::Server
+{
+    int _idx = 2;  // namespace index
 
-    public:
-        TestServer() {
-            logins().resize(1);
-            logins()[0].username = UA_STRING_STATIC("admin");
-            logins()[0].password = UA_STRING_STATIC("password");
-            enableSimpleLogin();
-
-        }
-        void initialise(); // initialise the server before it runs but after it has been configured
+public:
+    TestServer()
+    {
+        logins().resize(1);
+        logins()[0].username = UA_STRING_STATIC("admin");
+        logins()[0].password = UA_STRING_STATIC("password");
+        enableSimpleLogin();
+    }
+    void initialise();  // initialise the server before it runs but after it has been configured
 };
 
 /*!
     \brief TestServer::initialise
 */
-void TestServer::initialise() {
+void TestServer::initialise()
+{
     cout << "initialise()" << endl;
-    _idx = addNamespace("urn:test:test"); // create a name space
+    _idx = addNamespace("urn:test:test");  // create a name space
     //
     Open62541::NodeId nodeNumber(_idx, "Number_Value");
     Open62541::Variant numberValue(1);
@@ -36,14 +38,14 @@ void TestServer::initialise() {
     }
     //
     // Set the user name and password
-
 }
 
 /*!
     \brief main
     \return
 */
-int main(int/* argc*/, char **/*argv[]*/) {
+int main(int /* argc*/, char** /*argv[]*/)
+{
     TestServer server;
     cerr << "Starting server" << endl;
     server.start();
