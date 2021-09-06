@@ -88,6 +88,38 @@ void TestServer::initialise()
             cout << "Failed to set value callback" << endl;
         }
     }
+    
+   //Example adding an array by setting it with setArrayCopy
+    Open62541::NodeId setArrayCopy_array_id(_idx, "Array_By_Copy");
+    UA_Double setArrayCopy_temp_array[4] = {1.0, 2.0, 3.0, 4.0};
+    const size_t array_size = 4;
+    Open62541::Variant setArrayCopy_variant;
+    setArrayCopy_variant.setArrayCopy(&setArrayCopy_temp_array, array_size, &UA_TYPES[UA_TYPES_DOUBLE]);
+    addVariable(Open62541::NodeId::Objects, "Array_By_Copy", setArrayCopy_variant , setArrayCopy_array_id, Open62541::NodeId::Null);
+
+    //Example adding an array by setting it with setArray as a child for Array_With_Copy
+    Open62541::NodeId setArray_array_id(_idx, "Array_By_Set");
+    Open62541::Variant setArray_variant;
+    const size_t setArray_array_size = 3;
+    UA_Double *setArray_array = (UA_Double *) UA_Array_new(3, &UA_TYPES[UA_TYPES_DOUBLE]);
+    setArray_array[0] = 1;
+    setArray_array[1] = 3;
+    setArray_array[2] = 5;
+    setArray_variant.setArray(setArray_array , setArray_array_size, &UA_TYPES[UA_TYPES_DOUBLE]);
+    addVariable(setArrayCopy_array_id, "Array_By_Set", setArray_variant , setArray_array_id, Open62541::NodeId::Null);
+
+    //Example adding a matrix 
+    Open62541::NodeId test_matrix_id(_idx, "Matrix_Example");
+    Open62541::VariableAttributes vattr;
+    Open62541::Variant vattr_value;
+    //set required dimensions and values for the matrix
+    UA_Double matrix_temp_array[6] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+    UA_Int32 rows = 3;
+    UA_Int32 cols = 2;
+    size_t matrix_dims = 2;
+    int value_rank = 2;
+    vattr_value = vattr.getVariantMatrix(rows, cols, matrix_dims, &UA_TYPES[UA_TYPES_DOUBLE], value_rank, &matrix_temp_array);
+    addVariable(Open62541::NodeId::Objects, "Matrix_Example", vattr_value, test_matrix_id, Open62541::NodeId::Null);
 
     // Set up an event source - monitor this item to get the events in UA Expert
     _testTriggerSource.notNull();
@@ -116,7 +148,7 @@ void TestServer::initialise()
     //
     // Define an object type
     //
-    Open62541::NodeId testType(_idx, "TestObjectType");
+    Open62541::NodeId testType(_idx, "AR_ObjectType");
     if (!_object.addType(testType)) {
         cout << "Failed to create object type" << endl;
     }
