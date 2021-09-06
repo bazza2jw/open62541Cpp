@@ -942,6 +942,11 @@ public:
     //
     // Construct Variant from ...
     // TO DO add array handling
+
+    explicit Variant()
+        : TypeBase(UA_Variant_new())
+    {
+    }
     /*!
         \brief uaVariant
         \param v
@@ -1258,6 +1263,32 @@ class UA_EXPORT VariableAttributes : public TypeBase<UA_VariableAttributes, UA_T
 public:
     using TypeBase<UA_VariableAttributes, UA_TYPES_VARIABLEATTRIBUTES>::operator=;
     void setDefault() { *this = UA_VariableAttributes_default; }
+
+
+    //feat: Add member function for array dimension and size
+    template <typename T>
+    Variant getVariantMatrix(const UA_UInt32 rows, const UA_UInt32 cols,const size_t dim_size, const UA_DataType *type,const int value_rank,const T* array) 
+    {
+        *this = UA_VariableAttributes_default;
+        Variant variant;
+        //set the VariableAttribute values' constraints
+        get().valueRank = value_rank;
+        get().dataType = type->typeId;
+        get().arrayDimensions = (UA_UInt32 *)UA_Array_new(dim_size, type);
+        get().arrayDimensionsSize = dim_size;
+        get().arrayDimensions[0]=rows;
+        get().arrayDimensions[1]=cols;
+        
+        //Set the value from the argument array. The array dimensions need to be the same for the value
+        size_t arraySize = sizeof(*array) / sizeof(array);
+        UA_Variant_setArrayCopy(&get().value, array, arraySize, type);
+        get().value.arrayDimensions = (UA_UInt32 *)UA_Array_new(dim_size, type);
+        get().value.arrayDimensionsSize = dim_size;
+        get().value.arrayDimensions[0]=rows;
+        get().value.arrayDimensions[1]=cols;
+        UA_Variant_copy(&get().value, variant);
+        return variant;
+    }
 
     void setDisplayName(const std::string& s) { get().displayName = UA_LOCALIZEDTEXT_ALLOC("en_US", s.c_str()); }
     void setDescription(const std::string& s) { get().description = UA_LOCALIZEDTEXT_ALLOC("en_US", s.c_str()); }
