@@ -128,6 +128,55 @@ public:
         return false;
     }
 
+    //=========feat:addObjectTypeArrayVariable============//
+    template <typename T, size_t size_array>
+    bool addObjectTypeArrayVariable(const std::string& n,
+                               const NodeId& parent,
+                               NodeId& nodeId              = NodeId::Null,
+                               NodeContext* context        = nullptr,
+                               const NodeId& requestNodeId = NodeId::Null,  // usually want auto generated ids
+                               bool mandatory              = true)
+    {
+        T a[size_array]{};
+        T type{};
+        Variant value(type);
+        VariableAttributes var_attr;
+        //
+        var_attr.setDefault();
+        var_attr.setDisplayName(n);
+        var_attr.setDescription(n);
+        var_attr.get().accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
+        Variant variant_array;
+        variant_array.setArrayCopy(&a, size_array, value.get().type);
+        var_attr.setValue(variant_array);
+        //
+        QualifiedName qn(_nameSpace, n.c_str());
+        //
+        NodeId newNode;
+        newNode.notNull();
+        //
+        if (_server.addVariableNode(requestNodeId,
+                                    parent,
+                                    NodeId::HasComponent,
+                                    qn,
+                                    NodeId::BaseDataVariableType,
+                                    var_attr,
+                                    newNode,
+                                    context)) {
+            if (mandatory) {
+                return _server.addReference(newNode,
+                                            NodeId::HasModellingRule,
+                                            ExpandedNodeId::ModellingRuleMandatory,
+                                            true);
+            }
+            if (!nodeId.isNull())
+                nodeId = newNode;
+            return true;
+        }
+        UAPRINTLASTERROR(_server.lastError())
+        return false;
+    }
+
     bool addObjectTypeFolder(const std::string& childName,
                              NodeId& parent,
                              NodeId& nodeId,
