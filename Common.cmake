@@ -1,8 +1,15 @@
 # Common CMAKE definitions
-
+IF( DEFINED CROSSBUILD )
+message ("Raspberry Pi Cross Build:${PIROOT}")
+set(CMAKE_INSTALL_PREFIX ${PIROOT}/usr/local)
+find_library(OPEN62541 open62541 ${PIROOT}/usr/local/lib)
+ELSE( DEFINED CROSSBUILD )
+message("Native Build")
 set(CMAKE_INSTALL_PREFIX /usr/local)
-# the open62541 C library must have been installed
 find_library(OPEN62541 open62541 ${CMAKE_INSTALL_PREFIX}/lib)
+ENDIF( DEFINED CROSSBUILD )
+
+# the open62541 C library must have been installed
 #
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)  

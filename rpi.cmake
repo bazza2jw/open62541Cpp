@@ -4,14 +4,18 @@
 #
 # Define our host system
 set(BOOST_DEBUG ON)
+set(CROSSBUILD ON)
+set(CMAKE_SYSTEM_PROCESSOR arm)
 SET(CMAKE_SYSTEM_NAME Linux)
 SET(CMAKE_SYSTEM_VERSION 1)
 # Adjust to suit actual environment
-SET(DEVROOT $ENV{HOME}/Work)
+SET(DEVROOT /Development)
 # where the sysroot is
-SET(PIROOT ${DEVROOT}/opt/Rpi2)
+SET(PIROOT ${DEVROOT}/sysroot/sysroot)
 # where the development tools are
-SET(PITOOLS $ENV{HOME}/x-tools/arm-rpi-linux-gnueabihf/bin)
+SET(PITOOLS /usr/bin)
+message ("Raspberry Pi Build Root = ${PIROOT}")
+
 #
 # Define the cross compiler locations
 SET(CMAKE_C_COMPILER   ${PITOOLS}/arm-linux-gnueabihf-gcc)
@@ -23,12 +27,13 @@ SET(CMAKE_C_FLAGS "-march=armv8-a -mtune=cortex-a53 -mfpu=crypto-neon-fp-armv8 $
 SET(CMAKE_CXX_FLAGS "-march=armv8-a -mtune=cortex-a53 -mfpu=crypto-neon-fp-armv8 ${CMAKE_CXX_FLAGS}")
 
 # Define the sysroot path for the RaspberryPi distribution in our tools folder
-SET(CMAKE_SYSROOT ${PIROOT}) 
+SET(CMAKE_SYSROOT ${PIROOT})
 SET(CMAKE_FIND_ROOT_PATH ${PIROOT})
-INCLUDE_DIRECTORIES(${PIROOT}/usr/include/arm-linux-gnueabihf ) # Use our definitions for compiler tools
+#INCLUDE_DIRECTORIES(${PIROOT}/usr/include/arm-linux-gnueabihf ) # Use our definitions for compiler tools
 INCLUDE_DIRECTORIES(${PIROOT}/usr/local/include)
-LINK_DIRECTORIES(/lib/arm-linux-gnueabihf)
-LINK_DIRECTORIES(/usr/lib/arm-linux-gnueabihf)
+#link_directories(${PIROOT}/opt/vc/lib )
+
+
 SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 # Search for libraries and headers in the target directories only
 SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
@@ -39,7 +44,7 @@ SET(BOOST_PREFIX ${BOOST_DIR})
 SET(BOOST_LIBRARYDIR ${PIROOT}/usr/lib/arm-linux-gnueabihf )
 SET(BOOST_INCLUDEDIR ${PIROOT}/usr/include/boost)
 # Force the linker to look in the sysroot where the libraries actually are - needed for some of the cmake tests
-SET (PI_LINKER_FLAGS "-Wl,-rpath-link=${PIROOT}/lib/arm-linux-gnueabihf,-rpath-link=${PIROOT}/usr/lib/arm-linux-gnueabihf -L${PIROOT}/usr/lib/arm-linux-gnueabihf -lcrypt")
+SET (PI_LINKER_FLAGS "-Wl,-rpath-link=/usr/arm-linux-gnueabihf/lib,-rpath-link=${PIROOT}/usr/lib/arm-linux-gnueabihf  -lcrypt")
 SET(CMAKE_EXE_LINKER_FLAGS "${PI_LINKER_FLAGS} ${CMAKE_EXE_LINKER_FLAGS}" )
 SET(CMAKE_SHARED_LINKER_FLAGS "${PI_LINKER_FLAGS} ${CMAKE_SHARED_LINKER_FLAGS}")
 

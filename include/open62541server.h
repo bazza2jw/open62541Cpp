@@ -280,10 +280,11 @@ private:
 
 public:
     ConditionPtr & findCondition(const UA_NodeId *condition) {
-        return _conditionMap[UA_NodeId_hash(condition)];
+        return findCondition(UA_NodeId_hash(condition));
     }
 
     ConditionPtr & findCondition(UA_UInt32 n) {
+        if(_conditionMap.find(n) == _conditionMap.end()) return _conditionMap[0];
         return _conditionMap[n];
     }
 
@@ -515,6 +516,7 @@ public:
         \return
     */
     static Server *findServer(UA_Server *s) {
+        if(_serverMap.find(s) == _serverMap.end()) return nullptr;
         return _serverMap[s];
     }
     //
@@ -2196,7 +2198,7 @@ public:
                                           const UA_NodeId */*sessionId*/,
                                           const UA_ExtensionObject */*userIdentityToken*/,
                                           void **/*sessionContext*/) {
-        return UA_STATUSCODE_BADSESSIONIDINVALID;
+        return UA_STATUSCODE_GOOD;
     }
 
     /* Deauthenticate a session and cleanup */

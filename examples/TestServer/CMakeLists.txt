@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.11)
+project(TestServer)
 # Build Test Server
 set(APPNAME TestServer)
 

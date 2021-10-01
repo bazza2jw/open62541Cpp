@@ -197,6 +197,7 @@ namespace MRL {
                 \return pointer to child or nullptr
             */
             Node *child(const K &s) {
+                if(_children.find(s) == _children.end()) return nullptr;
                 return _children[s];
             }
 
@@ -206,7 +207,7 @@ namespace MRL {
                 \return true if child exists
             */
             bool hasChild(const K &s) {
-                return _children[s] != nullptr;
+                return child(s) != nullptr;
             }
             /*!
                 \brief addChild

@@ -31,6 +31,16 @@ set(BUILD_EXAMPLES FALSE CACHE BOOL "Build example programs")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
+IF( DEFINED CROSSBUILD )
+message ("Raspberry Pi Cross Build")
+set(CMAKE_INSTALL_PREFIX ${PIROOT}/usr/local)
+ELSE( DEFINED CROSSBUILD )
+message("Native Build")
+set(CMAKE_INSTALL_PREFIX /usr/local)
+ENDIF( DEFINED CROSSBUILD )
+message("Install To:${CMAKE_INSTALL_PREFIX}")
+find_library(OPEN62541 open62541 ${CMAKE_INSTALL_PREFIX}/lib)
+
 set(INCLUDE_INSTALL_DIR include)
 set(LIB_INSTALL_DIR lib)
 

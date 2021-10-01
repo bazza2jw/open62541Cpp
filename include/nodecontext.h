@@ -356,6 +356,7 @@ public:
      * \return
      */
     static NodeContext *findRef(const std::string &s) {
+        if(_map.find(s) == _map.end()) return nullptr;
         return   _map[s];
     }
 };
