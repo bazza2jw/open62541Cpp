@@ -4,7 +4,6 @@
 #include <OpcServiceCommon/stockdefs.h>
 #include "simulatoropc.h"
 
-
 /*!
     \brief readData
     \param node
@@ -12,7 +11,11 @@
     \param value
     \return
 */
-bool SimulatorNodeContext::readData(Open62541::Server &/*server*/,  Open62541::NodeId &node, const UA_NumericRange * /*range*/, UA_DataValue &value) {
+bool SimulatorNodeContext::readData(Open62541::Server& /*server*/,
+                                    Open62541::NodeId& node,
+                                    const UA_NumericRange* /*range*/,
+                                    UA_DataValue& value)
+{
     // get the value to update
     TRC(" Node Id " << Open62541::toString(node));
     if (node.identifierType() == UA_NODEIDTYPE_NUMERIC) {
@@ -25,20 +28,20 @@ bool SimulatorNodeContext::readData(Open62541::Server &/*server*/,  Open62541::N
         switch (node.get().identifier.numeric) {
             case RangeId:
                 path.push_back("Range");
-                v = (UA_Int32) (MRL::OpcServiceCommon::data().getValue<double>(path));
+                v = (UA_Int32)(MRL::OpcServiceCommon::data().getValue<double>(path));
                 break;
             case TypeId:
                 path.push_back("Type");
-                v = (UA_Int32) (MRL::OpcServiceCommon::data().getValue<double>(path));
+                v = (UA_Int32)(MRL::OpcServiceCommon::data().getValue<double>(path));
                 break;
             case IntervalId:
                 path.push_back("Interval");
-                v = (UA_Int32) (MRL::OpcServiceCommon::data().getValue<double>(path));
+                v = (UA_Int32)(MRL::OpcServiceCommon::data().getValue<double>(path));
                 break;
             default:
                 break;
         }
-        UA_Variant_setScalarCopy(&value.value, &v,&UA_TYPES[UA_TYPES_INT32]); // set the value
+        UA_Variant_setScalarCopy(&value.value, &v, &UA_TYPES[UA_TYPES_INT32]);  // set the value
     }
     return true;
 }
@@ -51,7 +54,11 @@ bool SimulatorNodeContext::readData(Open62541::Server &/*server*/,  Open62541::N
     \param value
     \return
 */
-bool SimulatorNodeContext::writeData(Open62541::Server &/*server*/,  Open62541::NodeId &node, const UA_NumericRange * /*range*/, const UA_DataValue &value) {
+bool SimulatorNodeContext::writeData(Open62541::Server& /*server*/,
+                                     Open62541::NodeId& node,
+                                     const UA_NumericRange* /*range*/,
+                                     const UA_DataValue& value)
+{
     // get the value to update
     TRC(" Node Id " << Open62541::toString(node));
     if (node.identifierType() == UA_NODEIDTYPE_NUMERIC) {
@@ -60,8 +67,8 @@ bool SimulatorNodeContext::writeData(Open62541::Server &/*server*/,  Open62541::
                 MRL::PropertyPath path;
                 path.push_back(STOCKDEFS::ConfigureSection);
                 //
-                UA_Int32 *p = (UA_Int32 *)(value.value.data);
-                double v = double(*p);
+                UA_Int32* p = (UA_Int32*)(value.value.data);
+                double v    = double(*p);
 
                 // find in config
                 switch (node.get().identifier.numeric) {
@@ -85,4 +92,3 @@ bool SimulatorNodeContext::writeData(Open62541::Server &/*server*/,  Open62541::
     }
     return true;
 }
-

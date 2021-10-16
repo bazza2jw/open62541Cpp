@@ -2,14 +2,14 @@
 #include <open62541cpp/open62541client.h>
 using namespace std;
 
-
-int main(int /*argc*/, char **/*argv*/) {
+int main(int /*argc*/, char** /*argv*/)
+{
     cout << "Test Client - User/Password access test" << endl;
     //
     // Construct client
     Open62541::Client client;
     // Connect with correct username password
-    if (client.connectUsername("opc.tcp://localhost:4840","admin","password")) {
+    if (client.connectUsername("opc.tcp://localhost:4840", "admin", "password")) {
         cout << "PASS Connected" << endl;
     }
     else {
@@ -17,7 +17,7 @@ int main(int /*argc*/, char **/*argv*/) {
     }
     client.disconnect();
 
-    if (client.connectUsername("opc.tcp://localhost:4840","Admin","password")) {
+    if (client.connectUsername("opc.tcp://localhost:4840", "Admin", "password")) {
         cout << "ERROR Connected - Invalid Username" << endl;
     }
     else {
@@ -26,7 +26,7 @@ int main(int /*argc*/, char **/*argv*/) {
 
     client.disconnect();
 
-    if (client.connectUsername("opc.tcp://localhost:4840","admin","Password")) {
+    if (client.connectUsername("opc.tcp://localhost:4840", "admin", "Password")) {
         cout << "ERROR Connected - Invalid Password" << endl;
     }
     else {
@@ -34,7 +34,6 @@ int main(int /*argc*/, char **/*argv*/) {
     }
 
     client.disconnect();
-
 
     return 0;
 }

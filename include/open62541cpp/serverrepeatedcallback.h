@@ -15,103 +15,95 @@
 namespace Open62541 {
 
 class ServerRepeatedCallback;
-typedef std::function<void (ServerRepeatedCallback &)> ServerRepeatedCallbackFunc;
+typedef std::function<void(ServerRepeatedCallback&)> ServerRepeatedCallbackFunc;
+
+/*!
+    \brief The ServerRepeatedCallback class
+*/
+class UA_EXPORT ServerRepeatedCallback
+{
+    Server& _server;  // parent server
+    UA_UInt32 _interval = 1000;
+    UA_UInt64 _id       = 0;
+
+    ServerRepeatedCallbackFunc _func;  // functior to handle event
+
+protected:
+    UA_StatusCode _lastError = 0;
+
+public:
+    /*!
+        \brief callbackFunction
+        \param server
+        \param data
+    */
+    static void callbackFunction(UA_Server* server, void* data);
+    /*!
+        \brief ServerRepeatedCallback
+        \param s
+        \param interval
+    */
+    ServerRepeatedCallback(Server& s, UA_UInt32 interval);
+    ServerRepeatedCallback(Server& s, UA_UInt32 interval, ServerRepeatedCallbackFunc func);
+    //
+    //
+    /*!
+        \brief ~ServerRepeatedCallback
+    */
+    virtual ~ServerRepeatedCallback();
 
     /*!
-        \brief The ServerRepeatedCallback class
+        \brief start
+        \return
     */
-    class  UA_EXPORT  ServerRepeatedCallback {
-            Server &_server; // parent server
-            UA_UInt32 _interval = 1000;
-            UA_UInt64 _id = 0;
+    bool start();
 
-
-
-            ServerRepeatedCallbackFunc _func; // functior to handle event
-
-        protected:
-            UA_StatusCode _lastError = 0;
-        public:
-            /*!
-                \brief callbackFunction
-                \param server
-                \param data
-            */
-            static void callbackFunction(UA_Server *server, void *data);
-            /*!
-                \brief ServerRepeatedCallback
-                \param s
-                \param interval
-            */
-            ServerRepeatedCallback(Server &s, UA_UInt32 interval);
-            ServerRepeatedCallback(Server &s, UA_UInt32 interval, ServerRepeatedCallbackFunc func);
-            //
-            //
-            /*!
-                \brief ~ServerRepeatedCallback
-            */
-            virtual ~ServerRepeatedCallback();
-
-            /*!
-                \brief start
-                \return
-            */
-            bool start();
-
-
-            /*!
-                \brief changeInterval
-                \param i
-                \return
-            */
-            bool changeInterval(unsigned i);
-            /*!
-                \brief stop
-                \return
-            */
-            bool stop();
-
-            /*!
-                \brief lastError
-                \return
-            */
-            UA_StatusCode lastError() const {
-                return _lastError;
-            }
-            /*!
-                \brief server
-                \return
-            */
-            Server &server() {
-                return _server;
-            }
-            /*!
-                \brief id
-                \return
-            */
-            UA_UInt64 id() const {
-                return _id;
-            }
-            /*!
-                \brief callback
-            */
-            virtual void callback() {
-                // if the functor is valid call it - no need to derive a handler class, unless you want to
-                if (_func) _func(*this);
-            } // The callback
-            /*!
-                \brief lastOK
-                \return
-            */
-            bool lastOK() const {
-                return _lastError == UA_STATUSCODE_GOOD;
-            }
-    };
     /*!
-        \brief ServerRepeatedCallbackRef
+        \brief changeInterval
+        \param i
+        \return
     */
-    typedef std::shared_ptr<ServerRepeatedCallback> ServerRepeatedCallbackRef;
-}
+    bool changeInterval(unsigned i);
+    /*!
+        \brief stop
+        \return
+    */
+    bool stop();
 
+    /*!
+        \brief lastError
+        \return
+    */
+    UA_StatusCode lastError() const { return _lastError; }
+    /*!
+        \brief server
+        \return
+    */
+    Server& server() { return _server; }
+    /*!
+        \brief id
+        \return
+    */
+    UA_UInt64 id() const { return _id; }
+    /*!
+        \brief callback
+    */
+    virtual void callback()
+    {
+        // if the functor is valid call it - no need to derive a handler class, unless you want to
+        if (_func)
+            _func(*this);
+    }  // The callback
+    /*!
+        \brief lastOK
+        \return
+    */
+    bool lastOK() const { return _lastError == UA_STATUSCODE_GOOD; }
+};
+/*!
+    \brief ServerRepeatedCallbackRef
+*/
+typedef std::shared_ptr<ServerRepeatedCallback> ServerRepeatedCallbackRef;
+}  // namespace Open62541
 
-#endif // SERVERREPEATEDCALLBACK_H
+#endif  // SERVERREPEATEDCALLBACK_H

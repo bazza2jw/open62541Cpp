@@ -6,16 +6,17 @@
     \brief SimulateProcess
     \param s
 */
-SimulateProcess::SimulateProcess(Open62541::Server &s, int ns)
-    : Open62541::SeverRepeatedCallback(s, 1000),
-      _idx(ns),
-      _startMethod(*this),
-      _stopMethod(*this),
-      Value(ns, ValueId),
-      Status(ns, StatusId),
-      Range(ns, RangeId),
-      Type(ns, TypeId),
-      Interval(ns, IntervalId) {
+SimulateProcess::SimulateProcess(Open62541::Server& s, int ns)
+    : Open62541::SeverRepeatedCallback(s, 1000)
+    , _idx(ns)
+    , _startMethod(*this)
+    , _stopMethod(*this)
+    , Value(ns, ValueId)
+    , Status(ns, StatusId)
+    , Range(ns, RangeId)
+    , Type(ns, TypeId)
+    , Interval(ns, IntervalId)
+{
     Open62541::NodeId folder(_idx, "Simulator");
     Open62541::Variant numberValue(0);
     Open62541::Variant statusValue("Ok");
@@ -26,9 +27,9 @@ SimulateProcess::SimulateProcess(Open62541::Server &s, int ns)
     s.addVariable(folder, "Type", numberValue, Type, Open62541::NodeId::Null, &_context);
     s.addVariable(folder, "Interval", numberValue, Interval, Open62541::NodeId::Null, &_context);
     //
-    _context.setAsDataSource(s, Range); // install read/write value handler
-    _context.setAsDataSource(s, Type); // install read/write value handler
-    _context.setAsDataSource(s, Interval); // install read/write value handler
+    _context.setAsDataSource(s, Range);     // install read/write value handler
+    _context.setAsDataSource(s, Type);      // install read/write value handler
+    _context.setAsDataSource(s, Interval);  // install read/write value handler
     //
     Open62541::NodeId startMethodId(_idx, "Start");
     Open62541::NodeId stopMethodId(_idx, "Stop");
@@ -40,7 +41,8 @@ SimulateProcess::SimulateProcess(Open62541::Server &s, int ns)
 /*!
     \brief callback
 */
-void SimulateProcess::callback() {
+void SimulateProcess::callback()
+{
     // get the current parameters
     _ticks++;
     MRL::PropertyPath cfg;
@@ -49,7 +51,8 @@ void SimulateProcess::callback() {
     if (i && !(_ticks % i)) {
         int r = int(MRL::OpcServiceCommon::data().getValue<double>(cfg, "Range"));
         int t = int(MRL::OpcServiceCommon::data().getValue<double>(cfg, "Type"));
-        if (r < 2) r = 10;
+        if (r < 2)
+            r = 10;
         if (t == RandomType) {
             _lastValue = std::rand() % r;
         }
@@ -68,7 +71,7 @@ void SimulateProcess::callback() {
                     _lastValue--;
                 }
                 else {
-                    _dirUp = true;
+                    _dirUp     = true;
                     _lastValue = 1;
                 }
             }

@@ -7,259 +7,246 @@
 class Simulator : public DesignWt
 {
 public:
-  class NodePointers
-  {
-public:
-      DSNode *top_pNode;
-      DSNode *WLabel1_pNode;
-      DSNode *SettingsButton_pNode;
-      DSNode *StartButton_pNode;
-      DSNode *StopButton_pNode;
-      DSNode *WLabel2_pNode;
-      DSNode *CurrentValue_pNode;
-      DSNode *popuptop_pNode;
-  };
-
-  Simulator(Wt::WContainerWidget *parent=0, std::string newbaseinternalpath="") : DesignWt()
-  {
-    AllNodes = new Simulator::NodePointers;
-    WDEditLine eline;
-
-    AllNodes->top_pNode = new DSNode(0,"top","WDContainerWidget");
-    AllNodes->top_pNode->attribs.set("backcol","#ffffffff");
-    AllNodes->top_pNode->attribs.set("forecol","#080808ff");
-
-    AllNodes->WLabel1_pNode = new DSNode(AllNodes->top_pNode,"WLabel1","WLabel");
-    AllNodes->WLabel1_pNode->attribs.set("wordwrap","1");
-    AllNodes->WLabel1_pNode->attribs.set("minfontsize","32");
-    AllNodes->WLabel1_pNode->attribs.set("fontscale","scaled:16/368");
-    AllNodes->WLabel1_pNode->attribs.set("xoff","1.2177%");
-    AllNodes->WLabel1_pNode->attribs.set("yoff","2.0356%");
-    AllNodes->WLabel1_pNode->attribs.set("wide","28.006%");
-    AllNodes->WLabel1_pNode->attribs.set("high","8.1425%");
-    AllNodes->WLabel1_pNode->attribs.set("text","Simulator");
-
-    AllNodes->SettingsButton_pNode = new DSNode(AllNodes->top_pNode,"SettingsButton","WPushButton");
-    AllNodes->SettingsButton_pNode->attribs.set("xoff","1.2177%");
-    AllNodes->SettingsButton_pNode->attribs.set("yoff","22.392%");
-    AllNodes->SettingsButton_pNode->attribs.set("wide","8.3714%");
-    AllNodes->SettingsButton_pNode->attribs.set("high","3.8168%");
-    AllNodes->SettingsButton_pNode->attribs.set("text","Settings");
-
-    AllNodes->StartButton_pNode = new DSNode(AllNodes->top_pNode,"StartButton","WPushButton");
-    AllNodes->StartButton_pNode->attribs.set("xoff","12.177%");
-    AllNodes->StartButton_pNode->attribs.set("yoff","22.392%");
-    AllNodes->StartButton_pNode->attribs.set("wide","8.3714%");
-    AllNodes->StartButton_pNode->attribs.set("high","3.8168%");
-    AllNodes->StartButton_pNode->attribs.set("text","Start");
-
-    AllNodes->StopButton_pNode = new DSNode(AllNodes->top_pNode,"StopButton","WPushButton");
-    AllNodes->StopButton_pNode->attribs.set("xoff","23.135%");
-    AllNodes->StopButton_pNode->attribs.set("yoff","22.392%");
-    AllNodes->StopButton_pNode->attribs.set("wide","8.3714%");
-    AllNodes->StopButton_pNode->attribs.set("high","3.8168%");
-    AllNodes->StopButton_pNode->attribs.set("text","Stop");
-
-    AllNodes->WLabel2_pNode = new DSNode(AllNodes->top_pNode,"WLabel2","WLabel");
-    AllNodes->WLabel2_pNode->attribs.set("wordwrap","1");
-    AllNodes->WLabel2_pNode->attribs.set("minfontsize","32");
-    AllNodes->WLabel2_pNode->attribs.set("xoff","1.2177%");
-    AllNodes->WLabel2_pNode->attribs.set("yoff","12.214%");
-    AllNodes->WLabel2_pNode->attribs.set("wide","8.3714%");
-    AllNodes->WLabel2_pNode->attribs.set("high","6.1069%");
-    AllNodes->WLabel2_pNode->attribs.set("text","Value");
-
-    AllNodes->CurrentValue_pNode = new DSNode(AllNodes->top_pNode,"CurrentValue","WLabel");
-    AllNodes->CurrentValue_pNode->attribs.set("wordwrap","1");
-    AllNodes->CurrentValue_pNode->attribs.set("minfontsize","32");
-    AllNodes->CurrentValue_pNode->attribs.set("xoff","14.612%");
-    AllNodes->CurrentValue_pNode->attribs.set("yoff","12.214%");
-    AllNodes->CurrentValue_pNode->attribs.set("wide","12.177%");
-    AllNodes->CurrentValue_pNode->attribs.set("high","6.1069%");
-    AllNodes->CurrentValue_pNode->attribs.set("text","0.0");
-
-    classname = "Simulator";
-    if (newbaseinternalpath == "")
-      baseinternalpath = "/Simulator";
-    else
-      baseinternalpath = newbaseinternalpath;
-
-
-    AllNodes->popuptop_pNode = new DSNode(0,"popuptop","WPopupMenu");
-    AllNodes->popuptop_pNode->attribs.set("keeptoheight","0");
-
-
-    pDSPopupRoot = AllNodes->popuptop_pNode;
-
-
-    setDataConnections();
-
-    preferences.initialwidget = "";
-    preferences.setinitialinternalpath = false;
-    preferences.setfocusoninternalpath= true;
-
-    project = "./projects";
-    projectpath = "./projects/./projects/";
-    resourcepath = "./projects/./projects/dwresources/";
-    pDSRoot = AllNodes->top_pNode;
-    pDSDispRoot = pDSRoot;
-
-    dodelayedloadactions = true;
-    addWidgetTree(parent);
-
-    top = (WDContainerWidget *)(AllNodes->top_pNode->pWidget);
-    WLabel1 = (Wt::WLabel *)(AllNodes->WLabel1_pNode->pWidget);
-    SettingsButton = (Wt::WPushButton *)(AllNodes->SettingsButton_pNode->pWidget);
-    StartButton = (Wt::WPushButton *)(AllNodes->StartButton_pNode->pWidget);
-    StopButton = (Wt::WPushButton *)(AllNodes->StopButton_pNode->pWidget);
-    WLabel2 = (Wt::WLabel *)(AllNodes->WLabel2_pNode->pWidget);
-    CurrentValue = (Wt::WLabel *)(AllNodes->CurrentValue_pNode->pWidget);
-
-    popuptop = (Wt::WPopupMenu *)(AllNodes->popuptop_pNode->pWidget);
-
-  }
-
-  ~Simulator()
+    class NodePointers
     {
-        delete AllNodes;
+    public:
+        DSNode* top_pNode;
+        DSNode* WLabel1_pNode;
+        DSNode* SettingsButton_pNode;
+        DSNode* StartButton_pNode;
+        DSNode* StopButton_pNode;
+        DSNode* WLabel2_pNode;
+        DSNode* CurrentValue_pNode;
+        DSNode* popuptop_pNode;
+    };
+
+    Simulator(Wt::WContainerWidget* parent = 0, std::string newbaseinternalpath = "")
+        : DesignWt()
+    {
+        AllNodes = new Simulator::NodePointers;
+        WDEditLine eline;
+
+        AllNodes->top_pNode = new DSNode(0, "top", "WDContainerWidget");
+        AllNodes->top_pNode->attribs.set("backcol", "#ffffffff");
+        AllNodes->top_pNode->attribs.set("forecol", "#080808ff");
+
+        AllNodes->WLabel1_pNode = new DSNode(AllNodes->top_pNode, "WLabel1", "WLabel");
+        AllNodes->WLabel1_pNode->attribs.set("wordwrap", "1");
+        AllNodes->WLabel1_pNode->attribs.set("minfontsize", "32");
+        AllNodes->WLabel1_pNode->attribs.set("fontscale", "scaled:16/368");
+        AllNodes->WLabel1_pNode->attribs.set("xoff", "1.2177%");
+        AllNodes->WLabel1_pNode->attribs.set("yoff", "2.0356%");
+        AllNodes->WLabel1_pNode->attribs.set("wide", "28.006%");
+        AllNodes->WLabel1_pNode->attribs.set("high", "8.1425%");
+        AllNodes->WLabel1_pNode->attribs.set("text", "Simulator");
+
+        AllNodes->SettingsButton_pNode = new DSNode(AllNodes->top_pNode, "SettingsButton", "WPushButton");
+        AllNodes->SettingsButton_pNode->attribs.set("xoff", "1.2177%");
+        AllNodes->SettingsButton_pNode->attribs.set("yoff", "22.392%");
+        AllNodes->SettingsButton_pNode->attribs.set("wide", "8.3714%");
+        AllNodes->SettingsButton_pNode->attribs.set("high", "3.8168%");
+        AllNodes->SettingsButton_pNode->attribs.set("text", "Settings");
+
+        AllNodes->StartButton_pNode = new DSNode(AllNodes->top_pNode, "StartButton", "WPushButton");
+        AllNodes->StartButton_pNode->attribs.set("xoff", "12.177%");
+        AllNodes->StartButton_pNode->attribs.set("yoff", "22.392%");
+        AllNodes->StartButton_pNode->attribs.set("wide", "8.3714%");
+        AllNodes->StartButton_pNode->attribs.set("high", "3.8168%");
+        AllNodes->StartButton_pNode->attribs.set("text", "Start");
+
+        AllNodes->StopButton_pNode = new DSNode(AllNodes->top_pNode, "StopButton", "WPushButton");
+        AllNodes->StopButton_pNode->attribs.set("xoff", "23.135%");
+        AllNodes->StopButton_pNode->attribs.set("yoff", "22.392%");
+        AllNodes->StopButton_pNode->attribs.set("wide", "8.3714%");
+        AllNodes->StopButton_pNode->attribs.set("high", "3.8168%");
+        AllNodes->StopButton_pNode->attribs.set("text", "Stop");
+
+        AllNodes->WLabel2_pNode = new DSNode(AllNodes->top_pNode, "WLabel2", "WLabel");
+        AllNodes->WLabel2_pNode->attribs.set("wordwrap", "1");
+        AllNodes->WLabel2_pNode->attribs.set("minfontsize", "32");
+        AllNodes->WLabel2_pNode->attribs.set("xoff", "1.2177%");
+        AllNodes->WLabel2_pNode->attribs.set("yoff", "12.214%");
+        AllNodes->WLabel2_pNode->attribs.set("wide", "8.3714%");
+        AllNodes->WLabel2_pNode->attribs.set("high", "6.1069%");
+        AllNodes->WLabel2_pNode->attribs.set("text", "Value");
+
+        AllNodes->CurrentValue_pNode = new DSNode(AllNodes->top_pNode, "CurrentValue", "WLabel");
+        AllNodes->CurrentValue_pNode->attribs.set("wordwrap", "1");
+        AllNodes->CurrentValue_pNode->attribs.set("minfontsize", "32");
+        AllNodes->CurrentValue_pNode->attribs.set("xoff", "14.612%");
+        AllNodes->CurrentValue_pNode->attribs.set("yoff", "12.214%");
+        AllNodes->CurrentValue_pNode->attribs.set("wide", "12.177%");
+        AllNodes->CurrentValue_pNode->attribs.set("high", "6.1069%");
+        AllNodes->CurrentValue_pNode->attribs.set("text", "0.0");
+
+        classname = "Simulator";
+        if (newbaseinternalpath == "")
+            baseinternalpath = "/Simulator";
+        else
+            baseinternalpath = newbaseinternalpath;
+
+        AllNodes->popuptop_pNode = new DSNode(0, "popuptop", "WPopupMenu");
+        AllNodes->popuptop_pNode->attribs.set("keeptoheight", "0");
+
+        pDSPopupRoot = AllNodes->popuptop_pNode;
+
+        setDataConnections();
+
+        preferences.initialwidget          = "";
+        preferences.setinitialinternalpath = false;
+        preferences.setfocusoninternalpath = true;
+
+        project      = "./projects";
+        projectpath  = "./projects/./projects/";
+        resourcepath = "./projects/./projects/dwresources/";
+        pDSRoot      = AllNodes->top_pNode;
+        pDSDispRoot  = pDSRoot;
+
+        dodelayedloadactions = true;
+        addWidgetTree(parent);
+
+        top            = (WDContainerWidget*)(AllNodes->top_pNode->pWidget);
+        WLabel1        = (Wt::WLabel*)(AllNodes->WLabel1_pNode->pWidget);
+        SettingsButton = (Wt::WPushButton*)(AllNodes->SettingsButton_pNode->pWidget);
+        StartButton    = (Wt::WPushButton*)(AllNodes->StartButton_pNode->pWidget);
+        StopButton     = (Wt::WPushButton*)(AllNodes->StopButton_pNode->pWidget);
+        WLabel2        = (Wt::WLabel*)(AllNodes->WLabel2_pNode->pWidget);
+        CurrentValue   = (Wt::WLabel*)(AllNodes->CurrentValue_pNode->pWidget);
+
+        popuptop = (Wt::WPopupMenu*)(AllNodes->popuptop_pNode->pWidget);
     }
 
-    WDContainerWidget *top;
-    Wt::WLabel *WLabel1;
-    Wt::WPushButton *SettingsButton;
-    Wt::WPushButton *StartButton;
-    Wt::WPushButton *StopButton;
-    Wt::WLabel *WLabel2;
-    Wt::WLabel *CurrentValue;
-    Simulator::NodePointers *AllNodes;
+    ~Simulator() { delete AllNodes; }
 
-    Wt::WPopupMenu *popuptop;
+    WDContainerWidget* top;
+    Wt::WLabel* WLabel1;
+    Wt::WPushButton* SettingsButton;
+    Wt::WPushButton* StartButton;
+    Wt::WPushButton* StopButton;
+    Wt::WLabel* WLabel2;
+    Wt::WLabel* CurrentValue;
+    Simulator::NodePointers* AllNodes;
 
+    Wt::WPopupMenu* popuptop;
 
     class Dialog_SettingsDialog : public Wt::WDialog
     {
     public:
-    class NodePointers
-    {
-    public:
-      DSNode *SettingsDialog_pNode;
-      DSNode *WLabel3_pNode;
-      DSNode *Type_pNode;
-      DSNode *WLabel4_pNode;
-      DSNode *Range_pNode;
-      DSNode *WLabel5_pNode;
-      DSNode *Interval_pNode;
+        class NodePointers
+        {
+        public:
+            DSNode* SettingsDialog_pNode;
+            DSNode* WLabel3_pNode;
+            DSNode* Type_pNode;
+            DSNode* WLabel4_pNode;
+            DSNode* Range_pNode;
+            DSNode* WLabel5_pNode;
+            DSNode* Interval_pNode;
+        };
+
+        Dialog_SettingsDialog(DesignWt* parentdesign, std::string title = "")
+            : Wt::WDialog()
+        {
+
+            AllNodes   = new Dialog_SettingsDialog::NodePointers;
+            _top_pNode = new DSNode(0, "_top", "WDContainerWidget");
+
+            AllNodes->SettingsDialog_pNode = new DSNode(_top_pNode, "SettingsDialog", "WDialog");
+            AllNodes->SettingsDialog_pNode->attribs.set("titleenabled", "1");
+            AllNodes->SettingsDialog_pNode->attribs.set("footerenabled", "1");
+            AllNodes->SettingsDialog_pNode->attribs.set("iscancel", "1");
+            AllNodes->SettingsDialog_pNode->attribs.set("isok", "1");
+            AllNodes->SettingsDialog_pNode->attribs.set("ismodal", "1");
+            AllNodes->SettingsDialog_pNode->attribs.set("isEscCancel", "1");
+            AllNodes->SettingsDialog_pNode->attribs.set("isEnterOk", "1");
+            AllNodes->SettingsDialog_pNode->attribs.set("dlgtitlealign", "1");
+            AllNodes->SettingsDialog_pNode->attribs.set("titlehigh", "25");
+            AllNodes->SettingsDialog_pNode->attribs.set("footerhigh", "25");
+            AllNodes->SettingsDialog_pNode->attribs.set("titlebackcol", "#808080ff");
+            AllNodes->SettingsDialog_pNode->attribs.set("titletextcol", "#ffffffff");
+            AllNodes->SettingsDialog_pNode->attribs.set("footerbackcol", "#808080ff");
+            AllNodes->SettingsDialog_pNode->attribs.set("text", "Simulator Settings");
+            AllNodes->SettingsDialog_pNode->attribs.set("backcol", "#bcbcbcff");
+            AllNodes->SettingsDialog_pNode->attribs.set("forecol", "#080808ff");
+            AllNodes->SettingsDialog_pNode->attribs.set("xoff", "30%");
+            AllNodes->SettingsDialog_pNode->attribs.set("yoff", "30%");
+            AllNodes->SettingsDialog_pNode->attribs.set("wide", "40%");
+            AllNodes->SettingsDialog_pNode->attribs.set("high", "40%");
+
+            AllNodes->WLabel3_pNode = new DSNode(AllNodes->SettingsDialog_pNode, "WLabel3", "WLabel");
+            AllNodes->WLabel3_pNode->attribs.set("wordwrap", "1");
+            AllNodes->WLabel3_pNode->attribs.set("xoff", "1.5217%");
+            AllNodes->WLabel3_pNode->attribs.set("yoff", "8.3333%");
+            AllNodes->WLabel3_pNode->attribs.set("wide", "23.913%");
+            AllNodes->WLabel3_pNode->attribs.set("high", "11.905%");
+            AllNodes->WLabel3_pNode->attribs.set("text", "Type");
+
+            AllNodes->Type_pNode = new DSNode(AllNodes->SettingsDialog_pNode, "Type", "WComboBox");
+            AllNodes->Type_pNode->attribs.set("noselect", "0");
+            AllNodes->Type_pNode->attribs.set("xoff", "32.826%");
+            AllNodes->Type_pNode->attribs.set("yoff", "8.3333%");
+            AllNodes->Type_pNode->attribs.set("wide", "45.217%");
+            AllNodes->Type_pNode->attribs.set("high", "11.905%");
+            AllNodes->Type_pNode->items.push_back("Random");
+            AllNodes->Type_pNode->items.push_back("Ramp");
+
+            AllNodes->WLabel4_pNode = new DSNode(AllNodes->SettingsDialog_pNode, "WLabel4", "WLabel");
+            AllNodes->WLabel4_pNode->attribs.set("wordwrap", "1");
+            AllNodes->WLabel4_pNode->attribs.set("xoff", "1.5217%");
+            AllNodes->WLabel4_pNode->attribs.set("yoff", "33.73%");
+            AllNodes->WLabel4_pNode->attribs.set("wide", "23.913%");
+            AllNodes->WLabel4_pNode->attribs.set("high", "11.905%");
+            AllNodes->WLabel4_pNode->attribs.set("text", "Range");
+
+            AllNodes->Range_pNode = new DSNode(AllNodes->SettingsDialog_pNode, "Range", "WSpinBox");
+            AllNodes->Range_pNode->attribs.set("xoff", "32.826%");
+            AllNodes->Range_pNode->attribs.set("yoff", "33.73%");
+            AllNodes->Range_pNode->attribs.set("wide", "23.913%");
+            AllNodes->Range_pNode->attribs.set("high", "11.905%");
+
+            AllNodes->WLabel5_pNode = new DSNode(AllNodes->SettingsDialog_pNode, "WLabel5", "WLabel");
+            AllNodes->WLabel5_pNode->attribs.set("wordwrap", "1");
+            AllNodes->WLabel5_pNode->attribs.set("xoff", "1.5217%");
+            AllNodes->WLabel5_pNode->attribs.set("yoff", "59.127%");
+            AllNodes->WLabel5_pNode->attribs.set("wide", "23.913%");
+            AllNodes->WLabel5_pNode->attribs.set("high", "11.905%");
+            AllNodes->WLabel5_pNode->attribs.set("text", "Interval (s)");
+
+            AllNodes->Interval_pNode = new DSNode(AllNodes->SettingsDialog_pNode, "Interval", "WSpinBox");
+            AllNodes->Interval_pNode->attribs.set("xoff", "32.826%");
+            AllNodes->Interval_pNode->attribs.set("yoff", "59.127%");
+            AllNodes->Interval_pNode->attribs.set("wide", "23.913%");
+            AllNodes->Interval_pNode->attribs.set("high", "11.905%");
+
+            AllNodes->SettingsDialog_pNode->prepareDialogNodes(parentdesign, this, title);
+
+            SettingsDialog = (Wt::WDialog*)(AllNodes->SettingsDialog_pNode->pWidget);
+            WLabel3        = (Wt::WLabel*)(AllNodes->WLabel3_pNode->pWidget);
+            Type           = (Wt::WComboBox*)(AllNodes->Type_pNode->pWidget);
+            WLabel4        = (Wt::WLabel*)(AllNodes->WLabel4_pNode->pWidget);
+            Range          = (Wt::WSpinBox*)(AllNodes->Range_pNode->pWidget);
+            WLabel5        = (Wt::WLabel*)(AllNodes->WLabel5_pNode->pWidget);
+            Interval       = (Wt::WSpinBox*)(AllNodes->Interval_pNode->pWidget);
+        }
+
+        ~Dialog_SettingsDialog()
+        {
+            delete AllNodes;
+            delete _top_pNode;
+        }
+
+        DSNode* _top_pNode;
+        Wt::WDialog* SettingsDialog;
+        Wt::WLabel* WLabel3;
+        Wt::WComboBox* Type;
+        Wt::WLabel* WLabel4;
+        Wt::WSpinBox* Range;
+        Wt::WLabel* WLabel5;
+        Wt::WSpinBox* Interval;
+        Dialog_SettingsDialog::NodePointers* AllNodes;
     };
 
-    Dialog_SettingsDialog(DesignWt *parentdesign,std::string title="") : Wt::WDialog()
-    {
-    
-    AllNodes = new Dialog_SettingsDialog::NodePointers;
-    _top_pNode = new DSNode(0,"_top","WDContainerWidget");
-    
-    AllNodes->SettingsDialog_pNode = new DSNode(_top_pNode,"SettingsDialog","WDialog");
-    AllNodes->SettingsDialog_pNode->attribs.set("titleenabled","1");
-    AllNodes->SettingsDialog_pNode->attribs.set("footerenabled","1");
-    AllNodes->SettingsDialog_pNode->attribs.set("iscancel","1");
-    AllNodes->SettingsDialog_pNode->attribs.set("isok","1");
-    AllNodes->SettingsDialog_pNode->attribs.set("ismodal","1");
-    AllNodes->SettingsDialog_pNode->attribs.set("isEscCancel","1");
-    AllNodes->SettingsDialog_pNode->attribs.set("isEnterOk","1");
-    AllNodes->SettingsDialog_pNode->attribs.set("dlgtitlealign","1");
-    AllNodes->SettingsDialog_pNode->attribs.set("titlehigh","25");
-    AllNodes->SettingsDialog_pNode->attribs.set("footerhigh","25");
-    AllNodes->SettingsDialog_pNode->attribs.set("titlebackcol","#808080ff");
-    AllNodes->SettingsDialog_pNode->attribs.set("titletextcol","#ffffffff");
-    AllNodes->SettingsDialog_pNode->attribs.set("footerbackcol","#808080ff");
-    AllNodes->SettingsDialog_pNode->attribs.set("text","Simulator Settings");
-    AllNodes->SettingsDialog_pNode->attribs.set("backcol","#bcbcbcff");
-    AllNodes->SettingsDialog_pNode->attribs.set("forecol","#080808ff");
-    AllNodes->SettingsDialog_pNode->attribs.set("xoff","30%");
-    AllNodes->SettingsDialog_pNode->attribs.set("yoff","30%");
-    AllNodes->SettingsDialog_pNode->attribs.set("wide","40%");
-    AllNodes->SettingsDialog_pNode->attribs.set("high","40%");
-
-    AllNodes->WLabel3_pNode = new DSNode(AllNodes->SettingsDialog_pNode,"WLabel3","WLabel");
-    AllNodes->WLabel3_pNode->attribs.set("wordwrap","1");
-    AllNodes->WLabel3_pNode->attribs.set("xoff","1.5217%");
-    AllNodes->WLabel3_pNode->attribs.set("yoff","8.3333%");
-    AllNodes->WLabel3_pNode->attribs.set("wide","23.913%");
-    AllNodes->WLabel3_pNode->attribs.set("high","11.905%");
-    AllNodes->WLabel3_pNode->attribs.set("text","Type");
-
-    AllNodes->Type_pNode = new DSNode(AllNodes->SettingsDialog_pNode,"Type","WComboBox");
-    AllNodes->Type_pNode->attribs.set("noselect","0");
-    AllNodes->Type_pNode->attribs.set("xoff","32.826%");
-    AllNodes->Type_pNode->attribs.set("yoff","8.3333%");
-    AllNodes->Type_pNode->attribs.set("wide","45.217%");
-    AllNodes->Type_pNode->attribs.set("high","11.905%");
-    AllNodes->Type_pNode->items.push_back("Random");
-    AllNodes->Type_pNode->items.push_back("Ramp");
-
-    AllNodes->WLabel4_pNode = new DSNode(AllNodes->SettingsDialog_pNode,"WLabel4","WLabel");
-    AllNodes->WLabel4_pNode->attribs.set("wordwrap","1");
-    AllNodes->WLabel4_pNode->attribs.set("xoff","1.5217%");
-    AllNodes->WLabel4_pNode->attribs.set("yoff","33.73%");
-    AllNodes->WLabel4_pNode->attribs.set("wide","23.913%");
-    AllNodes->WLabel4_pNode->attribs.set("high","11.905%");
-    AllNodes->WLabel4_pNode->attribs.set("text","Range");
-
-    AllNodes->Range_pNode = new DSNode(AllNodes->SettingsDialog_pNode,"Range","WSpinBox");
-    AllNodes->Range_pNode->attribs.set("xoff","32.826%");
-    AllNodes->Range_pNode->attribs.set("yoff","33.73%");
-    AllNodes->Range_pNode->attribs.set("wide","23.913%");
-    AllNodes->Range_pNode->attribs.set("high","11.905%");
-
-    AllNodes->WLabel5_pNode = new DSNode(AllNodes->SettingsDialog_pNode,"WLabel5","WLabel");
-    AllNodes->WLabel5_pNode->attribs.set("wordwrap","1");
-    AllNodes->WLabel5_pNode->attribs.set("xoff","1.5217%");
-    AllNodes->WLabel5_pNode->attribs.set("yoff","59.127%");
-    AllNodes->WLabel5_pNode->attribs.set("wide","23.913%");
-    AllNodes->WLabel5_pNode->attribs.set("high","11.905%");
-    AllNodes->WLabel5_pNode->attribs.set("text","Interval (s)");
-
-    AllNodes->Interval_pNode = new DSNode(AllNodes->SettingsDialog_pNode,"Interval","WSpinBox");
-    AllNodes->Interval_pNode->attribs.set("xoff","32.826%");
-    AllNodes->Interval_pNode->attribs.set("yoff","59.127%");
-    AllNodes->Interval_pNode->attribs.set("wide","23.913%");
-    AllNodes->Interval_pNode->attribs.set("high","11.905%");
-
-    AllNodes->SettingsDialog_pNode->prepareDialogNodes(parentdesign,this,title);
-
-    SettingsDialog = (Wt::WDialog *)(AllNodes->SettingsDialog_pNode->pWidget);
-    WLabel3 = (Wt::WLabel *)(AllNodes->WLabel3_pNode->pWidget);
-    Type = (Wt::WComboBox *)(AllNodes->Type_pNode->pWidget);
-    WLabel4 = (Wt::WLabel *)(AllNodes->WLabel4_pNode->pWidget);
-    Range = (Wt::WSpinBox *)(AllNodes->Range_pNode->pWidget);
-    WLabel5 = (Wt::WLabel *)(AllNodes->WLabel5_pNode->pWidget);
-    Interval = (Wt::WSpinBox *)(AllNodes->Interval_pNode->pWidget);
-
-    }
-
-    ~Dialog_SettingsDialog()
-    {
-    delete AllNodes;
-    delete _top_pNode;
-    }
-
-    DSNode *_top_pNode;
-    Wt::WDialog *SettingsDialog;
-    Wt::WLabel *WLabel3;
-    Wt::WComboBox *Type;
-    Wt::WLabel *WLabel4;
-    Wt::WSpinBox *Range;
-    Wt::WLabel *WLabel5;
-    Wt::WSpinBox *Interval;
-    Dialog_SettingsDialog::NodePointers *AllNodes;
-
-    };
-
-
-
-    void setDataConnections()
-    {
-    }
-
+    void setDataConnections() {}
 };
 
-#endif // SIMULATOR_H
+#endif  // SIMULATOR_H

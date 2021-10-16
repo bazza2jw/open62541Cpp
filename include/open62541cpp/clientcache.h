@@ -14,75 +14,81 @@
 #include <open62541cpp/open62541client.h>
 namespace Open62541 {
 
+/*!
+    \brief ClientRef
+*/
+typedef std::shared_ptr<Client> ClientRef;
+
+/*!
+    \brief The ClientCache class
+*/
+class ClientCache
+{
+    //
+    // Cache / Dictionary of Client objects
+    // these are shared pointers so can be safely copied
+    //
+    std::map<std::string, ClientRef> _cache;
+
+public:
     /*!
-        \brief ClientRef
+        \brief ClientCache
     */
-    typedef std::shared_ptr<Client> ClientRef;
-
+    ClientCache() {}
     /*!
-        \brief The ClientCache class
+        \brief ~ClientCache
     */
-    class ClientCache {
-            //
-            // Cache / Dictionary of Client objects
-            // these are shared pointers so can be safely copied
-            //
-            std::map<std::string, ClientRef> _cache;
-        public:
-            /*!
-                \brief ClientCache
-            */
-            ClientCache() {}
-            /*!
-                \brief ~ClientCache
-            */
-            virtual ~ClientCache() {}
-            /*!
-                \brief add
-                \param name
-                \return reference to  client interface
-            */
-            ClientRef &add(const std::string &endpoint) {
-                if (_cache.find(endpoint) != _cache.end()) {
-                    return _cache[endpoint];
-                }
-                else {
-                    _cache[endpoint] = ClientRef(new Client());
-                }
-            }
-            /*!
-                \brief remove
-                \param s name of client to remove
-            */
-            void remove(const std::string &s) {
-                auto a = find(s);
-                if (a) {
-                    a->disconnect();
-                }
-                _cache.erase(s);
-            }
-            /*!
-                \brief find
-                \param endpoint name of client
-                \return pointer to client object
-            */
-            Client *find(const std::string &endpoint) {
-                if (_cache.find(endpoint) != _cache.end()) {
-                    return _cache[endpoint].get();
-                }
-                return nullptr;
-            }
-            /*!
-                \brief process
-                Periodic processing interface
-            */
-            void process() {
-                for (auto i = _cache.begin(); i != _cache.end(); i++) {
-                    if((i->second)) (i->second)->process();
-                }
-            }
-    };
+    virtual ~ClientCache() {}
+    /*!
+        \brief add
+        \param name
+        \return reference to  client interface
+    */
+    ClientRef& add(const std::string& endpoint)
+    {
+        if (_cache.find(endpoint) != _cache.end()) {
+            return _cache[endpoint];
+        }
+        _cache[endpoint] = ClientRef(new Client());
+        return _cache[endpoint];
+    }
+    /*!
+        \brief remove
+        \param s name of client to remove
+    */
+    void remove(const std::string& s)
+    {
+        auto a = find(s);
+        if (a) {
+            a->disconnect();
+        }
+        _cache.erase(s);
+    }
+    /*!
+        \brief find
+        \param endpoint name of client
+        \return pointer to client object
+    */
+    Client* find(const std::string& endpoint)
+    {
+        if (_cache.find(endpoint) != _cache.end()) {
+            return _cache[endpoint].get();
+        }
+        return nullptr;
+    }
+    /*!
+        \brief process
+        Periodic processing interface
+    */
+    void process()
+    {
+        for (auto i = _cache.begin(); i != _cache.end(); i++) {
+            if ((i->second))
+                (i->second)->process();
+        }
+    }
+};
 
-}
+}  // namespace Open62541
 
-#endif // CLIENTCACHE_H
+#endif  // CLIENTCACHE_H

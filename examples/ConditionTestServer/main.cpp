@@ -7,7 +7,8 @@
 
 using namespace std;
 //
-int main() {
+int main()
+{
     ConditionServer server;
     server.start();
     return 0;
