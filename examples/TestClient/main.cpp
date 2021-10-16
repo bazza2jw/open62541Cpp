@@ -1,9 +1,12 @@
 #include <iostream>
-#include <open62541client.h>
+#include <open62541cpp/open62541client.h>
+#include <signal.h>
+#include <stdlib.h>
 using namespace std;
 #define DISCOVERY_SERVER_ENDPOINT "opc.tcp://localhost:4850"
 
-int main(int /*argc*/, char **/*argv*/) {
+int main(int /*argc*/, char** /*argv*/)
+{
     cout << "Test Client" << endl;
     //
     // Construct client
@@ -11,6 +14,7 @@ int main(int /*argc*/, char **/*argv*/) {
     // Connect
     if (client.connect("opc.tcp://localhost:4840")) {
         //
+
         int idx = client.namespaceGetIndex("urn:test:test");
         cout << "Get Endpoints" << endl;
         Open62541::EndpointDescriptionArray ea;
@@ -49,7 +53,7 @@ int main(int /*argc*/, char **/*argv*/) {
             Open62541::NodeId OwnerNode(idx, "ServerMethodItem");
             if (client.callMethod(OwnerNode, MethodId, in, out)) {
                 if (out.size() > 0) {
-                    UA_Double *r = (UA_Double *)(out.data()[0].data);
+                    UA_Double* r = (UA_Double*)(out.data()[0].data);
                     cout << "Result = " << *r << endl;
                 }
             }
@@ -64,16 +68,21 @@ int main(int /*argc*/, char **/*argv*/) {
             Open62541::StringArray localeIds;
             Open62541::ApplicationDescriptionArray registeredServers;
             Open62541::Client discoveryClient;
+            discoveryClient.initialise();
             //
             if (discoveryClient.findServers(DISCOVERY_SERVER_ENDPOINT, serverUris, localeIds, registeredServers)) {
                 cout << "Discovered Number of Servers: " << registeredServers.length() << endl;
                 for (size_t i = 0; i < registeredServers.length(); i++) {
 
-                    UA_ApplicationDescription &description = registeredServers.at(i);
-                    cout << "Server [" << i << "]: " << description.applicationUri.length  << description.applicationUri.data << endl;
-                    cout << "\n\tName [" << description.applicationName.text.length << "] : " << description.applicationName.text.data << endl;
-                    cout << "\n\tApplication URI: " << description.applicationUri.length << description.applicationUri.data << endl;
-                    cout << "\n\tProduct URI: " <<   description.productUri.length << " " <<  description.productUri.data << endl;
+                    UA_ApplicationDescription& description = registeredServers.at(i);
+                    cout << "Server [" << i << "]: " << description.applicationUri.length
+                         << description.applicationUri.data << endl;
+                    cout << "\n\tName [" << description.applicationName.text.length
+                         << "] : " << description.applicationName.text.data << endl;
+                    cout << "\n\tApplication URI: " << description.applicationUri.length
+                         << description.applicationUri.data << endl;
+                    cout << "\n\tProduct URI: " << description.productUri.length << " " << description.productUri.data
+                         << endl;
                     cout << "\n\tType: ";
                     switch (description.applicationType) {
                         case UA_APPLICATIONTYPE_SERVER:
@@ -91,19 +100,38 @@ int main(int /*argc*/, char **/*argv*/) {
                         default:
                             cout << "Unknown";
                     }
-                    cout << endl <<  "\tDiscovery URLs:";
+                    cout << endl << "\tDiscovery URLs:";
                     for (size_t j = 0; j < description.discoveryUrlsSize; j++) {
-                        cout << endl << "\t\t" << j  << " " <<  description.discoveryUrls[j].length
-                             << " " <<  description.discoveryUrls[j].data << endl;
+                        cout << endl
+                             << "\t\t" << j << " " << description.discoveryUrls[j].length << " "
+                             << description.discoveryUrls[j].data << endl;
                     }
                     cout << endl;
                 }
-
-
             }
             else {
                 cout << "Failed to find discovery server" << endl;
             }
+
+            cout << "Test Timers" << endl;
+
+            // Now run the timer tests
+            // set up timed event for 10 seconds time
+            UA_UInt64 callerId;
+            client.addTimedEvent(10000, callerId, [](Open62541::Client::Timer&) {
+                std::cerr << "Timed Event Triggered " << time(0) << std::endl;
+            });
+            std::cerr << "Added one shot timer event for 10 seconds time  Now = " << time(0) << " Id = " << callerId
+                      << endl;
+            //
+            // Add a repeated timer event - these can be thought of as event driven tasks
+            //
+            client.addRepeatedTimerEvent(2000, callerId, [](Open62541::Client::Timer&) {
+                std::cerr << "Repeated Event Triggered " << time(0) << std::endl;
+            });
+            std::cerr << "Added repeated timer event for 2 seconds  Now = " << time(0) << " Id = " << callerId << endl;
+            //
+            client.run();  // this will loop until interrupted
         }
         else {
             cout << "Failed to create folders" << endl;

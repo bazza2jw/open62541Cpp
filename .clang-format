@@ -1,0 +1,42 @@
+---
+BasedOnStyle: Chromium
+AlignConsecutiveAssignments: 'true'
+#already chromium default
+#AlignAfterOpenBracket: Align
+#AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+BraceWrapping:
+  AfterClass:      true
+  # AfterControlStatement: Multiline  ...after v10
+  AfterControlStatement: false
+  AfterEnum:       false
+  AfterFunction:   true
+  AfterNamespace:  false
+  AfterObjCDeclaration: true
+  AfterStruct:     false
+  AfterUnion:      true
+  BeforeCatch:     true
+  BeforeElse:      true
+  IndentBraces:    false
+BreakBeforeBraces: Custom
+BreakConstructorInitializers: BeforeColon
+BreakConstructorInitializersBeforeComma: true
+ConstructorInitializerAllOnOneLineOrOnePerLine: false # always one per line
+SortIncludes: false
+# Writes name of namespace as a comment behind closing namespace bracket.
+# E.g.
+# } // namespace foo
+FixNamespaceComments: true
+ColumnLimit: 120
+IndentWidth: 4
+
+# true:                                  false:
+# if (foo) {                     vs.     if (foo) {
+#                                          bar();
+#   bar();                               }
+# }
+KeepEmptyLinesAtTheStartOfBlocks: 'true'
+
+BinPackArguments: false
+AccessModifierOffset: -4
+...

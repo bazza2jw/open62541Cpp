@@ -5,28 +5,25 @@
 using namespace std;
 namespace po = boost::program_options;
 
-
-static Wt::WApplication *createApplication(const Wt::WEnvironment& env)
+static Wt::WApplication* createApplication(const Wt::WEnvironment& env)
 {
-  return new SimulatorApp(env);
+    return new SimulatorApp(env);
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // set the defaults
     int web_port = 8084;
     int opc_port = 4840;
     std::string name("Server");
-    std::unique_ptr<Wt::WServer> webThread  = std::make_unique<Wt::WServer>(argv[0]); // the web server
+    std::unique_ptr<Wt::WServer> webThread = std::make_unique<Wt::WServer>(argv[0]);  // the web server
     //
     cout << "Simulator" << endl;
     po::options_description desc("Simulator options");
-    desc.add_options()
-        ("help", "produce help message")
-        ("web", po::value<int>(), "Web server port")
-        ("opc", po::value<int>(), "OPC server port")
-        ("name", po::value<std::string>(), "Server name")
-    ;
+    desc.add_options()("help", "produce help message")("web", po::value<int>(), "Web server port")(
+        "opc",
+        po::value<int>(),
+        "OPC server port")("name", po::value<std::string>(), "Server name");
     // parse the command line
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -50,12 +47,10 @@ int main(int argc, char *argv[])
         opc_port = vm["opc"].as<int>();
     }
     // load configuration
-    MRL::OpcServiceCommon::instance()->loadSettings(); // get the site (global) settings
-    if(!MRL::OpcServiceCommon::instance()->loadConfiguration(name))
-    {
+    MRL::OpcServiceCommon::instance()->loadSettings();  // get the site (global) settings
+    if (!MRL::OpcServiceCommon::instance()->loadConfiguration(name)) {
         // set up default configuration
         TRC("Failed to load configuration")
-
     }
     TRC("Loaded Config")
     MRL::OpcServiceCommon::data().dump();
@@ -65,18 +60,18 @@ int main(int argc, char *argv[])
         TRC("Starting Web")
         // start the web interface
         // Now start the web thread
-        static  char * av[4];
+        static char* av[4];
         static char portId[32];
-        sprintf(portId,"--http-port=%d",web_port);
-        av[0] = const_cast<char *>("Simulator");
-        av[1] = const_cast<char *>("--docroot=.");
-        av[2] = const_cast<char *>("--http-address=0.0.0.0");
+        sprintf(portId, "--http-port=%d", web_port);
+        av[0] = const_cast<char*>("Simulator");
+        av[1] = const_cast<char*>("--docroot=.");
+        av[2] = const_cast<char*>("--http-address=0.0.0.0");
         av[3] = portId;
         //
-        webThread->setServerConfiguration(4,(char **)(av), WTHTTP_CONFIGURATION);
-        webThread->addEntryPoint(Wt::EntryPointType::Application,createApplication);
+        webThread->setServerConfiguration(4, (char**)(av), WTHTTP_CONFIGURATION);
+        webThread->addEntryPoint(Wt::EntryPointType::Application, createApplication);
         // initialise the model for the Wt model and link to the configuration and runtime
-        webThread->start(); // start the server thread
+        webThread->start();  // start the server thread
     }
     //
     // start the opc server

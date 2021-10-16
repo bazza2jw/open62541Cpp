@@ -1,5 +1,5 @@
-#include "historydatabase.h"
-#include "open62541server.h"
+#include <open62541cpp/historydatabase.h>
+#include <open62541cpp/open62541server.h>
 /*
     Copyright (C) 2017 -  B. J. Hill
 
@@ -17,9 +17,10 @@
  * \param s
  * \param nId
  */
-Open62541::HistoryDataGathering::Context::Context(UA_Server *s, const UA_NodeId *nId)
-    : server(*Open62541::Server::findServer(s)),  nodeId(*nId) {
-
+Open62541::HistoryDataGathering::Context::Context(UA_Server* s, const UA_NodeId* nId)
+    : server(*Open62541::Server::findServer(s))
+    , nodeId(*nId)
+{
 }
 
 /*!
@@ -30,9 +31,15 @@ Open62541::HistoryDataGathering::Context::Context(UA_Server *s, const UA_NodeId 
  * \param nId
  */
 
-Open62541::HistoryDataBackend::Context::Context(UA_Server *s, const UA_NodeId *sId,  void *sContext, const UA_NodeId *nId)
-    : server(*Open62541::Server::findServer(s)), sessionId(*sId), sessionContext(sContext), nodeId(*nId) {
-
+Open62541::HistoryDataBackend::Context::Context(UA_Server* s,
+                                                const UA_NodeId* sId,
+                                                void* sContext,
+                                                const UA_NodeId* nId)
+    : server(*Open62541::Server::findServer(s))
+    , sessionId(*sId)
+    , sessionContext(sContext)
+    , nodeId(*nId)
+{
 }
 
 /*!
@@ -42,9 +49,12 @@ Open62541::HistoryDataBackend::Context::Context(UA_Server *s, const UA_NodeId *s
  * \param sContext
  * \param nId
  */
-Open62541::HistoryDatabase::Context::Context(UA_Server *s, const UA_NodeId *sId,  void *sContext, const UA_NodeId *nId)
-    : server(*Open62541::Server::findServer(s)), sessionId(*sId), sessionContext(sContext), nodeId(*nId) {
-
+Open62541::HistoryDatabase::Context::Context(UA_Server* s, const UA_NodeId* sId, void* sContext, const UA_NodeId* nId)
+    : server(*Open62541::Server::findServer(s))
+    , sessionId(*sId)
+    , sessionContext(sContext)
+    , nodeId(*nId)
+{
 }
 
 /*!
@@ -55,15 +65,20 @@ Open62541::HistoryDatabase::Context::Context(UA_Server *s, const UA_NodeId *sId,
  * \param context
  * \return true on success
  */
-bool Open62541::Historian::setUpdateNode(NodeId &nodeId, Server &server, size_t responseSize, size_t pollInterval, void *context)
+bool Open62541::Historian::setUpdateNode(NodeId& nodeId,
+                                         Server& server,
+                                         size_t responseSize,
+                                         size_t pollInterval,
+                                         void* context)
 {
     UA_HistorizingNodeIdSettings setting;
-    setting.pollingInterval = pollInterval;
-    setting.historizingBackend= _backend; // set the memory database
+    setting.pollingInterval            = pollInterval;
+    setting.historizingBackend         = _backend;  // set the memory database
     setting.maxHistoryDataResponseSize = responseSize;
-    setting.historizingUpdateStrategy = UA_HISTORIZINGUPDATESTRATEGY_VALUESET;
-    setting.userContext = context;
-    return gathering().registerNodeId(server.server(), gathering().context, nodeId.ref(), setting) == UA_STATUSCODE_GOOD;
+    setting.historizingUpdateStrategy  = UA_HISTORIZINGUPDATESTRATEGY_VALUESET;
+    setting.userContext                = context;
+    return gathering().registerNodeId(server.server(), gathering().context, nodeId.ref(), setting) ==
+           UA_STATUSCODE_GOOD;
 }
 
 /*!
@@ -75,16 +90,20 @@ bool Open62541::Historian::setUpdateNode(NodeId &nodeId, Server &server, size_t 
  * \param context
  * \return true on success
  */
-bool Open62541::Historian::setPollNode(NodeId &nodeId, Server &server,  size_t responseSize, size_t pollInterval, void *context)
+bool Open62541::Historian::setPollNode(NodeId& nodeId,
+                                       Server& server,
+                                       size_t responseSize,
+                                       size_t pollInterval,
+                                       void* context)
 {
     UA_HistorizingNodeIdSettings setting;
-    setting.historizingBackend= _backend; // set the memory database
-    setting.pollingInterval = pollInterval;
+    setting.historizingBackend         = _backend;  // set the memory database
+    setting.pollingInterval            = pollInterval;
     setting.maxHistoryDataResponseSize = responseSize;
-    setting.historizingUpdateStrategy = UA_HISTORIZINGUPDATESTRATEGY_POLL;
-    setting.userContext = context;
-    return gathering().registerNodeId(server.server(), gathering().context, nodeId.ref(), setting) == UA_STATUSCODE_GOOD;
-
+    setting.historizingUpdateStrategy  = UA_HISTORIZINGUPDATESTRATEGY_POLL;
+    setting.userContext                = context;
+    return gathering().registerNodeId(server.server(), gathering().context, nodeId.ref(), setting) ==
+           UA_STATUSCODE_GOOD;
 }
 /*!
  * \brief Open62541::Historian::setUserNode
@@ -93,16 +112,18 @@ bool Open62541::Historian::setPollNode(NodeId &nodeId, Server &server,  size_t r
  * \param context
  * \return true on success
  */
-bool Open62541::Historian::setUserNode(NodeId &nodeId, Server &server,size_t responseSize, size_t pollInterval, void *context)
+bool Open62541::Historian::setUserNode(NodeId& nodeId,
+                                       Server& server,
+                                       size_t responseSize,
+                                       size_t pollInterval,
+                                       void* context)
 {
     UA_HistorizingNodeIdSettings setting;
-    setting.historizingBackend= _backend; // set the memory database
-    setting.pollingInterval = pollInterval;
+    setting.historizingBackend         = _backend;  // set the memory database
+    setting.pollingInterval            = pollInterval;
     setting.maxHistoryDataResponseSize = responseSize;
-    setting.historizingUpdateStrategy = UA_HISTORIZINGUPDATESTRATEGY_USER;
-    setting.userContext = context;
-    return gathering().registerNodeId(server.server(), gathering().context, nodeId.ref(), setting) == UA_STATUSCODE_GOOD;
+    setting.historizingUpdateStrategy  = UA_HISTORIZINGUPDATESTRATEGY_USER;
+    setting.userContext                = context;
+    return gathering().registerNodeId(server.server(), gathering().context, nodeId.ref(), setting) ==
+           UA_STATUSCODE_GOOD;
 }
-
-
-
