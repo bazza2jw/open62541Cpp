@@ -1,5 +1,5 @@
-#include "historydatabase.h"
-#include "open62541server.h"
+#include <open62541cpp/historydatabase.h>
+#include <open62541cpp/open62541server.h>
 /*
     Copyright (C) 2017 -  B. J. Hill
 

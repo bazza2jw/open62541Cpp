@@ -9,8 +9,8 @@
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
  * A PARTICULAR PURPOSE.
  */
-#include <servermethod.h>
-#include <open62541server.h>
+#include <open62541cpp/servermethod.h>
+#include <open62541cpp/open62541server.h>
 /*!
     \brief Open62541::ServerMethod::methodCallback
     \param handle

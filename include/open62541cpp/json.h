@@ -323,7 +323,7 @@ typedef UInt64 LargestUInt;
 #define JSON_FORWARDS_H_INCLUDED
 
 #if !defined(JSON_IS_AMALGAMATION)
-#include "config.h"
+#include <open62541cpp/config.h>
 #endif // if !defined(JSON_IS_AMALGAMATION)
 
 namespace Json {
@@ -374,7 +374,7 @@ class ValueConstIterator;
 #define CPPTL_JSON_FEATURES_H_INCLUDED
 
 #if !defined(JSON_IS_AMALGAMATION)
-#include "forwards.h"
+#include <open62541cpp/forwards.h>
 #endif // if !defined(JSON_IS_AMALGAMATION)
 
 #pragma pack(push, 8)
@@ -449,7 +449,7 @@ public:
 #define CPPTL_JSON_H_INCLUDED
 
 #if !defined(JSON_IS_AMALGAMATION)
-#include "forwards.h"
+#include <open62541cpp/forwards.h>
 #endif // if !defined(JSON_IS_AMALGAMATION)
 #include <string>
 #include <vector>
@@ -1351,8 +1351,8 @@ inline void swap(Json::Value& a, Json::Value& b) { a.swap(b); }
 #define CPPTL_JSON_READER_H_INCLUDED
 
 #if !defined(JSON_IS_AMALGAMATION)
-#include "features.h"
-#include "value.h"
+#include <open62541cpp/features.h>
+#include "value.h>
 #endif // if !defined(JSON_IS_AMALGAMATION)
 #include <deque>
 #include <iosfwd>
@@ -1773,7 +1773,7 @@ JSON_API JSONCPP_ISTREAM& operator>>(JSONCPP_ISTREAM&, Value&);
 #define JSON_WRITER_H_INCLUDED
 
 #if !defined(JSON_IS_AMALGAMATION)
-#include "value.h"
+#include <open62541cpp/value.h>
 #endif // if !defined(JSON_IS_AMALGAMATION)
 #include <vector>
 #include <string>
@@ -2125,7 +2125,7 @@ JSON_API JSONCPP_OSTREAM& operator<<(JSONCPP_OSTREAM&, const Value& root);
 #include <sstream>
 
 #if !defined(JSON_IS_AMALGAMATION)
-#include "config.h"
+#include <open62541cpp/config.h>
 #endif // if !defined(JSON_IS_AMALGAMATION)
 
 /** It should not be possible for a maliciously designed file to

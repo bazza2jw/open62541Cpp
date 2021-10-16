@@ -11,11 +11,11 @@
 */
 #ifndef OPEN62541SERVER_H
 #define OPEN62541SERVER_H
-#include "open62541objects.h"
-#include "nodecontext.h"
-#include "servermethod.h"
-#include "serverrepeatedcallback.h"
-#include "condition.h"
+#include <open62541cpp/open62541objects.h>
+#include <open62541cpp/nodecontext.h>
+#include <open62541cpp/servermethod.h>
+#include <open62541cpp/serverrepeatedcallback.h>
+#include <open62541cpp/condition.h>
 
 namespace Open62541 {
 

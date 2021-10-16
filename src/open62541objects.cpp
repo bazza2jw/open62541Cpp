@@ -10,7 +10,7 @@
     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
     A PARTICULAR PURPOSE.
 */
-#include "open62541objects.h"
+#include <open62541cpp/open62541objects.h>
 #include <sstream>
 
 // Standard static nodes

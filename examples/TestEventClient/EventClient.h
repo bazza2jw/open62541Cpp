@@ -1,8 +1,8 @@
 #ifndef EVENTCLIENT_H
 #define EVENTCLIENT_H
-#include <open62541client.h>
-#include <clientsubscription.h>
-#include <monitoreditem.h>
+#include <open62541cpp/open62541client.h>
+#include <open62541cpp/clientsubscription.h>
+#include <open62541cpp/monitoreditem.h>
 
 class MonitorEvent : public Open62541::MonitoredItemEvent
 {

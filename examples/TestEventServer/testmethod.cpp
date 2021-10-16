@@ -1,6 +1,6 @@
 #include "testmethod.h"
 #include <iostream>
-#include <open62541server.h>
+#include <open62541cpp/open62541server.h>
 
 UA_StatusCode TestMethod::callback(Open62541::Server &server,
                                const UA_NodeId */*objectId*/,

@@ -17,6 +17,11 @@
 #pragma warning(disable:4251)
 #endif
 //
+
+// Backup value of UA_LOGLEVEL. IT is already defined in config.h
+// so we unset it here to avoid redefined warning, then define it again afterwards.
+#define UA_LOGLEVEL_ORIG UA_LOGLEVEL
+#undef UA_LOGLEVEL
 #ifdef UA_ENABLE_AMALGAMATION
 #include "open62541.h"
 #else
@@ -60,6 +65,8 @@
 #include "open62541/plugin/pki_default.h"
 #include "open62541/plugin/securitypolicy_default.h"
 #endif
+#undef UA_LOGLEVEL
+#define UA_LOGLEVEL UA_LOGLEVEL_ORIG
 //
 #if UA_MULTITHREADING >= 100
 // Sleep is function call in wxWidgets
@@ -67,7 +74,7 @@
 #undef Sleep
 #endif
 //
-#include "open62541cpp_trace.h"
+#include <open62541cpp/open62541cpp_trace.h>
 //
 #include <string>
 #include <stdint.h>
@@ -82,7 +89,7 @@
 #include <iostream>
 #include <functional>
 #include <typeinfo>
-#include "propertytree.h"
+#include <open62541cpp/propertytree.h>
 #include <boost/any.hpp>
 //
 // Open 62541 has quasi new-delete and copy operators for each object type

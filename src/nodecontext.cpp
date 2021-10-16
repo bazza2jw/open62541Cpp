@@ -9,8 +9,8 @@
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
  * A PARTICULAR PURPOSE.
  */
-#include "../include/nodecontext.h"
-#include "../include/open62541server.h"
+#include <open62541cpp/nodecontext.h>
+#include <open62541cpp/open62541server.h>
 
 // set of contexts
 Open62541::RegisteredNodeContext::NodeContextMap Open62541::RegisteredNodeContext::_map;

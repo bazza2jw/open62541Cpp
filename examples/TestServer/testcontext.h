@@ -1,6 +1,6 @@
 #ifndef TESTCONTEXT_H
 #define TESTCONTEXT_H
-#include <nodecontext.h>
+#include <open62541cpp/nodecontext.h>
 #include <iostream>
 using namespace std;
 //

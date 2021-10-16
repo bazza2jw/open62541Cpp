@@ -1,5 +1,5 @@
 #include <iostream>
-#include <discoveryserver.h>
+#include <open62541cpp/discoveryserver.h>
 using namespace std;
 #define DISCOVERY_SERVER_ENDPOINT "opc.tcp://localhost:4850"
 int main()

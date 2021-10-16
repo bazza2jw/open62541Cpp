@@ -1,6 +1,6 @@
 #include <iostream>
 #define  UA_TRACE_OBJ
-#include <open62541objects.h>
+#include <open62541cpp/open62541objects.h>
 using namespace std;
 
 int main(int /*argc*/, char **/*argv[]*/)

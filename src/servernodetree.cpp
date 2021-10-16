@@ -9,8 +9,8 @@
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
  * A PARTICULAR PURPOSE.
  */
-#include "servernodetree.h"
-#include <open62541server.h>
+#include <open62541cpp/servernodetree.h>
+#include <open62541cpp/open62541server.h>
 
 /*!
     \brief ServerNodeTree

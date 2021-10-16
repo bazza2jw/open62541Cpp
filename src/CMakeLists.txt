@@ -27,12 +27,9 @@ add_library(${OPEN62541_CPP} SHARED $<TARGET_OBJECTS:OBJS>)
 # add boost to target
 include(../Common.cmake)
 
-find_library(OPEN62541 open62541 ${CMAKE_INSTALL_PREFIX}/lib)
+find_package(open62541)
 
-
-if (Boost_FOUND)
-    target_link_libraries(${OPEN62541_CPP} ${Boost_LIBRARIES} ${OPEN62541})
-endif ()
+target_link_libraries(${OPEN62541_CPP} PUBLIC ${Boost_LIBRARIES} open62541::open62541)
 
 ## set the shared library soname
 set_target_properties(${OPEN62541_CPP} PROPERTIES
