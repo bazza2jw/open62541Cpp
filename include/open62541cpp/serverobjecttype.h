@@ -178,7 +178,7 @@ public:
     }
 
     bool addObjectTypeFolder(const std::string& childName,
-                             NodeId& parent,
+                             const NodeId& parent,
                              NodeId& nodeId,
                              NodeId& requestNodeId = NodeId::Null,
                              bool mandatory        = true)
@@ -210,7 +210,7 @@ public:
     */
     template <typename T>
     bool addHistoricalObjectTypeVariable(const std::string& n,
-                                         NodeId& parent,
+                                         const NodeId& parent,
                                          NodeId& nodeId        = NodeId::Null,
                                          NodeContext* context  = nullptr,
                                          NodeId& requestNodeId = NodeId::Null,  // usually want auto generated ids
