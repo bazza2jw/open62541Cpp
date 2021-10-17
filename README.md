@@ -1,12 +1,17 @@
 # Open62541 C++ Library for Open62541 version 1.1.3
 
-This is a set of wrapper classes for the Open62541 C OPC UA library version 1.1.3. The objective is to reduce the code 
+This is a set of wrapper classes for the Open62541 C OPC UA library version 1.2. The objective is to reduce the code 
 required, by a considerable amount, and allow object orientated coding.
 
 Do not assume any OPC UA feature is implemented or complete or optimally done. Support will be added as and when 
 it is needed. An effort is made to include features added to the C library, eventually.
 
 Feel free to constructively comment or contribute.
+
+# Class Documentation
+
+The C++ wrappers map on to the open62541 C library, keeping the same function names. Use the C documentation for explanation of what a function does. Other functions have doxygen comments but should be easy enough to follow.
+
 
 # General Principles
 
@@ -19,7 +24,13 @@ corresponding C++ managed objects. Do not do it, unless you really, really want 
 Context pointers attached to nodes on creation are assumed to be objects derived from Open62541::NodeContext. The 
 NodeContext class includes generalised handing of DataValue, node constructor/destructor, and value callbacks (that can be lambdas).
 
+Most callbacks are wrapped as virtual functions in the associated class. When registering a callback the pointer to the associated class instance is used as the context pointer.
+
 There is C++ style class support of Object Types.
+
+# Node Ids
+
+The NodeId class wraps the NodeId item. Many functions accept NULL NodeId reference as defaults and non-null references to receive NodeId values back. If you want to receive a NodeId value back the Open62541::NodeId object must be set as not being null with the notNull() member function. A NULL NodeId is wrapped in the Open62541::NodeId::Null static object.
 
 # Building
 
