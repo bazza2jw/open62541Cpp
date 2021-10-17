@@ -524,7 +524,9 @@ void Open62541::Server::terminate()
     if (_server) {
         //
         _timerMap.clear();
+#ifdef UA_ENABLE_SUBSCRIPTIONS_ALARMS_CONDITIONS
         _conditionMap.clear();
+#endif
         UA_Server_run_shutdown(_server);
         UA_Server_delete(_server);
         _serverMap.erase(_server);

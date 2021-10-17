@@ -19,17 +19,16 @@
 */
 Open62541::DiscoveryServer::DiscoveryServer(int port, const std::string& url)
 {
-
     _server = UA_Server_new();
     if (_server) {
         _config = UA_Server_getConfig(_server);
         if (_config) {
             UA_ServerConfig_setMinimal(_config, port, nullptr);
-
             _config->applicationDescription.applicationType = UA_APPLICATIONTYPE_DISCOVERYSERVER;
             UA_String_clear(&_config->applicationDescription.applicationUri);
             _config->applicationDescription.applicationUri = UA_String_fromChars(url.c_str());
-            _config->mdnsEnabled                           = true;
+            _config->mdnsConfig.mdnsServerName = UA_String_fromChars(url.c_str());
+            _config->mdnsEnabled = true;
             // See http://www.opcfoundation.org/UA/schemas/1.03/ServerCapabilities.csv
             /*  timeout in seconds when to automatically remove a registered server from
                   the list, if it doesn't re-register within the given time frame. A value

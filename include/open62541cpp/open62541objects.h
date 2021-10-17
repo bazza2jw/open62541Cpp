@@ -108,7 +108,7 @@ namespace Open62541 {
 template <typename T, int TYPES_ARRAY_INDEX>
 class UA_EXPORT TypeBase
 {
-    static_assert(TYPES_ARRAY_INDEX < UA_TYPES_COUNT, "TYPES_ARRAY_INDEX muste smaller than UA_TYPES_COUNT");
+    static_assert(TYPES_ARRAY_INDEX < UA_TYPES_COUNT, "TYPES_ARRAY_INDEX must be smaller than UA_TYPES_COUNT");
 
 protected:
     static constexpr const UA_DataType* data_type = &UA_TYPES[TYPES_ARRAY_INDEX];

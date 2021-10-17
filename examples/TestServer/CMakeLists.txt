@@ -1,3 +1,4 @@
+project("Open62541Cpp")
 cmake_minimum_required(VERSION 3.11)
 # Build Test Server
 set(APPNAME TestServer)

@@ -1,7 +1,10 @@
 #ifndef CONDITION_H
 #define CONDITION_H
 #include <open62541cpp/open62541objects.h>
-
+//
+// Use ccmake to enable - enable advanced mode
+//
+#ifdef UA_ENABLE_SUBSCRIPTIONS_ALARMS_CONDITIONS
 namespace Open62541 {
 class Server;
 class UA_EXPORT Condition
@@ -157,5 +160,5 @@ private:
 typedef std::unique_ptr<Condition> ConditionPtr;
 typedef Condition* Condition_p;
 }  // namespace Open62541
-
+#endif
 #endif  // CONDITION_H

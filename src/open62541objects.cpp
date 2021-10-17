@@ -88,12 +88,12 @@ void Open62541::Variant::fromAny(boost::any& a)
 std::string Open62541::variantToString(UA_Variant& v)
 {
     std::string ret;
-    switch (v.type->typeIndex) {
+    switch (v.type->typeKind) {
         /**
             Boolean
             ^^^^^^^
         */
-        case UA_TYPES_BOOLEAN: {
+        case UA_DATATYPEKIND_BOOLEAN: {
             ret = ((UA_Boolean*)(v.data)) ? "true" : "false";
         } break;
 
@@ -101,7 +101,7 @@ std::string Open62541::variantToString(UA_Variant& v)
             SByte
             ^^^^^
         */
-        case UA_TYPES_SBYTE: {
+        case UA_DATATYPEKIND_SBYTE: {
             int i = *((char*)v.data);
             ret   = std::to_string(i);
         } break;
@@ -110,7 +110,7 @@ std::string Open62541::variantToString(UA_Variant& v)
             Byte
             ^^^^
         */
-        case UA_TYPES_BYTE: {
+        case UA_DATATYPEKIND_BYTE: {
             unsigned i = *((unsigned char*)v.data);
             ret        = std::to_string(i);
         } break;
@@ -119,7 +119,7 @@ std::string Open62541::variantToString(UA_Variant& v)
             Int16
             ^^^^^
         */
-        case UA_TYPES_INT16: {
+        case UA_DATATYPEKIND_INT16: {
             int16_t i = *((int16_t*)v.data);
             ret       = std::to_string(i);
 
@@ -129,7 +129,7 @@ std::string Open62541::variantToString(UA_Variant& v)
             UInt16
             ^^^^^^
         */
-        case UA_TYPES_UINT16: {
+        case UA_DATATYPEKIND_UINT16: {
             uint16_t i = *((uint16_t*)v.data);
             ret        = std::to_string(i);
 
@@ -139,7 +139,7 @@ std::string Open62541::variantToString(UA_Variant& v)
             Int32
             ^^^^^
         */
-        case UA_TYPES_INT32: {
+        case UA_DATATYPEKIND_INT32: {
             int32_t i = *((int32_t*)v.data);
             ret       = std::to_string(i);
 
@@ -149,7 +149,7 @@ std::string Open62541::variantToString(UA_Variant& v)
             UInt32
             ^^^^^^
         */
-        case UA_TYPES_UINT32: {
+        case UA_DATATYPEKIND_UINT32: {
             uint32_t i = *((uint32_t*)v.data);
             ret        = std::to_string(i);
 
@@ -159,7 +159,7 @@ std::string Open62541::variantToString(UA_Variant& v)
             Int64
             ^^^^^
         */
-        case UA_TYPES_INT64: {
+        case UA_DATATYPEKIND_INT64: {
             int64_t i = *((int64_t*)v.data);
             ret       = std::to_string(i);
 
@@ -169,7 +169,7 @@ std::string Open62541::variantToString(UA_Variant& v)
             UInt64
             ^^^^^^
         */
-        case UA_TYPES_UINT64: {
+        case UA_DATATYPEKIND_UINT64: {
             uint32_t i = *((uint32_t*)v.data);
             ret        = std::to_string(i);
 
@@ -179,7 +179,7 @@ std::string Open62541::variantToString(UA_Variant& v)
             Float
             ^^^^^
         */
-        case UA_TYPES_FLOAT: {
+        case UA_DATATYPEKIND_FLOAT: {
             float i = *((float*)v.data);
             ret     = std::to_string(i);
 
@@ -189,7 +189,7 @@ std::string Open62541::variantToString(UA_Variant& v)
             Double
             ^^^^^^
         */
-        case UA_TYPES_DOUBLE: {
+        case UA_DATATYPEKIND_DOUBLE: {
             double i = *((double*)v.data);
             ret      = std::to_string(i);
 
@@ -199,7 +199,7 @@ std::string Open62541::variantToString(UA_Variant& v)
             String
             ^^^^^^
         */
-        case UA_TYPES_STRING: {
+        case UA_DATATYPEKIND_STRING: {
 
             UA_String* p = (UA_String*)(v.data);
             ret          = std::string((const char*)p->data, p->length);
@@ -210,7 +210,7 @@ std::string Open62541::variantToString(UA_Variant& v)
             DateTime
             ^^^^^^^^
         */
-        case UA_TYPES_DATETIME: {
+        case UA_DATATYPEKIND_DATETIME: {
             UA_DateTime* p        = (UA_DateTime*)(v.data);
             UA_DateTimeStruct dts = UA_DateTime_toStruct(*p);
             char b[64];
@@ -230,7 +230,7 @@ std::string Open62541::variantToString(UA_Variant& v)
             ByteString
             ^^^^^^^^^^
         */
-        case UA_TYPES_BYTESTRING: {
+        case UA_DATATYPEKIND_BYTESTRING: {
             UA_ByteString* p = (UA_ByteString*)(v.data);
             ret              = std::string((const char*)p->data, p->length);
 

@@ -42,7 +42,7 @@ public:
     {
         addNewEventType("SimpleEventType", _eventType, "The simple event type we created");
         _eventNode.notNull();
-        setUpEvent(_eventNode, _eventType, "SimleEvent", "TestServer");
+        setUpEvent(_eventNode, _eventType, "SimpleEvent", "TestServer");
     }
     void initialise() override;  // initialise the server before it runs but after it has been configured
 };

@@ -1,7 +1,7 @@
 
-
 #include <open62541cpp/condition.h>
 #include <open62541cpp/open62541server.h>
+#ifdef UA_ENABLE_SUBSCRIPTIONS_ALARMS_CONDITIONS
 
 /*!
  * \brief Open62541::Condition::Condition
@@ -184,3 +184,4 @@ bool Open62541::Condition::setCallback(UA_TwoStateVariableCallbackType callbackT
     }
     return lastOK();
 }
+#endif
