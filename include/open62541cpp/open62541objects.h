@@ -1390,7 +1390,9 @@ public:
     RelativePathElement(QualifiedName& item, NodeId& typeId, bool inverse = false, bool includeSubTypes = false)
         : TypeBase(UA_RelativePathElement_new())
     {
-        UA_NodeId_copy(typeId.ref(), &get().referenceTypeId);
+        if (UA_StatusCode ret = UA_NodeId_copy(typeId.ref(), &get().referenceTypeId) != UA_STATUSCODE_GOOD) {
+            throw std::runtime_error("copying NodeId name failed with " + std::string(UA_StatusCode_name(ret)));
+        }
         get().isInverse       = includeSubTypes;
         get().includeSubtypes = inverse;
         if (UA_StatusCode ret = UA_QualifiedName_copy(item.ref(), &get().targetName) != UA_STATUSCODE_GOOD) {
