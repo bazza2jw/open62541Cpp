@@ -640,7 +640,7 @@ public:
     unsigned hash() const { return UA_NodeId_hash(constRef()); }
 
     NodeId()
-        : TypeBase()
+        : TypeBase(UA_NodeId_new())
     {
     }
 
@@ -1390,10 +1390,14 @@ public:
     RelativePathElement(QualifiedName& item, NodeId& typeId, bool inverse = false, bool includeSubTypes = false)
         : TypeBase(UA_RelativePathElement_new())
     {
-        get().referenceTypeId = typeId.get();
+        if (UA_StatusCode ret = UA_NodeId_copy(typeId.ref(), &get().referenceTypeId) != UA_STATUSCODE_GOOD) {
+            throw std::runtime_error("copying NodeId name failed with " + std::string(UA_StatusCode_name(ret)));
+        }
         get().isInverse       = includeSubTypes;
         get().includeSubtypes = inverse;
-        get().targetName      = item.get();  // shallow copy!!!
+        if (UA_StatusCode ret = UA_QualifiedName_copy(item.ref(), &get().targetName) != UA_STATUSCODE_GOOD) {
+            throw std::runtime_error("copying qualified name failed with " + std::string(UA_StatusCode_name(ret)));
+        }
     }
 };
 
