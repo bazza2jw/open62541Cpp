@@ -504,7 +504,7 @@ public:
     {
         ByteString ut(userTokenPolicyUri);
         // install access control into the config that maps on to the server hence its virtual functions
-        UA_AccessControl_default(_config, allowAnonymous, nullptr,
+        UA_AccessControl_default(_config, allowAnonymous,
                                   &_config->securityPolicies[_config->securityPoliciesSize-1].policyUri,
                                  _logins.size(), _logins.data());
         setAccessControl(&_config->accessControl);  // map access control requests to this object
