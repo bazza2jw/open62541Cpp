@@ -648,7 +648,7 @@ public:
     /*!
         \brief terminate
     */
-    virtual void terminate();  // called before server is closed
+    void terminate();  // called before server is closed
     //
     /*!
         \brief lastError
