@@ -1387,7 +1387,7 @@ public:
 class UA_EXPORT RelativePathElement : public TypeBase<UA_RelativePathElement, UA_TYPES_RELATIVEPATHELEMENT>
 {
 public:
-    RelativePathElement(QualifiedName& item, NodeId& typeId, bool inverse = false, bool includeSubTypes = false)
+    RelativePathElement(const QualifiedName& item, const NodeId& typeId, bool inverse = false, bool includeSubTypes = false)
         : TypeBase(UA_RelativePathElement_new())
     {
         if (UA_StatusCode ret = UA_NodeId_copy(typeId.ref(), &get().referenceTypeId) != UA_STATUSCODE_GOOD) {
