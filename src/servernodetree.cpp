@@ -28,7 +28,7 @@ Open62541::ServerNodeTree::ServerNodeTree(Server& s, NodeId& parent, int ns)
 /*!
  * \brief ~ServerNodeTree
  */
-Open62541::ServerNodeTree::~ServerNodeTree() {}
+Open62541::ServerNodeTree::~ServerNodeTree() = default;
 
 /*!
     \brief addFolderNode
@@ -36,34 +36,33 @@ Open62541::ServerNodeTree::~ServerNodeTree() {}
     \param s
     \return
 */
-bool Open62541::ServerNodeTree::addFolderNode(NodeId& parent, const std::string& s, NodeId& no)
+void Open62541::ServerNodeTree::addFolderNode(const NodeId& parent, const std::string& s, NodeId& no)
 {
     NodeId ni(_nameSpace, 0);
-    return _server.addFolder(parent, s, ni, no, _nameSpace);
+    _server.addFolder(parent, s, ni, no, _nameSpace);
 }
 /*!
     \brief addValueNode
     \return
 */
-bool Open62541::ServerNodeTree::addValueNode(NodeId& parent, const std::string& s, NodeId& no, Variant& v)
+void Open62541::ServerNodeTree::addValueNode(const NodeId& parent, const std::string& s, NodeId& no, const Variant& v)
 {
     NodeId ni(_nameSpace, 0);
-    return _server.addVariable(parent, s, v, ni, no, nullptr, _nameSpace);
+    _server.addVariable(parent, s, v, ni, no, nullptr, _nameSpace);
 }
 /*!
     \brief getValue
     \return
 */
-bool Open62541::ServerNodeTree::getValue(NodeId& n, Variant& v)
+void Open62541::ServerNodeTree::getValue(const NodeId& n, Variant& v)
 {
-    return _server.readValue(n, v);
+    _server.readValue(n, v);
 }
 /*!
     \brief setValue
     \return
 */
-bool Open62541::ServerNodeTree::setValue(NodeId& n, Variant& v)
+void Open62541::ServerNodeTree::setValue(const NodeId& n, const Variant& v)
 {
     _server.writeValue(n, v);
-    return _server.lastOK();
 }

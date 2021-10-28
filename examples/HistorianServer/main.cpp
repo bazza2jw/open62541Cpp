@@ -51,17 +51,11 @@ void TestServer::initialise()
     Open62541::NodeId nodeNumber(_idx, "Number_Value");
     Open62541::Variant numberValue(1);
     //
-    if (!addHistoricalVariable(Open62541::NodeId::Objects,
-                               "Number_Value",
-                               numberValue,
-                               nodeNumber,
-                               Open62541::NodeId::Null)) {
-        cout << "Failed to create Number Value Node " << endl;
-    }
-    else {
-        _historian.setUpdateNode(nodeNumber,
-                                 *this);  // adds the node the the historian - values are buffered as they are updated
-    }
+    addHistoricalVariable(Open62541::NodeId::Objects, "Number_Value", numberValue, nodeNumber, Open62541::NodeId::Null);
+
+    _historian.setUpdateNode(nodeNumber,
+                             *this);  // adds the node the the historian - values are buffered as they are updated
+
     //
 }
 

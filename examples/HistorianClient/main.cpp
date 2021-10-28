@@ -69,31 +69,28 @@ int main(int /*argc*/, char** /*argv*/)
     // Construct client
     HistoricalClient client;
     // Connect
-    if (client.connect("opc.tcp://localhost:4840")) {
-        //
-        cout << "Connected" << endl;
-        Open62541::NodeId nodeNumber(2, "Number_Value");  // this is the node we want to monitor
+    try {
+        client.connect("opc.tcp://localhost:4840");
+    }
+    catch (const Open62541::Exception& e) {
+        cout << "Failed to connect: " << e.what() << std::endl;
+        return 1;
+    }
 
-        // loop
-        // The server updates the Number_Value node every 2 seconds so if we wait 10 seconds between calls we should get
-        // 5 values when we query the history
-        for (;;) {
-            //
-            cout << "Reading node history" << endl;
-            //
-            if (client.historyReadRaw(nodeNumber, UA_DateTime_fromUnixTime(0), UA_DateTime_now(), 10)) {
-                cout << "Done history read" << endl;
-            }
-            else {
-                cout << "History read fails " << client.lastError() << " " << UA_StatusCode_name(client.lastError())
-                     << endl;
-            }
-            cout << "Sleeping for 10 s" << endl;
-            sleep(10);
-        }
+    //
+    cout << "Connected" << endl;
+    Open62541::NodeId nodeNumber(2, "Number_Value");  // this is the node we want to monitor
+
+    // loop
+    // The server updates the Number_Value node every 2 seconds so if we wait 10 seconds between calls we should get
+    // 5 values when we query the history
+    for (;;) {
+        //
+        cout << "Reading node history" << endl;
+        //
+        client.historyReadRaw(nodeNumber, UA_DateTime_fromUnixTime(0), UA_DateTime_now(), 10);
+        sleep(10);
     }
-    else {
-        cout << "Failed to connect" << endl;
-    }
+
     return 0;
 }

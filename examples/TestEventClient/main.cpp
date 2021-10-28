@@ -15,12 +15,16 @@ int main(int /*argc*/, char** /*argv*/)
     // Construct client
     EventClient client;
     // Connect
-    if (client.connect("opc.tcp://localhost:4840")) {
-        client.subscribe();  // subscribe
-        client.run();
+    try {
+        client.connect("opc.tcp://localhost:4840");
     }
-    else {
-        cout << "Failed to connect" << endl;
+    catch (const Open62541::Exception& e) {
+        cout << "Failed to connect: " << e.what() << std::endl;
+        return 1;
     }
+
+    client.subscribe();  // subscribe
+    client.run();
+
     return 0;
 }

@@ -1,6 +1,9 @@
 
 #include <open62541cpp/condition.h>
 #include <open62541cpp/open62541server.h>
+
+#include <utility>
+
 #ifdef UA_ENABLE_SUBSCRIPTIONS_ALARMS_CONDITIONS
 
 /*!
@@ -9,10 +12,10 @@
  * \param c
  * \param src
  */
-Open62541::Condition::Condition(Server& s, const NodeId& c, const NodeId& src)
+Open62541::Condition::Condition(Server& s, NodeId c, NodeId src)
     : _server(s)
-    , _condition(c)
-    , _conditionSource(src)
+    , _condition(std::move(c))
+    , _conditionSource(std::move(src))
 {
 }
 
@@ -21,7 +24,7 @@ Open62541::Condition::Condition(Server& s, const NodeId& c, const NodeId& src)
  */
 Open62541::Condition::~Condition()
 {
-    _lastError = UA_Server_deleteCondition(_server.server(), _condition, _conditionSource);
+    throw_bad_status(UA_Server_deleteCondition(_server.server(), _condition, _conditionSource));
 }
 
 /* Set the value of condition field.
@@ -31,11 +34,10 @@ Open62541::Condition::~Condition()
  * @param value Variant Value to be written to the Field
  * @param fieldName Name of the Field in which the value should be written
  * @return The StatusCode of the UA_Server_setConditionField method*/
-bool Open62541::Condition::setConditionField(const Variant& v, const std::string& name)
+void Open62541::Condition::setConditionField(const Variant& v, const std::string& name)
 {
     QualifiedName qn(_condition.nameSpaceIndex(), name);
-    _lastError = UA_Server_setConditionField(_server, _condition, v, qn);
-    return lastOK();
+    throw_bad_status(UA_Server_setConditionField(_server, _condition, v, qn));
 }
 /*!
  * \brief Open62541::Condition::setConditionVariableFieldProperty
@@ -44,26 +46,24 @@ bool Open62541::Condition::setConditionField(const Variant& v, const std::string
  * \param variablePropertyName
  * \return
  */
-bool Open62541::Condition::setConditionVariableFieldProperty(const Variant& value,
+void Open62541::Condition::setConditionVariableFieldProperty(const Variant& value,
                                                              const std::string& variableFieldName,
                                                              const std::string& variablePropertyName)
 {
 
     QualifiedName fn(_condition.nameSpaceIndex(), variableFieldName);
     QualifiedName pn(_condition.nameSpaceIndex(), variablePropertyName);
-    _lastError = UA_Server_setConditionVariableFieldProperty(_server, _condition, value, fn, pn);
-    return lastOK();
+    throw_bad_status(UA_Server_setConditionVariableFieldProperty(_server, _condition, value, fn, pn));
 }
 /*!
  * \brief Open62541::Condition::triggerConditionEvent
  * \param outEventId
  * \return
  */
-bool Open62541::Condition::triggerConditionEvent(const std::string& outEventId)
+void Open62541::Condition::triggerConditionEvent(const std::string& outEventId)
 {
     ByteString b(outEventId);
-    _lastError = UA_Server_triggerConditionEvent(_server, _condition, _conditionSource, b);
-    return lastOK();
+    throw_bad_status(UA_Server_triggerConditionEvent(_server, _condition, _conditionSource, b));
 }
 
 /*!
@@ -73,24 +73,24 @@ bool Open62541::Condition::triggerConditionEvent(const std::string& outEventId)
  * \param outOptionalVariable
  * \return
  */
-bool Open62541::Condition::addConditionOptionalField(const NodeId& conditionType,
+void Open62541::Condition::addConditionOptionalField(const NodeId& conditionType,
                                                      const std::string& fieldName,
                                                      NodeId& outOptionalVariable)
 {
     QualifiedName fn(_condition.nameSpaceIndex(), fieldName);
-    _lastError = UA_Server_addConditionOptionalField(_server, _condition, conditionType, fn, outOptionalVariable);
-    return lastOK();
+    throw_bad_status(UA_Server_addConditionOptionalField(_server, _condition, conditionType, fn, outOptionalVariable));
 }
 
 UA_StatusCode Open62541::Condition::twoStateVariableChangeEnabledStateCallback(UA_Server* server,
                                                                                const UA_NodeId* condition)
 {
     Open62541::Server* s = Open62541::Server::findServer(server);
-    if (s) {
+    if (s != nullptr) {
         ConditionPtr& c = s->findCondition(condition);
         if (c) {
-            if (c->enteringEnabledState())
+            if (c->enteringEnabledState()) {
                 return UA_STATUSCODE_GOOD;
+            }
         }
     }
     return UA_StatusCode(-1);
@@ -99,11 +99,12 @@ UA_StatusCode Open62541::Condition::twoStateVariableChangeAckedStateCallback(UA_
                                                                              const UA_NodeId* condition)
 {
     Open62541::Server* s = Open62541::Server::findServer(server);
-    if (s) {
+    if (s != nullptr) {
         ConditionPtr& c = s->findCondition(condition);
         if (c) {
-            if (c->enteringAckedState())
+            if (c->enteringAckedState()) {
                 return UA_STATUSCODE_GOOD;
+            }
         }
     }
     return UA_StatusCode(-1);
@@ -112,11 +113,12 @@ UA_StatusCode Open62541::Condition::twoStateVariableChangeConfirmedStateCallback
                                                                                  const UA_NodeId* condition)
 {
     Open62541::Server* s = Open62541::Server::findServer(server);
-    if (s) {
+    if (s != nullptr) {
         ConditionPtr& c = s->findCondition(condition);
         if (c) {
-            if (c->enteringConfirmedState())
+            if (c->enteringConfirmedState()) {
                 return UA_STATUSCODE_GOOD;
+            }
         }
     }
     return UA_StatusCode(-1);
@@ -125,11 +127,12 @@ UA_StatusCode Open62541::Condition::twoStateVariableChangeActiveStateCallback(UA
                                                                               const UA_NodeId* condition)
 {
     Open62541::Server* s = Open62541::Server::findServer(server);
-    if (s) {
+    if (s != nullptr) {
         ConditionPtr& c = s->findCondition(condition);
         if (c) {
-            if (c->enteringActiveState())
+            if (c->enteringActiveState()) {
                 return UA_STATUSCODE_GOOD;
+            }
         }
     }
     return UA_StatusCode(-1);
@@ -140,48 +143,47 @@ UA_StatusCode Open62541::Condition::twoStateVariableChangeActiveStateCallback(UA
  * \param callbackType
  * \param removeBranch
  */
-bool Open62541::Condition::setCallback(UA_TwoStateVariableCallbackType callbackType, bool removeBranch)
+void Open62541::Condition::setCallback(UA_TwoStateVariableCallbackType callbackType, bool removeBranch)
 {
     switch (callbackType) {
         case UA_ENTERING_ENABLEDSTATE:
-            _lastError =
+            throw_bad_status(
                 UA_Server_setConditionTwoStateVariableCallback(_server.server(),
                                                                _condition,
                                                                _conditionSource,
                                                                (UA_Boolean)removeBranch,
                                                                Condition::twoStateVariableChangeEnabledStateCallback,
-                                                               callbackType);
+                                                               callbackType));
             break;
         case UA_ENTERING_ACKEDSTATE:
-            _lastError =
+            throw_bad_status(
                 UA_Server_setConditionTwoStateVariableCallback(_server.server(),
                                                                _condition,
                                                                _conditionSource,
                                                                (UA_Boolean)removeBranch,
                                                                Condition::twoStateVariableChangeAckedStateCallback,
-                                                               callbackType);
+                                                               callbackType));
             break;
         case UA_ENTERING_CONFIRMEDSTATE:
-            _lastError =
+            throw_bad_status(
                 UA_Server_setConditionTwoStateVariableCallback(_server.server(),
                                                                _condition,
                                                                _conditionSource,
                                                                (UA_Boolean)removeBranch,
                                                                Condition::twoStateVariableChangeConfirmedStateCallback,
-                                                               callbackType);
+                                                               callbackType));
             break;
         case UA_ENTERING_ACTIVESTATE:
-            _lastError =
+            throw_bad_status(
                 UA_Server_setConditionTwoStateVariableCallback(_server.server(),
                                                                _condition,
                                                                _conditionSource,
                                                                (UA_Boolean)removeBranch,
                                                                Condition::twoStateVariableChangeActiveStateCallback,
-                                                               callbackType);
+                                                               callbackType));
             break;
         default:
             break;
     }
-    return lastOK();
 }
 #endif

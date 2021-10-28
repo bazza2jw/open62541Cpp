@@ -177,14 +177,14 @@ public:
         \param s
         \return
     */
-    Node* child(const K& s) { return _children[s]; }
+    Node* child(const K& s) const { return _children.at(s); }
 
     /*!
         \brief hasChild
         \param s
         \return
     */
-    bool hasChild(const K& s) { return _children[s] != nullptr; }
+    bool hasChild(const K& s) const { return _children.at(s) != nullptr; }
     /*!
         \brief addChild
         \param key
@@ -281,7 +281,7 @@ public:
         \param path
         \return
     */
-    Node* find(const K& path)
+    Node* find(const K& path) const
     {
         Path p;
         p.toList(path);
@@ -296,21 +296,21 @@ public:
     Node* add(const Path& p)
     {
         Node* n = find(p);  // only create if it does not exist
-        if (!n) {
-            // create the path as required
-            n         = this;
-            int depth = 0;
-            while (n->hasChild(p[depth])) {
-                n = n->child(p[depth]);
-                depth++;
-            }
-            // create the rest
-            for (unsigned i = depth; i < p.size(); i++) {
-                n = n->createChild(p[i]);
-            }
+        if (n)
+            return n;
+
+        // create the path as required
+        n         = this;
+        int depth = 0;
+        while (n->hasChild(p[depth])) {
+            n = n->child(p[depth]);
+            depth++;
         }
-        //
-        return n;  // return the newly created node
+        // create the rest
+        for (unsigned i = depth; i < p.size(); i++) {
+            n = n->createChild(p[i]);
+        }
+        return n;
     }
 
     /*!
