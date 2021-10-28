@@ -21,7 +21,7 @@
 void Open62541::Client::subscriptionInactivityCallback(UA_Client* client, UA_UInt32 subscriptionId, void* subContext)
 {
     Client* p = (Client*)(UA_Client_getContext(client));
-    if (p) {
+    if (p != nullptr) {
         p->subscriptionInactivity(subscriptionId, subContext);
     }
 }
@@ -41,7 +41,7 @@ void Open62541::Client::asyncServiceCallback(UA_Client* client,
                                              const UA_DataType* responseType)
 {
     Client* p = (Client*)(UA_Client_getContext(client));
-    if (p) {
+    if (p != nullptr) {
         p->asyncService(userdata, requestId, response, responseType);
     }
 }
@@ -57,7 +57,7 @@ void Open62541::Client::stateCallback(UA_Client* client,
                                       UA_StatusCode connectStatus)
 {
     Client* p = (Client*)(UA_Client_getContext(client));
-    if (p) {
+    if (p != nullptr) {
         p->stateChange(channelState, sessionState, connectStatus);
     }
 }
@@ -67,20 +67,17 @@ void Open62541::Client::stateCallback(UA_Client* client,
     \param nodeId
     \return
 */
-bool Open62541::Client::deleteTree(NodeId& nodeId)
+void Open62541::Client::deleteTree(const NodeId& nodeId)
 {
-    if (_client) {
-        NodeIdMap m;
-        browseTree(nodeId, m);
-        for (auto i = m.begin(); i != m.end(); i++) {
-            UA_NodeId& ni = i->second;
-            if (ni.namespaceIndex > 0) {  // namespace 0 appears to be reserved
-                WriteLock l(_mutex);
-                UA_Client_deleteNode(_client, i->second, true);
-            }
+    NodeIdMap m;
+    browseTree(nodeId, m);
+    for (auto& i : m) {
+        UA_NodeId& ni = i.second;
+        if (ni.namespaceIndex > 0) {  // namespace 0 appears to be reserved
+            WriteLock l(_mutex);
+            throw_bad_status(UA_Client_deleteNode(client_or_throw(), i.second, true));
         }
     }
-    return lastOK();
 }
 
 /*!
@@ -110,12 +107,13 @@ static UA_StatusCode browseTreeCallBack(UA_NodeId childId,
     \param m
     \return
 */
-bool Open62541::Client::browseChildren(UA_NodeId& nodeId, NodeIdMap& m)
+void Open62541::Client::browseChildren(const UA_NodeId& nodeId, NodeIdMap& m)
 {
     Open62541::UANodeIdList l;
     {
         WriteLock ll(mutex());
-        UA_Client_forEachChildNodeCall(_client, nodeId, browseTreeCallBack, &l);  // get the childlist
+        throw_bad_status(
+            UA_Client_forEachChildNodeCall(client_or_throw(), nodeId, browseTreeCallBack, &l));  // get the childlist
     }
     for (int i = 0; i < int(l.size()); i++) {
         if (l[i].namespaceIndex == nodeId.namespaceIndex) {  // only in same namespace
@@ -126,7 +124,6 @@ bool Open62541::Client::browseChildren(UA_NodeId& nodeId, NodeIdMap& m)
             }
         }
     }
-    return lastOK();
 }
 
 /*!
@@ -135,11 +132,11 @@ bool Open62541::Client::browseChildren(UA_NodeId& nodeId, NodeIdMap& m)
     \param tree
     \return
 */
-bool Open62541::Client::browseTree(Open62541::NodeId& nodeId, Open62541::UANodeTree& tree)
+void Open62541::Client::browseTree(const Open62541::NodeId& nodeId, Open62541::UANodeTree& tree)
 {
     // form a heirachical tree of nodes given node is added to tree
     tree.root().setData(nodeId);  // set the root of the tree
-    return browseTree(nodeId.get(), tree.rootNode());
+    browseTree(nodeId.get(), tree.rootNode());
 }
 
 /*!
@@ -148,37 +145,33 @@ bool Open62541::Client::browseTree(Open62541::NodeId& nodeId, Open62541::UANodeT
     \param node
     \return
 */
-bool Open62541::Client::browseTree(UA_NodeId& nodeId, Open62541::UANode* node)
+void Open62541::Client::browseTree(const UA_NodeId& nodeId, Open62541::UANode* node)
 {
     // form a heirachical tree of nodes
-    if (_client) {
-        Open62541::UANodeIdList l;
-        {
-            WriteLock ll(mutex());
-            UA_Client_forEachChildNodeCall(_client, nodeId, browseTreeCallBack, &l);  // get the childlist
-        }
-        for (int i = 0; i < int(l.size()); i++) {
-            if (l[i].namespaceIndex > 0) {
-                QualifiedName outBrowseName;
-                {
-                    WriteLock ll(mutex());
-                    _lastError = __UA_Client_readAttribute(_client,
+    Open62541::UANodeIdList l;
+    {
+        WriteLock ll(mutex());
+        UA_Client_forEachChildNodeCall(client_or_throw(), nodeId, browseTreeCallBack, &l);  // get the childlist
+    }
+    for (int i = 0; i < int(l.size()); i++) {
+        if (l[i].namespaceIndex > 0) {
+            QualifiedName outBrowseName;
+            {
+                WriteLock ll(mutex());
+                throw_bad_status(__UA_Client_readAttribute(client_or_throw(),
                                                            &l[i],
                                                            UA_ATTRIBUTEID_BROWSENAME,
                                                            outBrowseName,
-                                                           &UA_TYPES[UA_TYPES_QUALIFIEDNAME]);
-                }
-                if (lastOK()) {
-                    std::string s = toString(outBrowseName.get().name);  // get the browse name and leaf key
-                    NodeId nId    = l[i];                                // deep copy
-                    UANode* n     = node->createChild(s);                // create the node
-                    n->setData(nId);
-                    browseTree(l[i], n);
-                }
+                                                           &UA_TYPES[UA_TYPES_QUALIFIEDNAME]));
             }
+
+            std::string s = toString(outBrowseName.get().name);  // get the browse name and leaf key
+            NodeId nId    = l[i];                                // deep copy
+            UANode* n     = node->createChild(s);                // create the node
+            n->setData(nId);
+            browseTree(l[i], n);
         }
     }
-    return lastOK();
 }
 
 /*!
@@ -187,10 +180,10 @@ bool Open62541::Client::browseTree(UA_NodeId& nodeId, Open62541::UANode* node)
     \param tree
     \return
 */
-bool Open62541::Client::browseTree(NodeId& nodeId, NodeIdMap& m)
+void Open62541::Client::browseTree(const NodeId& nodeId, NodeIdMap& m)
 {
     m.put(nodeId);
-    return browseChildren(nodeId, m);
+    browseChildren(nodeId, m);
 }
 
 /*!
@@ -199,27 +192,21 @@ bool Open62541::Client::browseTree(NodeId& nodeId, NodeIdMap& m)
     \param list
     \return
 */
-UA_StatusCode Open62541::Client::getEndpoints(const std::string& serverUrl, std::vector<std::string>& list)
+void Open62541::Client::getEndpoints(const std::string& serverUrl, std::vector<std::string>& list)
 {
-    if (_client) {
-        UA_EndpointDescription* endpointDescriptions = nullptr;
-        size_t endpointDescriptionsSize              = 0;
+    UA_EndpointDescription* endpointDescriptions = nullptr;
+    size_t endpointDescriptionsSize              = 0;
 
-        {
-            WriteLock l(_mutex);
-            _lastError =
-                UA_Client_getEndpoints(_client, serverUrl.c_str(), &endpointDescriptionsSize, &endpointDescriptions);
-        }
-        if (_lastError == UA_STATUSCODE_GOOD) {
-            for (int i = 0; i < int(endpointDescriptionsSize); i++) {
-
-                list.push_back(toString(endpointDescriptions[i].endpointUrl));
-            }
-        }
-        return _lastError;
+    {
+        WriteLock l(_mutex);
+        throw_bad_status(UA_Client_getEndpoints(client_or_throw(),
+                                                serverUrl.c_str(),
+                                                &endpointDescriptionsSize,
+                                                &endpointDescriptions));
     }
-    throw std::runtime_error("Null client");
-    return 0;
+    for (int i = 0; i < int(endpointDescriptionsSize); i++) {
+        list.push_back(toString(endpointDescriptions[i].endpointUrl));
+    }
 }
 
 /*!
@@ -229,26 +216,27 @@ UA_StatusCode Open62541::Client::getEndpoints(const std::string& serverUrl, std:
     \param nodeId
     \return
 */
-bool Open62541::Client::nodeIdFromPath(NodeId& start, Path& path, NodeId& nodeId)
+void Open62541::Client::nodeIdFromPath(const NodeId& start, const Path& path, NodeId& nodeId)
 {
+    if (path.empty()) {
+        throw StringException("Node not found due to empty path.");
+    }
     // nodeId is a shallow copy - do not delete and is volatile
     UA_NodeId n = start.get();
 
     int level = 0;
-    if (path.size() > 0) {
-        Open62541::ClientBrowser b(*this);
-        while (level < int(path.size())) {
-            b.browse(n);
-            auto i = b.find(path[level]);
-            if (i == b.list().end())
-                return false;
-            level++;
-            n = (*i).childId;
-        }
-    }
 
+    Open62541::ClientBrowser b(*this);
+    while (level < int(path.size())) {
+        b.browse(n);
+        auto i = b.find(path[level]);
+        if (i == b.list().end()) {
+            throw StringException("Node not found");
+        }
+        level++;
+        n = (*i).childId;
+    }
     nodeId = n;  // deep copy
-    return level == int(path.size());
 }
 
 /*!
@@ -259,42 +247,40 @@ bool Open62541::Client::nodeIdFromPath(NodeId& start, Path& path, NodeId& nodeId
     \param nodeId
     \return
 */
-bool Open62541::Client::createFolderPath(NodeId& start, Path& path, int nameSpaceIndex, NodeId& nodeId)
+void Open62541::Client::createFolderPath(const NodeId& start, const Path& path, int nameSpaceIndex, NodeId& nodeId)
 {
+    if (path.empty()) {
+        return;
+    }
     //
     // create folder path first then add varaibles to path's end leaf
     //
     UA_NodeId n = start.get();
     //
     int level = 0;
-    if (path.size() > 0) {
-        Open62541::ClientBrowser b(*this);
+    Open62541::ClientBrowser b(*this);
+    while (level < int(path.size())) {
+        b.browse(n);
+        auto i = b.find(path[level]);
+        if (i == b.list().end()) {
+            break;
+        }
+        level++;
+        n = (*i).childId;  // shallow copy
+    }
+    if (level == int(path.size())) {
+        nodeId = n;
+    }
+    else {
+        NodeId nf(nameSpaceIndex, 0);  // auto generate NODE id
+        nodeId = n;
+        NodeId newNode;
         while (level < int(path.size())) {
-            b.browse(n);
-            auto i = b.find(path[level]);
-            if (i == b.list().end())
-                break;
+            addFolder(nodeId, path[level], nf, newNode.notNull(), nameSpaceIndex);
+            nodeId = newNode;  // assign
             level++;
-            n = (*i).childId;  // shallow copy
-        }
-        if (level == int(path.size())) {
-            nodeId = n;
-        }
-        else {
-            NodeId nf(nameSpaceIndex, 0);  // auto generate NODE id
-            nodeId = n;
-            NodeId newNode;
-            while (level < int(path.size())) {
-                addFolder(nodeId, path[level], nf, newNode.notNull(), nameSpaceIndex);
-                if (!lastOK()) {
-                    break;
-                }
-                nodeId = newNode;  // assign
-                level++;
-            }
         }
     }
-    return level == int(path.size());
 }
 
 /*!
@@ -303,11 +289,11 @@ bool Open62541::Client::createFolderPath(NodeId& start, Path& path, int nameSpac
     \param childName
     \return
 */
-bool Open62541::Client::getChild(NodeId& start, const std::string& childName, NodeId& ret)
+void Open62541::Client::getChild(const NodeId& start, const std::string& childName, NodeId& ret)
 {
     Path p;
     p.push_back(childName);
-    return nodeIdFromPath(start, p, ret);
+    nodeIdFromPath(start, p, ret);
 }
 
 /*!
@@ -317,34 +303,31 @@ bool Open62541::Client::getChild(NodeId& start, const std::string& childName, No
     \param childName
     \return
 */
-bool Open62541::Client::addFolder(NodeId& parent,
+void Open62541::Client::addFolder(const NodeId& parent,
                                   const std::string& childName,
-                                  NodeId& nodeId,
+                                  const NodeId& nodeId,
                                   NodeId& newNode,
                                   int nameSpaceIndex)
 {
-    if (!_client)
-        return false;
     WriteLock l(_mutex);
     //
-    if (nameSpaceIndex == 0)
+    if (nameSpaceIndex == 0) {
         nameSpaceIndex = parent.nameSpaceIndex();  // inherit parent by default
+    }
     //
     QualifiedName qn(nameSpaceIndex, childName);
     ObjectAttributes attr;
     attr.setDisplayName(childName);
     attr.setDescription(childName);
     //
-    _lastError = UA_Client_addObjectNode(_client,
-                                         nodeId,
-                                         parent,
-                                         NodeId::Organizes,
-                                         qn,
-                                         NodeId::FolderType,
-                                         attr.get(),
-                                         newNode.isNull() ? nullptr : newNode.ref());
-
-    return lastOK();
+    throw_bad_status(UA_Client_addObjectNode(client_or_throw(),
+                                             nodeId,
+                                             parent,
+                                             NodeId::Organizes,
+                                             qn,
+                                             NodeId::FolderType,
+                                             attr.get(),
+                                             newNode.isNull() ? nullptr : newNode.ref()));
 }
 
 /*!
@@ -354,33 +337,30 @@ bool Open62541::Client::addFolder(NodeId& parent,
     \param childName
     \return
 */
-bool Open62541::Client::addVariable(NodeId& parent,
+void Open62541::Client::addVariable(const NodeId& parent,
                                     const std::string& childName,
-                                    Variant& value,
-                                    NodeId& nodeId,
+                                    const Variant& value,
+                                    const NodeId& nodeId,
                                     NodeId& newNode,
                                     int nameSpaceIndex)
 {
-    if (!_client)
-        return false;
     WriteLock l(_mutex);
-    if (nameSpaceIndex == 0)
+    if (nameSpaceIndex == 0) {
         nameSpaceIndex = parent.nameSpaceIndex();  // inherit parent by default
+    }
     VariableAttributes var_attr;
     QualifiedName qn(nameSpaceIndex, childName);
     var_attr.setDisplayName(childName);
     var_attr.setDescription(childName);
     var_attr.setValue(value);
-    _lastError = UA_Client_addVariableNode(_client,
-                                           nodeId,  // Assign new/random NodeID
-                                           parent,
-                                           NodeId::Organizes,
-                                           qn,
-                                           UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),  // no variable type
-                                           var_attr,
-                                           newNode.isNull() ? nullptr : newNode.ref());
-
-    return lastOK();
+    throw_bad_status(UA_Client_addVariableNode(client_or_throw(),
+                                               nodeId,  // Assign new/random NodeID
+                                               parent,
+                                               NodeId::Organizes,
+                                               qn,
+                                               UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),  // no variable type
+                                               var_attr,
+                                               newNode.isNull() ? nullptr : newNode.ref()));
 }
 
 /*!
@@ -392,32 +372,30 @@ bool Open62541::Client::addVariable(NodeId& parent,
  * \param newNode
  * \return
  */
-bool Open62541::Client::addProperty(NodeId& parent,
+void Open62541::Client::addProperty(const NodeId& parent,
                                     const std::string& key,
-                                    Variant& value,
-                                    NodeId& nodeId,
+                                    const Variant& value,
+                                    const NodeId& nodeId,
                                     NodeId& newNode,
                                     int nameSpaceIndex)
 {
-    if (!_client)
-        return false;
     WriteLock l(_mutex);
-    if (nameSpaceIndex == 0)
+    if (nameSpaceIndex == 0) {
         nameSpaceIndex = parent.nameSpaceIndex();  // inherit parent by default
+    }
     VariableAttributes var_attr;
     QualifiedName qn(nameSpaceIndex, key);
     var_attr.setDisplayName(key);
     var_attr.setDescription(key);
     var_attr.setValue(value);
-    _lastError = UA_Client_addVariableNode(_client,
-                                           nodeId,  // Assign new/random NodeID
-                                           parent,
-                                           UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY),
-                                           qn,
-                                           UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),  // no variable type
-                                           var_attr,
-                                           newNode.isNull() ? nullptr : newNode.ref());
-    return lastOK();
+    throw_bad_status(UA_Client_addVariableNode(client_or_throw(),
+                                               nodeId,  // Assign new/random NodeID
+                                               parent,
+                                               UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY),
+                                               qn,
+                                               UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),  // no variable type
+                                               var_attr,
+                                               newNode.isNull() ? nullptr : newNode.ref()));
 }
 
 /*!
@@ -435,71 +413,69 @@ void Open62541::Client::stateChange(UA_SecureChannelState channelState,
     _sessionState  = sessionState;
     _connectStatus = connectStatus;
 
-    if (!connectStatus) {
-        if (_lastSessionState != sessionState) {
-            switch (sessionState) {
-                case UA_SESSIONSTATE_CLOSED:
-                    SessionStateClosed();
-
-                    break;
-                case UA_SESSIONSTATE_CREATE_REQUESTED:
-                    SessionStateCreateRequested();
-
-                    break;
-                case UA_SESSIONSTATE_CREATED:
-                    SessionStateCreated();
-
-                    break;
-                case UA_SESSIONSTATE_ACTIVATE_REQUESTED:
-                    SessionStateActivateRequested();
-                    break;
-                case UA_SESSIONSTATE_ACTIVATED:
-                    SessionStateActivated();
-                    break;
-                case UA_SESSIONSTATE_CLOSING:
-                    SessionStateClosing();
-                    break;
-                default:
-                    break;
-            }
-            _lastSessionState = sessionState;
-        }
-
-        if (_lastSecureChannelState != channelState) {
-
-            switch (channelState) {
-                case UA_SECURECHANNELSTATE_CLOSED:
-                    SecureChannelStateClosed();
-                    break;
-                case UA_SECURECHANNELSTATE_HEL_SENT:
-                    SecureChannelStateHelSent();
-                    break;
-                case UA_SECURECHANNELSTATE_HEL_RECEIVED:
-                    SecureChannelStateHelReceived();
-                    break;
-                case UA_SECURECHANNELSTATE_ACK_SENT:
-                    SecureChannelStateAckSent();
-                    break;
-                case UA_SECURECHANNELSTATE_ACK_RECEIVED:
-                    SecureChannelStateAckReceived();
-                    break;
-                case UA_SECURECHANNELSTATE_OPN_SENT:
-                    SecureChannelStateOpenSent();
-                    break;
-                case UA_SECURECHANNELSTATE_OPEN:
-                    SecureChannelStateOpen();
-                    break;
-                case UA_SECURECHANNELSTATE_CLOSING:
-                    SecureChannelStateClosing();
-                    break;
-                default:
-                    break;
-            }
-            _lastSecureChannelState = channelState;
-        }
-    }
-    else {
-        _lastError = connectStatus;
+    if (connectStatus != 0u) {
         connectFail();
+    }
+
+    if (_lastSessionState != sessionState) {
+        switch (sessionState) {
+            case UA_SESSIONSTATE_CLOSED:
+                SessionStateClosed();
+
+                break;
+            case UA_SESSIONSTATE_CREATE_REQUESTED:
+                SessionStateCreateRequested();
+
+                break;
+            case UA_SESSIONSTATE_CREATED:
+                SessionStateCreated();
+
+                break;
+            case UA_SESSIONSTATE_ACTIVATE_REQUESTED:
+                SessionStateActivateRequested();
+                break;
+            case UA_SESSIONSTATE_ACTIVATED:
+                SessionStateActivated();
+                break;
+            case UA_SESSIONSTATE_CLOSING:
+                SessionStateClosing();
+                break;
+            default:
+                break;
+        }
+        _lastSessionState = sessionState;
+    }
+
+    if (_lastSecureChannelState != channelState) {
+
+        switch (channelState) {
+            case UA_SECURECHANNELSTATE_CLOSED:
+                SecureChannelStateClosed();
+                break;
+            case UA_SECURECHANNELSTATE_HEL_SENT:
+                SecureChannelStateHelSent();
+                break;
+            case UA_SECURECHANNELSTATE_HEL_RECEIVED:
+                SecureChannelStateHelReceived();
+                break;
+            case UA_SECURECHANNELSTATE_ACK_SENT:
+                SecureChannelStateAckSent();
+                break;
+            case UA_SECURECHANNELSTATE_ACK_RECEIVED:
+                SecureChannelStateAckReceived();
+                break;
+            case UA_SECURECHANNELSTATE_OPN_SENT:
+                SecureChannelStateOpenSent();
+                break;
+            case UA_SECURECHANNELSTATE_OPEN:
+                SecureChannelStateOpen();
+                break;
+            case UA_SECURECHANNELSTATE_CLOSING:
+                SecureChannelStateClosing();
+                break;
+            default:
+                break;
+        }
+        _lastSecureChannelState = channelState;
     }
 }

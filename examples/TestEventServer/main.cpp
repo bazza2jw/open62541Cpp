@@ -35,29 +35,15 @@ void TestServer::initialise()
     //
     Open62541::NodeId newFolder(_idx, "ServerMethodItem");
     //
-    if (addFolder(Open62541::NodeId::Objects, "ServerMethodItem", newFolder, Open62541::NodeId::Null)) {
-        //
-        Open62541::NodeId nodeNumber(_idx, "Number_Value");
-        Open62541::Variant numberValue(1);
-        //
-        if (!addVariable(Open62541::NodeId::Objects,
-                         "Number_Value",
-                         numberValue,
-                         nodeNumber,
-                         Open62541::NodeId::Null)) {
-            cout << "Failed to create Number Value Node " << endl;
-        }
+    addFolder(Open62541::NodeId::Objects, "ServerMethodItem", newFolder, Open62541::NodeId::Null);
+    //
+    Open62541::NodeId nodeNumber(_idx, "Number_Value");
+    Open62541::Variant numberValue(1);
+    //
+    addVariable(Open62541::NodeId::Objects, "Number_Value", numberValue, nodeNumber, Open62541::NodeId::Null);
 
-        Open62541::NodeId methodId(_idx, "EventTrigger");
-        if (_method
-                .addServerMethod(*this, "TestEventTriggerMethod", newFolder, methodId, Open62541::NodeId::Null, _idx)) {
-            cout << "Added TestMethod - Event Trigger Method - call from client (e.g. UAExpert)" << endl;
-        }
-        else {
-            cout << "Failed to add method "
-                 << " " << UA_StatusCode_name(lastError()) << endl;
-        }
-    }
+    Open62541::NodeId methodId(_idx, "EventTrigger");
+    _method.addServerMethod(*this, "TestEventTriggerMethod", newFolder, methodId, Open62541::NodeId::Null, _idx);
 }
 
 /*!

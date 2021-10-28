@@ -51,7 +51,6 @@ public:
                                         UA_Variant* output);
 
 protected:
-    UA_StatusCode _lastError;
     MethodFunc _func;  // lambda
 public:
     /*!
@@ -105,11 +104,6 @@ public:
 
         return UA_STATUSCODE_GOOD;
     }
-    /*!
-        \brief lastOK
-        \return
-    */
-    bool lastOK() { return _lastError == UA_STATUSCODE_GOOD; }
 
     /*!
      * \brief setMethodNodeCallBack
@@ -117,7 +111,7 @@ public:
      * \param node
      * \return
      */
-    bool setMethodNodeCallBack(Open62541::Server& s, Open62541::NodeId& node);
+    static void setMethodNodeCallBack(Open62541::Server& s, const Open62541::NodeId& node);
 
     /*!
      * \brief addServerMethod
@@ -128,10 +122,10 @@ public:
      * \param nameSpaceIndex
      * \return
      */
-    bool addServerMethod(Open62541::Server& s,
+    void addServerMethod(Open62541::Server& s,
                          const std::string& browseName,
-                         Open62541::NodeId& parent,
-                         Open62541::NodeId& nodeId,
+                         const Open62541::NodeId& parent,
+                         const Open62541::NodeId& nodeId,
                          Open62541::NodeId& newNode = NodeId::Null,
                          int nameSpaceIndex         = 0);
 };

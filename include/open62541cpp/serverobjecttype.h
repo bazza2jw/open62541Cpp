@@ -33,7 +33,7 @@ public:
         \brief ServerObjectType
         \param s
     */
-    ServerObjectType(Server& s, const std::string& n);
+    ServerObjectType(Server& s, std::string n);
     /*!
         \brief ~ServerObjectType
     */
@@ -71,7 +71,7 @@ public:
         \param typeId
         \return
     */
-    bool addBaseObjectType(const std::string& n,
+    void addBaseObjectType(const std::string& n,
                            const NodeId& requestNodeId = NodeId::Null,
                            NodeContext* context        = nullptr);
     /*!
@@ -83,7 +83,7 @@ public:
         \return
     */
     template <typename T>
-    bool addObjectTypeVariable(const std::string& n,
+    void addObjectTypeVariable(const std::string& n,
                                const NodeId& parent,
                                NodeId& nodeId              = NodeId::Null,
                                NodeContext* context        = nullptr,
@@ -106,36 +106,32 @@ public:
         NodeId newNode;
         newNode.notNull();
         //
-        if (_server.addVariableNode(requestNodeId,
-                                    parent,
-                                    NodeId::HasComponent,
-                                    qn,
-                                    NodeId::BaseDataVariableType,
-                                    var_attr,
-                                    newNode,
-                                    context)) {
-            if (mandatory) {
-                return _server.addReference(newNode,
-                                            NodeId::HasModellingRule,
-                                            ExpandedNodeId::ModellingRuleMandatory,
-                                            true);
-            }
-            if (!nodeId.isNull())
-                nodeId = newNode;
-            return true;
+        _server.addVariableNode(requestNodeId,
+                                parent,
+                                NodeId::HasComponent,
+                                qn,
+                                NodeId::BaseDataVariableType,
+                                var_attr,
+                                newNode,
+                                context);
+        if (mandatory) {
+            return _server.addReference(newNode,
+                                        NodeId::HasModellingRule,
+                                        ExpandedNodeId::ModellingRuleMandatory,
+                                        true);
         }
-        UAPRINTLASTERROR(_server.lastError())
-        return false;
+        if (!nodeId.isNull())
+            nodeId = newNode;
     }
 
     //=========feat:addObjectTypeArrayVariable============//
     template <typename T, size_t size_array>
-    bool addObjectTypeArrayVariable(const std::string& n,
-                               const NodeId& parent,
-                               NodeId& nodeId              = NodeId::Null,
-                               NodeContext* context        = nullptr,
-                               const NodeId& requestNodeId = NodeId::Null,  // usually want auto generated ids
-                               bool mandatory              = true)
+    void addObjectTypeArrayVariable(const std::string& n,
+                                    const NodeId& parent,
+                                    NodeId& nodeId              = NodeId::Null,
+                                    NodeContext* context        = nullptr,
+                                    const NodeId& requestNodeId = NodeId::Null,  // usually want auto generated ids
+                                    bool mandatory              = true)
     {
         T a[size_array]{};
         T type{};
@@ -155,29 +151,22 @@ public:
         NodeId newNode;
         newNode.notNull();
         //
-        if (_server.addVariableNode(requestNodeId,
-                                    parent,
-                                    NodeId::HasComponent,
-                                    qn,
-                                    NodeId::BaseDataVariableType,
-                                    var_attr,
-                                    newNode,
-                                    context)) {
-            if (mandatory) {
-                return _server.addReference(newNode,
-                                            NodeId::HasModellingRule,
-                                            ExpandedNodeId::ModellingRuleMandatory,
-                                            true);
-            }
-            if (!nodeId.isNull())
-                nodeId = newNode;
-            return true;
+        _server.addVariableNode(requestNodeId,
+                                parent,
+                                NodeId::HasComponent,
+                                qn,
+                                NodeId::BaseDataVariableType,
+                                var_attr,
+                                newNode,
+                                context);
+        if (mandatory) {
+            _server.addReference(newNode, NodeId::HasModellingRule, ExpandedNodeId::ModellingRuleMandatory, true);
         }
-        UAPRINTLASTERROR(_server.lastError())
-        return false;
+        if (!nodeId.isNull())
+            nodeId = newNode;
     }
 
-    bool addObjectTypeFolder(const std::string& childName,
+    void addObjectTypeFolder(const std::string& childName,
                              const NodeId& parent,
                              NodeId& nodeId,
                              NodeId& requestNodeId = NodeId::Null,
@@ -186,18 +175,15 @@ public:
         NodeId newNode;
         newNode.notNull();
 
-        if (_server.addFolder(parent, childName, newNode, requestNodeId)) {
-            if (mandatory) {
-                return _server.addReference(newNode,
-                                            NodeId::HasModellingRule,
-                                            ExpandedNodeId::ModellingRuleMandatory,
-                                            true);
-            }
-            if (!nodeId.isNull())
-                nodeId = newNode;
-            return true;
+        _server.addFolder(parent, childName, newNode, requestNodeId);
+        if (mandatory) {
+            return _server.addReference(newNode,
+                                        NodeId::HasModellingRule,
+                                        ExpandedNodeId::ModellingRuleMandatory,
+                                        true);
         }
-        return false;
+        if (!nodeId.isNull())
+            nodeId = newNode;
     }
 
     /*!
@@ -209,7 +195,7 @@ public:
         \return
     */
     template <typename T>
-    bool addHistoricalObjectTypeVariable(const std::string& n,
+    void addHistoricalObjectTypeVariable(const std::string& n,
                                          const NodeId& parent,
                                          NodeId& nodeId        = NodeId::Null,
                                          NodeContext* context  = nullptr,
@@ -235,27 +221,20 @@ public:
         NodeId newNode;
         newNode.notNull();
         //
-        if (_server.addVariableNode(requestNodeId,
-                                    parent,
-                                    NodeId::HasComponent,
-                                    qn,
-                                    NodeId::BaseDataVariableType,
-                                    var_attr,
-                                    newNode,
-                                    context)) {
-            if (mandatory) {
-                return _server.addReference(newNode,
-                                            NodeId::HasModellingRule,
-                                            ExpandedNodeId::ModellingRuleMandatory,
-                                            true);
-            }
-            if (!nodeId.isNull()) {
-                nodeId = newNode;
-            }
-            return true;
+        _server.addVariableNode(requestNodeId,
+                                parent,
+                                NodeId::HasComponent,
+                                qn,
+                                NodeId::BaseDataVariableType,
+                                var_attr,
+                                newNode,
+                                context);
+        if (mandatory) {
+            _server.addReference(newNode, NodeId::HasModellingRule, ExpandedNodeId::ModellingRuleMandatory, true);
         }
-        UAPRINTLASTERROR(_server.lastError())
-        return false;
+        if (!nodeId.isNull()) {
+            nodeId = newNode;
+        }
     }
 
     /*!
@@ -263,12 +242,12 @@ public:
         \param n1
         \return
     */
-    bool setMandatory(const NodeId& n1)
+    void setMandatory(const NodeId& n1)
     {
-        return _server.addReference(n1,
-                                    Open62541::NodeId::HasModellingRule,
-                                    Open62541::ExpandedNodeId::ModellingRuleMandatory,
-                                    true) == UA_STATUSCODE_GOOD;
+        _server.addReference(n1,
+                             Open62541::NodeId::HasModellingRule,
+                             Open62541::ExpandedNodeId::ModellingRuleMandatory,
+                             true);
     }
 
     /*!
@@ -279,7 +258,7 @@ public:
         \param typeId
         \return
     */
-    bool addDerivedObjectType(const std::string& n,
+    void addDerivedObjectType(const std::string& n,
                               const NodeId& parent,
                               NodeId& typeId,
                               const NodeId& requestNodeId = NodeId::Null,
@@ -288,21 +267,21 @@ public:
         \brief addChildren
         \return
     */
-    virtual bool addChildren(const NodeId& /*parent*/) { return true; }
+    virtual void addChildren(const NodeId& /*parent*/) = 0;
     /*!
         \brief addType
         \param server
         \param baseId
         \return
     */
-    virtual bool addType(const NodeId& nodeId);  // base node of type
+    virtual void addType(const NodeId& nodeId);  // base node of type
     /*!
         \brief append
         \param parent
         \param nodeId
         \return
     */
-    virtual bool append(const NodeId& parent,
+    virtual void append(const NodeId& parent,
                         NodeId& nodeId,
                         const NodeId& requestNodeId = NodeId::Null);  // derived type
     /*!
@@ -312,7 +291,7 @@ public:
         \param nodeId
         \return
     */
-    virtual bool addInstance(const std::string& n,
+    virtual void addInstance(const std::string& n,
                              const NodeId& parent,
                              NodeId& nodeId,
                              const NodeId& requestNodeId = NodeId::Null,

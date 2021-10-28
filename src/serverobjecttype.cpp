@@ -11,19 +11,21 @@
  */
 #include <open62541cpp/serverobjecttype.h>
 
+#include <utility>
+
 /*!
        \brief Open62541::ServerObjectType::ServerObjectType
        \param n
 */
-Open62541::ServerObjectType::ServerObjectType(Server& s, const std::string& n)
+Open62541::ServerObjectType::ServerObjectType(Server& s, std::string n)
     : _server(s)
-    , _name(n)
+    , _name(std::move(n))
 {
 }
 /*!
     \brief ~ServerObjectType
 */
-Open62541::ServerObjectType::~ServerObjectType() {}
+Open62541::ServerObjectType::~ServerObjectType() = default;
 
 /*!
     \brief addBaseObjectType
@@ -31,7 +33,7 @@ Open62541::ServerObjectType::~ServerObjectType() {}
     \param typeId
     \return
 */
-bool Open62541::ServerObjectType::addBaseObjectType(const std::string& n,
+void Open62541::ServerObjectType::addBaseObjectType(const std::string& n,
                                                     const NodeId& requestNodeId,
                                                     NodeContext* context)
 {
@@ -39,8 +41,7 @@ bool Open62541::ServerObjectType::addBaseObjectType(const std::string& n,
     QualifiedName qn(_nameSpace, n);
     dtAttr.setDisplayName(n);
     _typeId.notNull();
-    return _server
-        .addObjectTypeNode(requestNodeId, NodeId::BaseObjectType, NodeId::HasSubType, qn, dtAttr, _typeId, context);
+    _server.addObjectTypeNode(requestNodeId, NodeId::BaseObjectType, NodeId::HasSubType, qn, dtAttr, _typeId, context);
 }
 
 /*!
@@ -50,7 +51,7 @@ bool Open62541::ServerObjectType::addBaseObjectType(const std::string& n,
     \param typeId
     \return
 */
-bool Open62541::ServerObjectType::addDerivedObjectType(const std::string& n,
+void Open62541::ServerObjectType::addDerivedObjectType(const std::string& n,
                                                        const NodeId& parent,
                                                        NodeId& typeId,
                                                        const NodeId& requestNodeId,
@@ -60,7 +61,7 @@ bool Open62541::ServerObjectType::addDerivedObjectType(const std::string& n,
     ptAttr.setDisplayName(n);
     QualifiedName qn(_nameSpace, n);
     //
-    return _server.addObjectTypeNode(requestNodeId, parent, NodeId::HasSubType, qn, ptAttr, typeId, context);
+    _server.addObjectTypeNode(requestNodeId, parent, NodeId::HasSubType, qn, ptAttr, typeId, context);
 }
 
 /*!
@@ -69,12 +70,10 @@ bool Open62541::ServerObjectType::addDerivedObjectType(const std::string& n,
     \param baseId
     \return
 */
-bool Open62541::ServerObjectType::addType(const NodeId& nodeId)
+void Open62541::ServerObjectType::addType(const NodeId& nodeId)
 {  // base node of type
-    if (addBaseObjectType(_name, nodeId)) {
-        return addChildren(_typeId);
-    }
-    return false;
+    addBaseObjectType(_name, nodeId);
+    addChildren(_typeId);
 }
 
 /*!
@@ -84,12 +83,10 @@ bool Open62541::ServerObjectType::addType(const NodeId& nodeId)
     \param nodeId
     \return
 */
-bool Open62541::ServerObjectType::append(const NodeId& parent, NodeId& nodeId, const NodeId& requestNodeId)
+void Open62541::ServerObjectType::append(const NodeId& parent, NodeId& nodeId, const NodeId& requestNodeId)
 {  // derived type - returns node id of append type
-    if (addDerivedObjectType(_name, parent, nodeId, requestNodeId)) {
-        return addChildren(nodeId);
-    }
-    return false;
+    addDerivedObjectType(_name, parent, nodeId, requestNodeId);
+    addChildren(nodeId);
 }
 
 /*!
@@ -99,13 +96,11 @@ bool Open62541::ServerObjectType::append(const NodeId& parent, NodeId& nodeId, c
     \param nodeId
     \return
 */
-bool Open62541::ServerObjectType::addInstance(const std::string& n,
+void Open62541::ServerObjectType::addInstance(const std::string& n,
                                               const NodeId& parent,
                                               NodeId& nodeId,
                                               const NodeId& requestNodeId,
                                               NodeContext* context)
 {
-    bool ret = _server.addInstance(n, requestNodeId, parent, _typeId, nodeId, context);
-    UAPRINTLASTERROR(_server.lastError());
-    return ret;
+    _server.addInstance(n, requestNodeId, parent, _typeId, nodeId, context);
 }
