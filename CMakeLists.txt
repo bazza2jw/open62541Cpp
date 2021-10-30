@@ -29,8 +29,8 @@ set(CPACK_PACKAGE_VERSION_PATCH ${VERSION_PATCH})
 ## --- Build options ---
 set(BUILD_EXAMPLES FALSE CACHE BOOL "Build example programs")
 
-## --- C++14 build flags ---
-set(CMAKE_CXX_STANDARD 14)
+## --- C++17 build flags ---
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
 set(INCLUDE_INSTALL_DIR include)

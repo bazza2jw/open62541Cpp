@@ -3,23 +3,26 @@
 # cmake .. -DCMAKE_TOOLCHAIN_FILE=rpi.cmake
 #
 # Define our host system
-set(BOOST_DEBUG ON)
+set(BOOST_DEBUG OFF)
 SET(CMAKE_SYSTEM_NAME Linux)
 SET(CMAKE_SYSTEM_VERSION 1)
 # Adjust to suit actual environment
-SET(DEVROOT $ENV{HOME}/Work)
+#
+SET(DEVROOT ${CMAKE_CURRENT_SOURCE_DIR})
 # where the sysroot is
-SET(PIROOT ${DEVROOT}/opt/Rpi2)
+SET(PIROOT /Development/sysroot)
 # where the development tools are
-SET(PITOOLS $ENV{HOME}/x-tools/arm-rpi-linux-gnueabihf/bin)
+SET(PITOOLS /usr/bin)
+set(CMAKE_INSTALL_PREFIX ${PIROOT}/usr/local)
+set(OPENSSL_ROOT_DIR ${PIROOT}/usr/lib/ssl)
 #
 # Define the cross compiler locations
-SET(CMAKE_C_COMPILER   ${PITOOLS}/arm-linux-gnueabihf-gcc)
-SET(CMAKE_CXX_COMPILER ${PITOOLS}/arm-linux-gnueabihf-g++)
-set(CMAKE_CXX_STANDARD 14)
+SET(CMAKE_C_COMPILER   ${PITOOLS}/arm-linux-gnueabihf-gcc-8)
+SET(CMAKE_CXX_COMPILER ${PITOOLS}/arm-linux-gnueabihf-g++-8)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-SET(CMAKE_C_FLAGS "-march=armv8-a -mtune=cortex-a53 -mfpu=crypto-neon-fp-armv8 ${CMAKE_C_FLAGS}")
+SET(CMAKE_C_FLAGS "-march=armv8-a -mtune=cortex-a53 -mfpu=crypto-neon-fp-armv8 ${CMAKE_C_FLAGS} "  )
 SET(CMAKE_CXX_FLAGS "-march=armv8-a -mtune=cortex-a53 -mfpu=crypto-neon-fp-armv8 ${CMAKE_CXX_FLAGS}")
 
 # Define the sysroot path for the RaspberryPi distribution in our tools folder
