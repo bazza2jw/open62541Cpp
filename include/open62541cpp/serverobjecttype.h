@@ -267,9 +267,7 @@ public:
         \brief addChildren
         \return
     */
-    virtual void addChildren(const NodeId& /*parent*/) {
-        throw std::logic_error("addChildren not implemented");
-    };
+    virtual void addChildren(const NodeId& /*parent*/) { throw std::logic_error("addChildren not implemented"); };
     /*!
         \brief addType
         \param server

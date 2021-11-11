@@ -338,6 +338,7 @@ public:
             _config->nodeLifecycle.constructor = constructor;  // set up the node global lifecycle
             _config->nodeLifecycle.destructor  = destructor;
         }
+        _serverMap[_server] = this;  // map for call backs
     }
 
     /*!
@@ -367,6 +368,10 @@ public:
         if (_server) {
             WriteLock l(_mutex);
             terminate();
+
+            UA_Server_delete(_server);
+            _serverMap.erase(_server);
+            _server = nullptr;
         }
     }
 
