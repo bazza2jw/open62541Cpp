@@ -55,14 +55,12 @@ Open62541::ServerRepeatedCallback::ServerRepeatedCallback(Server& s,
     \brief Open62541::ServerRepeatedCallback::start
     \return
 */
-bool Open62541::ServerRepeatedCallback::start()
+void Open62541::ServerRepeatedCallback::start()
 {
     if ((_id == 0) && _server.server()) {
         WriteLock l(_server.mutex());
-        _lastError = UA_Server_addRepeatedCallback(_server.server(), callbackFunction, this, _interval, &_id);
-        return lastOK();
+        throw_bad_status(UA_Server_addRepeatedCallback(_server.server(), callbackFunction, this, _interval, &_id));
     }
-    return false;
 }
 
 /*!
@@ -70,14 +68,12 @@ bool Open62541::ServerRepeatedCallback::start()
     \param i
     \return
 */
-bool Open62541::ServerRepeatedCallback::changeInterval(unsigned i)
+void Open62541::ServerRepeatedCallback::changeInterval(unsigned i)
 {
     if ((_id != 0) && _server.server()) {
         WriteLock l(_server.mutex());
-        _lastError = UA_Server_changeRepeatedCallbackInterval(_server.server(), _id, i);
-        return lastOK();
+        throw_bad_status(UA_Server_changeRepeatedCallbackInterval(_server.server(), _id, i));
     }
-    return false;
 }
 
 /*  Remove a repeated callback.

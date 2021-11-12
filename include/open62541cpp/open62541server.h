@@ -326,18 +326,29 @@ public:
 public:
     /*!
         \brief Server
+        @param config Server configuration used for the server instance.
+            If set to nullptr, a default configuration is generated.
+            The config is not copied, therefore, the parent code must ensure the lifetime of the config pointer.
     */
-    Server()
+    Server(UA_ServerConfig *config = nullptr)
     {
-        _server = UA_Server_new();
-        if (!_server)
-            throw StringException("Could not create new server instance");
-        _config = UA_Server_getConfig(_server);
-        if (_config) {
+        if (config != nullptr) {
+            _server = UA_Server_newWithConfig(config);
+            if (_server == nullptr)
+                throw StringException("Could not create new server instance");
+            _config = config;
+        } else {
+            _server = UA_Server_new();
+            if (_server == nullptr)
+                throw StringException("Could not create new server instance");
+            _config = UA_Server_getConfig(_server);
+            if (_config == nullptr)
+                throw StringException("Could not get configuration of server instance");
             UA_ServerConfig_setDefault(_config);
-            _config->nodeLifecycle.constructor = constructor;  // set up the node global lifecycle
-            _config->nodeLifecycle.destructor  = destructor;
         }
+        _config->nodeLifecycle.constructor = constructor;  // set up the node global lifecycle
+        _config->nodeLifecycle.destructor  = destructor;
+        _serverMap[_server] = this;  // map for call backs
     }
 
     /*!
@@ -367,6 +378,10 @@ public:
         if (_server) {
             WriteLock l(_mutex);
             terminate();
+
+            UA_Server_delete(_server);
+            _serverMap.erase(_server);
+            _server = nullptr;
         }
     }
 

@@ -76,9 +76,7 @@ void TestServer::initialise()
     Open62541::Variant v("A String Value");
     addVariable(Open62541::NodeId::Objects, "String_Value", v, variable, Open62541::NodeId::Null, &_context);
     // attach value callbacks to this node
-    if (!_context.setValueCallback(*this, variable)) {
-        cout << "Failed to set value callback" << endl;
-    }
+    _context.setValueCallback(*this, variable);
 
     // Example adding an array by setting it with setArrayCopy
     Open62541::NodeId setArrayCopy_array_id(_idx, "Array_By_Copy");

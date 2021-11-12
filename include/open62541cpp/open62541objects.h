@@ -1401,8 +1401,8 @@ public:
         if (UA_StatusCode ret = UA_NodeId_copy(typeId.ref(), &get().referenceTypeId) != UA_STATUSCODE_GOOD) {
             throw std::runtime_error("copying NodeId name failed with " + std::string(UA_StatusCode_name(ret)));
         }
-        get().isInverse       = includeSubTypes;
-        get().includeSubtypes = inverse;
+        get().isInverse       = inverse;
+        get().includeSubtypes = includeSubTypes;
         if (UA_StatusCode ret = UA_QualifiedName_copy(item.ref(), &get().targetName) != UA_STATUSCODE_GOOD) {
             throw std::runtime_error("copying qualified name failed with " + std::string(UA_StatusCode_name(ret)));
         }
@@ -1414,7 +1414,55 @@ public:
 */
 class UA_EXPORT RelativePath : public TypeBase<UA_RelativePath, UA_TYPES_RELATIVEPATH>
 {
+private:
+    void set_element(size_t i, const ::Open62541::QualifiedName& qn, const NodeId& referenceTypeId)
+    {
+        UA_RelativePathElement& element = this->get().elements[i];
+        UA_RelativePathElement_init(&element);
+        element.includeSubtypes = false;
+        element.isInverse       = false;
+        throw_bad_status(UA_QualifiedName_copy(qn, &element.targetName));
+        throw_bad_status(UA_NodeId_copy(referenceTypeId, &element.referenceTypeId));
+    }
+
 public:
+    RelativePath()
+        : TypeBase(UA_RelativePath_new())
+    {
+    }
+
+    RelativePath(const ::std::vector<::Open62541::QualifiedName>& qualifiedNames)
+        : TypeBase(UA_RelativePath_new())
+    {
+        this->get().elementsSize = qualifiedNames.size();
+        this->get().elements     = static_cast<UA_RelativePathElement*>(
+            UA_Array_new(qualifiedNames.size(), &UA_TYPES[UA_TYPES_RELATIVEPATHELEMENT]));
+        if (this->get().elements == nullptr) {
+            throw ::std::runtime_error("Out of memory. Cannot allocate memory for relative path element");
+        }
+
+        for (size_t i = 0U; i < qualifiedNames.size(); ++i) {
+            this->set_element(i, qualifiedNames.at(i), ::Open62541::NodeId::Null);
+        }
+    }
+
+    RelativePath(const ::std::vector<::std::pair<::Open62541::QualifiedName, ::Open62541::NodeId>>&
+                     qualifiedNamesWithReferenceTypes)
+        : TypeBase(UA_RelativePath_new())
+    {
+        this->get().elementsSize = qualifiedNamesWithReferenceTypes.size();
+        this->get().elements     = static_cast<UA_RelativePathElement*>(
+            UA_Array_new(qualifiedNamesWithReferenceTypes.size(), &UA_TYPES[UA_TYPES_RELATIVEPATHELEMENT]));
+        if (this->get().elements == nullptr) {
+            throw ::std::runtime_error("Out of memory. Cannot allocate memory for relative path element");
+        }
+
+        for (size_t i = 0U; i < qualifiedNamesWithReferenceTypes.size(); ++i) {
+            this->set_element(i,
+                              qualifiedNamesWithReferenceTypes.at(i).first,
+                              qualifiedNamesWithReferenceTypes.at(i).second);
+        }
+    }
 };
 
 /*!

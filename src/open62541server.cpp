@@ -520,9 +520,6 @@ void Open62541::Server::terminate()
     _conditionMap.clear();
 #endif
     UA_Server_run_shutdown(_server);
-    UA_Server_delete(_server);
-    _serverMap.erase(_server);
-    _server = nullptr;
 }
 
 /*!
@@ -534,7 +531,6 @@ void Open62541::Server::start()
     if (!_running) {
         _running = true;
         if (_server != nullptr) {
-            _serverMap[_server] = this;  // map for call backs
             UA_Server_run_startup(_server);
             initialise();
             while (_running) {
