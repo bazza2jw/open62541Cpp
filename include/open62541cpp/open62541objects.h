@@ -229,6 +229,8 @@ class String
     UA_String _s;
 
 public:
+    String(const char * s = "") { _s = UA_String_fromChars(s); }
+
     String(const std::string& s) { _s = UA_String_fromChars(s.c_str()); }
 
     String(const String& s)
@@ -694,11 +696,14 @@ public:
 
     bool toString(std::string& s) const  // C library version of nodeid to string
     {
-        UA_String o;
-        UA_NodeId_print(this->constRef(), &o);
-        s = std::string((char*)o.data, o.length);
-        UA_String_clear(&o);
-        return true;
+        if(!isNull())
+        {
+            String o;
+            UA_NodeId_print(this->constRef(), (UA_String *)o);
+            s = o.toStdString();
+            return true;
+        }
+        return false;
     }
 
     UA_UInt32 numeric() const { return constRef()->identifier.numeric; }
@@ -1152,8 +1157,8 @@ typedef std::vector<std::string> Path;
 struct UA_EXPORT BrowseItem {
     std::string name;  // the browse name
     int nameSpace = 0;
-    UA_NodeId childId;          // not managed - shallow copy
-    UA_NodeId referenceTypeId;  // not managed - shallow copy
+    NodeId childId;
+    NodeId referenceTypeId;
     BrowseItem(const std::string& n, int ns, UA_NodeId c, UA_NodeId r)
         : name(n)
         , nameSpace(ns)
@@ -1956,7 +1961,7 @@ class UA_EXPORT SeverRepeatedCallback;
 typedef std::list<BrowseItem> BrowseList;
 /*!
     \brief The BrowserBase class
-    NOde browsing base class
+    Node browsing base class
 */
 class UA_EXPORT BrowserBase
 {
@@ -1997,8 +2002,6 @@ template <typename T>
 class Browser : public BrowserBase
 {
     T& _obj;
-    // browser call back
-    BrowseList _list;
     //
 public:
     Browser(T& c)

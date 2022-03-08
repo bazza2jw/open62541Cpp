@@ -229,25 +229,24 @@ UA_StatusCode Open62541::Client::getEndpoints(const std::string& serverUrl, std:
     \param nodeId
     \return
 */
-bool Open62541::Client::nodeIdFromPath(NodeId& start, Path& path, NodeId& nodeId)
+bool Open62541::Client::nodeIdFromPath(const NodeId& start, Path& path, NodeId& nodeId)
 {
     // nodeId is a shallow copy - do not delete and is volatile
-    UA_NodeId n = start.get();
+    nodeId = start;
 
     int level = 0;
     if (path.size() > 0) {
         Open62541::ClientBrowser b(*this);
         while (level < int(path.size())) {
-            b.browse(n);
-            auto i = b.find(path[level]);
+            b.browse(nodeId);
+            Open62541::BrowseList::iterator i = b.find(path[level]);
             if (i == b.list().end())
                 return false;
             level++;
-            n = (*i).childId;
+            BrowseItem &bi = *i;
+            nodeId = bi.childId;
         }
     }
-
-    nodeId = n;  // deep copy
     return level == int(path.size());
 }
 
@@ -259,12 +258,12 @@ bool Open62541::Client::nodeIdFromPath(NodeId& start, Path& path, NodeId& nodeId
     \param nodeId
     \return
 */
-bool Open62541::Client::createFolderPath(NodeId& start, Path& path, int nameSpaceIndex, NodeId& nodeId)
+bool Open62541::Client::createFolderPath(const NodeId& start, Path& path, int nameSpaceIndex, NodeId& nodeId)
 {
     //
     // create folder path first then add varaibles to path's end leaf
     //
-    UA_NodeId n = start.get();
+    NodeId n = start;
     //
     int level = 0;
     if (path.size() > 0) {
@@ -275,7 +274,7 @@ bool Open62541::Client::createFolderPath(NodeId& start, Path& path, int nameSpac
             if (i == b.list().end())
                 break;
             level++;
-            n = (*i).childId;  // shallow copy
+            n = (*i).childId;
         }
         if (level == int(path.size())) {
             nodeId = n;
@@ -303,7 +302,7 @@ bool Open62541::Client::createFolderPath(NodeId& start, Path& path, int nameSpac
     \param childName
     \return
 */
-bool Open62541::Client::getChild(NodeId& start, const std::string& childName, NodeId& ret)
+bool Open62541::Client::getChild(const NodeId& start, const std::string& childName, NodeId& ret)
 {
     Path p;
     p.push_back(childName);

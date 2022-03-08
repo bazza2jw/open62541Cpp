@@ -34,7 +34,7 @@ public:
         \brief browse
         \param start
     */
-    void browse(UA_NodeId start)
+    void browse(const NodeId &start)
     {
         list().clear();
         {

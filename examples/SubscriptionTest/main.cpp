@@ -35,8 +35,10 @@ int main()
             UA_UInt32 subId = 0;
             if (client.addSubscription(subId)) {
                 cout << "Subscription Created id = " << subId << endl;
-                auto f = [](Open62541::ClientSubscription& c, UA_DataValue* v) {
-                    cout << "Data Change SubId " << c.id() << " Value " << v->value.type->typeName << " "
+                auto f = [](Open62541::ClientSubscription& c, Open62541::MonitoredItem *m, UA_DataValue* v) {
+                    cout << "Data Change SubId " << c.id()
+                         << " Monitor Item Id " << m->id()
+                         << " Value " << v->value.type->typeName << " "
                          << Open62541::dataValueToString(v) << endl;
                 };
 

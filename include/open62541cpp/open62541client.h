@@ -787,7 +787,7 @@ public:
         \brief NodeIdFromPath get the node id from the path of browse names in the given namespace. Tests for node
        existance \param path \param nodeId \return  true on success
     */
-    bool nodeIdFromPath(NodeId& start, Path& path, NodeId& nodeId);
+    bool nodeIdFromPath(const NodeId &start, Path& path, NodeId& nodeId);
 
     /*!
         \brief createPath
@@ -797,7 +797,7 @@ public:
         \param nodeId
         \return  true on success
     */
-    bool createFolderPath(NodeId& start, Path& path, int nameSpaceIndex, NodeId& nodeId);
+    bool createFolderPath(const NodeId& start, Path& path, int nameSpaceIndex, NodeId& nodeId);
 
     /*!
         \brief getChild
@@ -805,7 +805,7 @@ public:
         \param childName
         \return
     */
-    bool getChild(NodeId& start, const std::string& childName, NodeId& ret);
+    bool getChild(const NodeId& start, const std::string& childName, NodeId& ret);
 
     /*!
         \brief addFolder

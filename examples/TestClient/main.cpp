@@ -25,7 +25,16 @@ int main(int /*argc*/, char** /*argv*/)
         }
         //
         // Browse for servers
-
+        Open62541::NodeId nvNode;
+        Open62541::Path nvp = {"Number_Value"};
+        if(client.nodeIdFromPath(Open62541::NodeId::Objects,nvp,nvNode))
+        {
+            cout << " Found Number Value " << Open62541::toString(nvNode) << endl;
+        }
+        else
+        {
+            cout << "Failed to find Number Value" << endl;
+        }
         //
         cout << "Create Path in Objects" << endl;
         //

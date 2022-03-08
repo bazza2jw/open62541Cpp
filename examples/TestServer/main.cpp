@@ -28,8 +28,8 @@ class TestServer : public Open62541::Server
     Open62541::NodeId _eventNode;
 
 public:
-    TestServer()
-        : _object(*this)
+    TestServer(int port = 4840) : Open62541::Server(port),
+         _object(*this)
         , _eventMethod(
               "EventTest",
               [this](Open62541::Server& server, const UA_NodeId*, size_t, const UA_Variant*, size_t, UA_Variant*) {
@@ -186,10 +186,12 @@ inline void SetupSignalHandlers()
     signal(SIGTERM, StopHandler);
 }
 
-int main(int /* argc*/, char** /*argv[]*/)
+int main(int  argc, char** argv)
 {
+    int port = 4840;
     SetupSignalHandlers();
-    TestServer server;
+    if(argc > 1) port = std::atoi(argv[1]);
+    TestServer server(port);
     server_instance = &server;
     cerr << "Starting server" << endl;
     server.start();
