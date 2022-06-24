@@ -1684,21 +1684,25 @@ public:
     bool createPathFolders(UAPath& p, UANode* n, int level = 0)
     {
         bool ret = false;
-        if (!n->hasChild(p[level])) {
-            NodeId no;
-            ret = addFolderNode(n->data(), p[level], no);
-            if (ret) {
-                auto nn = n->add(p[level]);
-                if (nn)
-                    nn->setData(no);
+        if(n)
+        {
+            if (!n->hasChild(p[level])) {
+                NodeId no;
+                no.notNull();
+                ret = addFolderNode(n->data(), p[level], no);
+                if (ret) {
+                    auto nn = n->add(p[level]);
+                    if (nn)
+                        nn->setData(no);
+                }
             }
-        }
 
-        // recurse
-        n = n->child(p[level]);
-        level++;
-        if (level < int(p.size())) {
-            ret = createPathFolders(p, n, level);
+            // recurse
+            n = n->child(p[level]);
+            level++;
+            if (level < int(p.size())) {
+                ret = createPathFolders(p, n, level);
+            }
         }
         //
         return ret;
@@ -1712,32 +1716,37 @@ public:
     bool createPath(UAPath& p, UANode* n, Variant& v, int level = 0)
     {
         bool ret = false;
-        if (!n->hasChild(p[level])) {
-            if (level == int(p.size() - 1)) {  // terminal node , hence value
-                NodeId no;
-                ret = addValueNode(n->data(), p[level], no, v);
-                if (ret) {
-                    auto nn = n->add(p[level]);
-                    if (nn)
-                        nn->setData(no);
+        if(n)
+        {
+            if (!n->hasChild(p[level])) {
+                if (level == int(p.size() - 1)) {  // terminal node , hence value
+                    NodeId no;
+                    no.notNull();
+                    ret = addValueNode(n->data(), p[level], no, v);
+                    if (ret) {
+                        auto nn = n->add(p[level]);
+                        if (nn)
+                            nn->setData(no);
+                    }
+                }
+                else {
+                    NodeId no;
+                    no.notNull();
+                    ret = addFolderNode(n->data(), p[level], no);
+                    if (ret) {
+                        auto nn = n->add(p[level]);
+                        if (nn)
+                            nn->setData(no);
+                    }
                 }
             }
-            else {
-                NodeId no;
-                ret = addFolderNode(n->data(), p[level], no);
-                if (ret) {
-                    auto nn = n->add(p[level]);
-                    if (nn)
-                        nn->setData(no);
-                }
-            }
-        }
 
-        // recurse
-        n = n->child(p[level]);
-        level++;
-        if (level < int(p.size())) {
-            ret = createPath(p, n, v, level);
+            // recurse
+            n = n->child(p[level]);
+            level++;
+            if (level < int(p.size())) {
+                ret = createPath(p, n, v, level);
+            }
         }
         //
         return ret;
