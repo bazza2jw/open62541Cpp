@@ -18,24 +18,25 @@ public:
     {
         std::cerr << "Condition1 " << __FUNCTION__ << std::endl;
         UA_Boolean retain = true;
-        return server().writeObjectProperty_scalar(condition(), "Retain", &retain, &UA_TYPES[UA_TYPES_BOOLEAN]);
+        server().writeObjectProperty_scalar(condition(), "Retain", &retain, &UA_TYPES[UA_TYPES_BOOLEAN]);
+        return true;
     }
     virtual bool enteringAckedState()
     {
         std::cerr << "Condition1 " << __FUNCTION__ << std::endl;
         Open62541::Variant b(false);
-        return setConditionVariableFieldProperty(b, "ActiveState", "Id");
+        setConditionVariableFieldProperty(b, "ActiveState", "Id");
+        return true;
     }
     virtual bool enteringConfirmedState()
     {
         std::cerr << "Condition1 " << __FUNCTION__ << std::endl;
         Open62541::Variant activeStateId(false);
 
-        if (setConditionVariableFieldProperty(activeStateId, "ActiveState", "Id")) {
-            Open62541::Variant retain(false);
-            return setConditionField(retain, "Retain");
-        }
-        return false;
+        setConditionVariableFieldProperty(activeStateId, "ActiveState", "Id");
+        Open62541::Variant retain(false);
+        setConditionField(retain, "Retain");
+        return true;
     }
     virtual bool enteringActiveState()
     {
@@ -108,10 +109,7 @@ public:
                  * related fields automatically and then will trigger event
                  * notification. */
                 Open62541::Variant value(true);
-                if (!_condition->setConditionVariableFieldProperty(value, "ActiveState", "Id")) {
-                    std::cerr << "Setting ActiveState/Id Field failed " << __FUNCTION__ << std::endl;
-                    return;
-                }
+                _condition->setConditionVariableFieldProperty(value, "ActiveState", "Id");
             }
             else {
                 /* By writing "false" in ActiveState/Id, the A&C server will set only
@@ -120,15 +118,9 @@ public:
                  * UA_Server_triggerConditionEvent inside the application or call
                  * ConditionRefresh method with client to update the event notification. */
                 Open62541::Variant activeStateId(false);
-                if (!_condition->setConditionVariableFieldProperty(activeStateId, "ActiveState", "Id")) {
-                    std::cerr << "Setting ActiveState/Id Field failed " << __FUNCTION__ << std::endl;
-                    return;
-                }
+                _condition->setConditionVariableFieldProperty(activeStateId, "ActiveState", "Id");
 
-                if (!_condition->triggerConditionEvent("")) {
-                    std::cerr << "Triggering condition event failed " << __FUNCTION__ << std::endl;
-                    return;
-                }
+                _condition->triggerConditionEvent("");
             }
         }
     }
@@ -177,52 +169,28 @@ public:
         std::cerr << "writeValue NodeContextV3" << std::endl;
         if (_condition) {
 
-            if (!server.writeObjectProperty_scalar(_condition->condition(),
-                                                   "Time",
-                                                   &data.serverTimestamp,
-                                                   &UA_TYPES[UA_TYPES_DATETIME])) {
-                std::cerr << "Failed to set time property" << std::endl;
-                return;
-            }
+            server.writeObjectProperty_scalar(_condition->condition(),
+                                              "Time",
+                                              &data.serverTimestamp,
+                                              &UA_TYPES[UA_TYPES_DATETIME]);
             Open62541::Variant value(false);
-            if (!_condition->setConditionVariableFieldProperty(value, "ActiveState", "Id")) {
-                std::cerr << "Failed to set field property" << std::endl;
-                return;
-            }
+            _condition->setConditionVariableFieldProperty(value, "ActiveState", "Id");
 
-            if (!_condition->setConditionVariableFieldProperty(value, "ConfirmedState", "Id")) {
-                std::cerr << "Failed to set ConfirmedState field property" << std::endl;
-                return;
-            }
+            _condition->setConditionVariableFieldProperty(value, "ConfirmedState", "Id");
 
             Open62541::Variant severityValue(UA_UInt16(100));
-            if (!_condition->setConditionField(severityValue, "Severity")) {
-                std::cerr << "Setting Severity Field failed." << std::endl;
-                return;
-            }
+            _condition->setConditionField(severityValue, "Severity");
 
             Open62541::Variant messageValue("en", "Condition returned to normal state");
-            if (!_condition->setConditionField(messageValue, "Message")) {
-                std::cerr << "Setting Message Field failed." << std::endl;
-                return;
-            }
+            _condition->setConditionField(messageValue, "Message");
 
             Open62541::Variant commentValue("en", "Normal State");
-            if (!_condition->setConditionField(commentValue, "Comment")) {
-                std::cerr << "Setting Comment Field failed." << std::endl;
-                return;
-            }
+            _condition->setConditionField(commentValue, "Comment");
 
             Open62541::Variant retainValue(false);
-            if (!_condition->setConditionField(retainValue, "Retain")) {
-                std::cerr << "Setting Retain Field failed." << std::endl;
-                return;
-            }
+            _condition->setConditionField(retainValue, "Retain");
 
-            if (!_condition->triggerConditionEvent("")) {
-                std::cerr << "Triggering condition event failed" << std::endl;
-                return;
-            }
+            _condition->triggerConditionEvent("");
         }
     }
 };

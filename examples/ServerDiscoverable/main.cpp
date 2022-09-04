@@ -51,33 +51,19 @@ void TestServer::initialise()
 
     // Add a node and set its context to test context
     Open62541::NodeId newFolder(_idx, "ServerItems");
-    if (addFolder(Open62541::NodeId::Objects, "ServerItems", newFolder, Open62541::NodeId::Null)) {
-        cout << "Create Number_Value" << endl;
-        Open62541::NodeId nodeNumber(_idx, "Number_Value");
-        Open62541::Variant numberValue(1);
-        if (!addVariable(Open62541::NodeId::Objects,
-                         "Number_Value",
-                         numberValue,
-                         nodeNumber,
-                         Open62541::NodeId::Null)) {
-            cout << "Failed to create Number Value Node " << endl;
-        }
-        //
-        // Start repeated event - so it does something
-        // connect to the discovery server
-        if (_client.connect(DISCOVERY_SERVER_ENDPOINT)) {
-            cerr << "Register with discovery server" << endl;
-            if (!registerDiscovery(_client)) {
-                cerr << "Failed to register with discovery server" << endl;
-            }
-            else {
-                cerr << "Registered with discovery server" << endl;
-            }
-        }
-        else {
-            cerr << "Failed to connect with discovery server" << endl;
-        }
-    }
+    addFolder(Open62541::NodeId::Objects, "ServerItems", newFolder, Open62541::NodeId::Null);
+
+    cout << "Create Number_Value" << endl;
+    Open62541::NodeId nodeNumber(_idx, "Number_Value");
+    Open62541::Variant numberValue(1);
+    addVariable(Open62541::NodeId::Objects, "Number_Value", numberValue, nodeNumber, Open62541::NodeId::Null);
+    //
+    // Start repeated event - so it does something
+    // connect to the discovery server
+    _client.connect(DISCOVERY_SERVER_ENDPOINT);
+
+    cerr << "Register with discovery server" << endl;
+    registerDiscovery(_client);
 }
 /*!
  * \brief main

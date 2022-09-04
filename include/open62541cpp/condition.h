@@ -12,7 +12,6 @@ class UA_EXPORT Condition
     Server& _server;          // owning server
     NodeId _condition;        // condition id
     NodeId _conditionSource;  // parent of the condition
-    UA_StatusCode _lastError = 0;
 
 public:
     typedef std::function<bool(Condition&)> ConditionFunc;
@@ -26,7 +25,7 @@ protected:
 public:
     // TO DO add the possible condition type nodes
 
-    Condition(Server& s, const NodeId& c, const NodeId& src);
+    Condition(Server& s, NodeId c, NodeId src);
 
     virtual ~Condition();
 
@@ -39,7 +38,7 @@ public:
      * @param value Variant Value to be written to the Field
      * @param fieldName Name of the Field in which the value should be written
      * @return The StatusCode of the UA_Server_setConditionField method*/
-    bool setConditionField(const Variant& v, const std::string& name);
+    void setConditionField(const Variant& v, const std::string& name);
     /*!
      * \brief setConditionVariableFieldProperty
      * \param value
@@ -47,7 +46,7 @@ public:
      * \param variablePropertyName
      * \return
      */
-    bool setConditionVariableFieldProperty(const Variant& value,
+    void setConditionVariableFieldProperty(const Variant& value,
                                            const std::string& variableFieldName,
                                            const std::string& variablePropertyName);
     /*!
@@ -55,7 +54,7 @@ public:
      * \param outEventId
      * \return
      */
-    bool triggerConditionEvent(const std::string& outEventId);
+    void triggerConditionEvent(const std::string& outEventId);
     /*!
      * \brief addConditionOptionalField
      * \param conditionType
@@ -63,7 +62,7 @@ public:
      * \param outOptionalVariable
      * \return
      */
-    bool addConditionOptionalField(const NodeId& conditionType,
+    void addConditionOptionalField(const NodeId& conditionType,
                                    const std::string& fieldName,
                                    NodeId& outOptionalVariable = NodeId::Null);
 
@@ -71,18 +70,7 @@ public:
      * \brief twoStateVariableChange
      * \return true if handled ok
      */
-    virtual bool twoStateVariableChange() { return false; }
-    /*!
-        \brief lastError
-        \return
-    */
-    UA_StatusCode lastError() const { return _lastError; }
-
-    /*!
-        \brief lastOK
-        \return last error code
-    */
-    bool lastOK() const { return _lastError == UA_STATUSCODE_GOOD; }
+    virtual void twoStateVariableChange() {}
 
     NodeId& condition()
     {
@@ -94,60 +82,40 @@ public:
     }
 
     // These enable the condition callbacks for the possible types
-    bool setCallback(UA_TwoStateVariableCallbackType callbackType, bool removeBranch = false);
+    void setCallback(UA_TwoStateVariableCallbackType callbackType, bool removeBranch = false);
 
-    bool setEnabled(bool removeBranch = false) { return setCallback(UA_ENTERING_ENABLEDSTATE, removeBranch); }
-    bool setConfirmed(bool removeBranch = false) { return setCallback(UA_ENTERING_CONFIRMEDSTATE, removeBranch); }
-    bool setAcked(bool removeBranch = false) { return setCallback(UA_ENTERING_ACKEDSTATE, removeBranch); }
-    bool setActive(bool removeBranch = false) { return setCallback(UA_ENTERING_ACTIVESTATE, removeBranch); }
+    void setEnabled(bool removeBranch = false) { setCallback(UA_ENTERING_ENABLEDSTATE, removeBranch); }
+    void setConfirmed(bool removeBranch = false) { setCallback(UA_ENTERING_CONFIRMEDSTATE, removeBranch); }
+    void setAcked(bool removeBranch = false) { setCallback(UA_ENTERING_ACKEDSTATE, removeBranch); }
+    void setActive(bool removeBranch = false) { setCallback(UA_ENTERING_ACTIVESTATE, removeBranch); }
 
-    bool setEnabled(ConditionFunc f, bool removeBranch = false)
+    void setEnabled(ConditionFunc f, bool removeBranch = false)
     {
         _enteringEnabledState = f;
-        return setCallback(UA_ENTERING_ENABLEDSTATE, removeBranch);
+        setCallback(UA_ENTERING_ENABLEDSTATE, removeBranch);
     }
-    bool setConfirmed(ConditionFunc f, bool removeBranch = false)
+    void setConfirmed(ConditionFunc f, bool removeBranch = false)
     {
         _enteringConfirmedState = f;
-        return setCallback(UA_ENTERING_CONFIRMEDSTATE, removeBranch);
+        setCallback(UA_ENTERING_CONFIRMEDSTATE, removeBranch);
     }
-    bool setAcked(ConditionFunc f, bool removeBranch = false)
+    void setAcked(ConditionFunc f, bool removeBranch = false)
     {
         _enteringAckedState = f;
-        return setCallback(UA_ENTERING_ACKEDSTATE, removeBranch);
+        setCallback(UA_ENTERING_ACKEDSTATE, removeBranch);
     }
-    bool setActive(ConditionFunc f, bool removeBranch = false)
+    void setActive(ConditionFunc f, bool removeBranch = false)
     {
         _enteringActiveState = f;
-        return setCallback(UA_ENTERING_ACTIVESTATE, removeBranch);
+        setCallback(UA_ENTERING_ACTIVESTATE, removeBranch);
     }
 
 protected:
     // Event handlers - default is to use functors if present
-    virtual bool enteringEnabledState()
-    {
-        if (_enteringEnabledState)
-            return _enteringEnabledState(*this);
-        return false;
-    }
-    virtual bool enteringAckedState()
-    {
-        if (_enteringAckedState)
-            return _enteringAckedState(*this);
-        return false;
-    }
-    virtual bool enteringConfirmedState()
-    {
-        if (_enteringConfirmedState)
-            return _enteringConfirmedState(*this);
-        return false;
-    }
-    virtual bool enteringActiveState()
-    {
-        if (_enteringActiveState)
-            return _enteringActiveState(*this);
-        return false;
-    }
+    virtual bool enteringEnabledState() { return _enteringEnabledState && _enteringEnabledState(*this); }
+    virtual bool enteringAckedState() { return _enteringAckedState && _enteringAckedState(*this); }
+    virtual bool enteringConfirmedState() { return _enteringConfirmedState && _enteringConfirmedState(*this); }
+    virtual bool enteringActiveState() { return _enteringActiveState && _enteringActiveState(*this); }
 
 private:
     // the possible callbacks - one for each state transition

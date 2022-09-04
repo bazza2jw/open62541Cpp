@@ -15,6 +15,7 @@ set(LIB_SOURCES
         servernodetree.cpp
         historydatabase.cpp
         condition.cpp
+        exception.cpp
         )
 
 # Building shared library
@@ -27,6 +28,7 @@ include(../Common.cmake)
 find_package(open62541)
 
 target_link_libraries(${OPEN62541_CPP} PUBLIC ${Boost_LIBRARIES} open62541::open62541)
+target_compile_options(${OPEN62541_CPP} PRIVATE -Wall -Wunused-result -Werror)
 
 ## set the shared library soname
 set_target_properties(${OPEN62541_CPP} PROPERTIES

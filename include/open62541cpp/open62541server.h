@@ -16,6 +16,7 @@
 #include <open62541cpp/servermethod.h>
 #include <open62541cpp/serverrepeatedcallback.h>
 #include <open62541cpp/condition.h>
+#include "exception.h"
 
 namespace Open62541 {
 
@@ -25,8 +26,8 @@ namespace Open62541 {
 // This class wraps the corresponding C functions. Refer to the C documentation for a full explanation.
 // The main thing to watch for is Node ID objects are passed by reference. There are stock Node Id objects including
 // NodeId::Null Pass NodeId::Null where a NULL UA_NodeId pointer is expected. If a NodeId is being passed to receive a
-// value use the notNull() method to mark it as a receiver of a new node id. Most functions return true if the lastError
-// is UA_STATUSCODE_GOOD.
+// value use the notNull() method to mark it as a receiver of a new node id. Most functions return true if no error
+// happened or throw a StatusCodeException on a bad status code.
 
 class HistoryDataGathering;
 class HistoryDataBackend;
@@ -57,7 +58,7 @@ public:
             , _handler(func)
         {
         }
-        virtual ~Timer() { UA_Server_removeCallback(_server->server(), _id); }
+        virtual ~Timer() { UA_Server_removeCallback(_server->server_or_throw(), _id); }
         virtual void handle()
         {
             if (_handler)
@@ -68,9 +69,6 @@ public:
         void setId(UA_UInt64 i) { _id = i; }
         bool oneShot() const { return _oneShot; }
     };
-
-protected:
-    UA_StatusCode _lastError = 0;
 
 private:
     //
@@ -102,6 +100,17 @@ private:
                 }
             }
         }
+    }
+
+    /*!
+        \brief server
+        \return pointer to underlying server structure
+    */
+    UA_Server* server_or_throw() const
+    {
+        if (_server)
+            return _server;
+        throw StringException("Server is not initialized.");
     }
 
     // Lifecycle call backs
@@ -317,18 +326,29 @@ public:
 public:
     /*!
         \brief Server
+        @param config Server configuration used for the server instance.
+            If set to nullptr, a default configuration is generated.
+            The config is not copied, therefore, the parent code must ensure the lifetime of the config pointer.
     */
-    Server()
+    Server(UA_ServerConfig *config = nullptr)
     {
-        _server = UA_Server_new();
-        if (_server) {
+        if (config != nullptr) {
+            _server = UA_Server_newWithConfig(config);
+            if (_server == nullptr)
+                throw StringException("Could not create new server instance");
+            _config = config;
+        } else {
+            _server = UA_Server_new();
+            if (_server == nullptr)
+                throw StringException("Could not create new server instance");
             _config = UA_Server_getConfig(_server);
-            if (_config) {
-                UA_ServerConfig_setDefault(_config);
-                _config->nodeLifecycle.constructor = constructor;  // set up the node global lifecycle
-                _config->nodeLifecycle.destructor  = destructor;
-            }
+            if (_config == nullptr)
+                throw StringException("Could not get configuration of server instance");
+            UA_ServerConfig_setDefault(_config);
         }
+        _config->nodeLifecycle.constructor = constructor;  // set up the node global lifecycle
+        _config->nodeLifecycle.destructor  = destructor;
+        _serverMap[_server] = this;  // map for call backs
     }
 
     /*!
@@ -339,13 +359,13 @@ public:
     Server(int port, const UA_ByteString& certificate = UA_BYTESTRING_NULL)
     {
         _server = UA_Server_new();
-        if (_server) {
-            _config = UA_Server_getConfig(_server);
-            if (_config) {
-                UA_ServerConfig_setMinimal(_config, port, &certificate);
-                _config->nodeLifecycle.constructor = constructor;  // set up the node global lifecycle
-                _config->nodeLifecycle.destructor  = destructor;
-            }
+        if (!_server)
+            throw StringException("Could not create new server instance");
+        _config = UA_Server_getConfig(_server);
+        if (_config) {
+            UA_ServerConfig_setMinimal(_config, port, &certificate);
+            _config->nodeLifecycle.constructor = constructor;  // set up the node global lifecycle
+            _config->nodeLifecycle.destructor  = destructor;
         }
     }
 
@@ -358,6 +378,10 @@ public:
         if (_server) {
             WriteLock l(_mutex);
             terminate();
+
+            UA_Server_delete(_server);
+            _serverMap.erase(_server);
+            _server = nullptr;
         }
     }
 
@@ -438,7 +462,8 @@ public:
                                       UA_NodeId* targetNodeId)
     {
         *targetNodeId = UA_NODEID_NULL;
-        return UA_STATUSCODE_GOOD;
+        std::logic_error("Function not yet implemented");
+        return UA_STATUSCODE_BADNOTIMPLEMENTED;
     }
 
     /*!
@@ -504,9 +529,11 @@ public:
     {
         ByteString ut(userTokenPolicyUri);
         // install access control into the config that maps on to the server hence its virtual functions
-        UA_AccessControl_default(_config, allowAnonymous,
-                                  &_config->securityPolicies[_config->securityPoliciesSize-1].policyUri,
-                                 _logins.size(), _logins.data());
+        UA_AccessControl_default(_config,
+                                 allowAnonymous,
+                                 &_config->securityPolicies[_config->securityPoliciesSize - 1].policyUri,
+                                 _logins.size(),
+                                 _logins.data());
         setAccessControl(&_config->accessControl);  // map access control requests to this object
         return true;
     }
@@ -530,13 +557,7 @@ public:
      * \param n
      * \return
      */
-    const UA_DataType* findDataType(const NodeId& n)
-    {
-        if (server()) {
-            return UA_Server_findDataType(server(), n.constRef());
-        }
-        return nullptr;
-    }
+    const UA_DataType* findDataType(const NodeId& n) { return UA_Server_findDataType(server_or_throw(), n.constRef()); }
 
     /*!
         \brief findServer
@@ -553,13 +574,13 @@ public:
         \param semaphoreFilePath
         \return true on success
     */
-    bool registerDiscovery(Client& client, const std::string& semaphoreFilePath = "");
+    void registerDiscovery(Client& client, const std::string& semaphoreFilePath = "");
 
     /*!
         \brief unregisterDiscovery
         \return  true on success
     */
-    bool unregisterDiscovery(Client& client);
+    void unregisterDiscovery(Client& client);
 
     /*!
         \brief addPeriodicServerRegister
@@ -569,7 +590,7 @@ public:
         \param periodicCallbackId
         \return true on success
     */
-    bool addPeriodicServerRegister(const std::string& discoveryServerUrl,  // url must persist - that is be static
+    void addPeriodicServerRegister(const std::string& discoveryServerUrl,  // url must persist - that is be static
                                    Client& client,
                                    UA_UInt64& periodicCallbackId,
                                    UA_UInt32 intervalMs           = 600 * 1000,  // default to 10 minutes
@@ -591,7 +612,7 @@ public:
     */
     void setRegisterServerCallback()
     {
-        UA_Server_setRegisterServerCallback(server(), registerServerCallback, (void*)(this));
+        UA_Server_setRegisterServerCallback(server_or_throw(), registerServerCallback, (void*)(this));
     }
 
     /*!
@@ -624,7 +645,7 @@ public:
     */
     void setServerOnNetworkCallback()
     {
-        UA_Server_setServerOnNetworkCallback(server(), serverOnNetworkCallback, (void*)(this));
+        UA_Server_setServerOnNetworkCallback(server_or_throw(), serverOnNetworkCallback, (void*)(this));
     }
 #endif
     /*!
@@ -648,13 +669,7 @@ public:
     /*!
         \brief terminate
     */
-    virtual void terminate();  // called before server is closed
-    //
-    /*!
-        \brief lastError
-        \return
-    */
-    UA_StatusCode lastError() const { return _lastError; }
+    void terminate();  // called before server is closed
 
     /*!
         \brief server
@@ -675,13 +690,12 @@ public:
         \param c pointer to context
         \return true on success
     */
-    bool getNodeContext(const NodeId& n, NodeContext*& c)
+    NodeContext* getNodeContext(const NodeId& n) const
     {
-        if (!server())
-            return false;
-        void* p    = (void*)(c);
-        _lastError = UA_Server_getNodeContext(_server, n.get(), &p);
-        return lastOK();
+        NodeContext* ret = nullptr;
+        void* p          = (void*)(ret);
+        throw_bad_status(UA_Server_getNodeContext(server_or_throw(), n.get(), &p));
+        return ret;
     }
 
     /*!
@@ -698,12 +712,9 @@ public:
         \param c context
         \return true on success
     */
-    bool setNodeContext(const NodeId& n, const NodeContext* c)
+    void setNodeContext(const NodeId& n, const NodeContext* c)
     {
-        if (!server())
-            return false;
-        _lastError = UA_Server_setNodeContext(_server, n.get(), (void*)(c));
-        return lastOK();
+        throw_bad_status(UA_Server_setNodeContext(server_or_throw(), n.get(), (void*)(c)));
     }
 
     /*!
@@ -713,13 +724,10 @@ public:
         \param v data pointer
         \return true on success
     */
-    bool readAttribute(const UA_NodeId* nodeId, UA_AttributeId attributeId, void* v)
+    void readAttribute(const UA_NodeId* nodeId, UA_AttributeId attributeId, void* v)
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
-        _lastError = __UA_Server_read(_server, nodeId, attributeId, v);
-        return lastOK();
+        throw_bad_status(__UA_Server_read(server_or_throw(), nodeId, attributeId, v));
     }
 
     /*!
@@ -730,16 +738,13 @@ public:
         \param attr data pointer
         \return true on success
     */
-    bool writeAttribute(const UA_NodeId* nodeId,
+    void writeAttribute(const UA_NodeId* nodeId,
                         const UA_AttributeId attributeId,
                         const UA_DataType* attr_type,
                         const void* attr)
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
-        _lastError = __UA_Server_write(_server, nodeId, attributeId, attr_type, attr) == UA_STATUSCODE_GOOD;
-        return lastOK();
+        throw_bad_status(__UA_Server_write(server_or_throw(), nodeId, attributeId, attr_type, attr));
     }
     /*!
         \brief mutex
@@ -755,21 +760,21 @@ public:
         \param nodeId node to be delted with its children
         \return true on success
     */
-    bool deleteTree(const NodeId& nodeId);
+    void deleteTree(const NodeId& nodeId);
     /*!
         \brief browseTree
         \param nodeId  start point
         \param node point in tree to add nodes to
         \return true on success
     */
-    bool browseTree(const UA_NodeId& nodeId, Open62541::UANode* node);  // add child nodes to property tree node
+    void browseTree(const UA_NodeId& nodeId, Open62541::UANode* node);  // add child nodes to property tree node
 
     /*!
         \brief browseTree
         \param nodeId start point to browse from
         \return true on success
     */
-    bool browseTree(const NodeId& nodeId,
+    void browseTree(const NodeId& nodeId,
                     UANodeTree& tree);  // produces an addressable tree using dot seperated browse path
     /*!
         \brief browseTree
@@ -777,7 +782,7 @@ public:
         \param tree tree to fill
         \return true on success
     */
-    bool browseTree(const NodeId& nodeId, UANode* tree);
+    void browseTree(const NodeId& nodeId, UANode* tree);
     /*!
         \brief browseTree
         browse and create a map of string version of nodeids ids to node ids
@@ -785,14 +790,14 @@ public:
         \param tree
         \return true on success
     */
-    bool browseTree(const NodeId& nodeId, NodeIdMap& m);  //
+    void browseTree(const NodeId& nodeId, NodeIdMap& m);  //
     /*!
         \brief browseChildren
         \param nodeId parent of childrent ot browse
         \param m map to fill
         \return true on success
     */
-    bool browseChildren(const UA_NodeId& nodeId, NodeIdMap& m);
+    void browseChildren(const UA_NodeId& nodeId, NodeIdMap& m);
 
     /*  A simplified TranslateBrowsePathsToNodeIds based on the
         SimpleAttributeOperand type (Part 4, 7.4.4.5).
@@ -802,14 +807,14 @@ public:
         RelativePath that specifies forward references which are subtypes of the
         HierarchicalReferences ReferenceType. All Nodes followed by the browsePath
         shall be of the NodeClass Object or Variable. */
-    bool browseSimplifiedBrowsePath(const NodeId& origin,
+    void browseSimplifiedBrowsePath(const NodeId& origin,
                                     size_t browsePathSize,
                                     const QualifiedName& browsePath,
                                     BrowsePathResult& result)
     {
-        result.get() = UA_Server_browseSimplifiedBrowsePath(_server, origin, browsePathSize, browsePath.constRef());
-        _lastError   = result.ref()->statusCode;
-        return lastOK();
+        result.get() =
+            UA_Server_browseSimplifiedBrowsePath(server_or_throw(), origin, browsePathSize, browsePath.constRef());
+        throw_bad_status(result.ref()->statusCode);
     }
     /*!
         \brief createBrowsePath
@@ -828,12 +833,10 @@ public:
     */
     UA_UInt16 addNamespace(const std::string& s)
     {
-        if (!server())
-            return 0;
         UA_UInt16 ret = 0;
         {
             WriteLock l(mutex());
-            ret = UA_Server_addNamespace(_server, s.c_str());
+            ret = UA_Server_addNamespace(server_or_throw(), s.c_str());
         }
         return ret;
     }
@@ -842,7 +845,7 @@ public:
         \brief serverConfig
         \return  server configuration
     */
-    UA_ServerConfig& serverConfig() { return *UA_Server_getConfig(server()); }
+    UA_ServerConfig& serverConfig() { return *UA_Server_getConfig(server_or_throw()); }
     //
 
     /*!
@@ -855,7 +858,7 @@ public:
      * \param nameSpaceIndex
      * \return
      */
-    bool addServerMethod(ServerMethod* method,
+    void addServerMethod(ServerMethod* method,
                          const std::string& browseName,
                          const NodeId& parent,
                          const NodeId& nodeId,
@@ -863,11 +866,9 @@ public:
                          int nameSpaceIndex = 0)
     {
         //
-        if (!server())
-            return false;
-        //
-        if (nameSpaceIndex == 0)
+        if (nameSpaceIndex == 0) {
             nameSpaceIndex = parent.nameSpaceIndex();  // inherit parent by default
+        }
         //
         MethodAttributes attr;
         attr.setDefault();
@@ -878,21 +879,21 @@ public:
         QualifiedName qn(nameSpaceIndex, browseName);
         {
             WriteLock l(mutex());
-            _lastError = UA_Server_addMethodNode(_server,
-                                                 nodeId,
-                                                 parent,
-                                                 NodeId::HasOrderedComponent,
-                                                 qn,
-                                                 attr,
-                                                 ServerMethod::methodCallback,
-                                                 method->in().size() - 1,
-                                                 method->in().data(),
-                                                 method->out().size() - 1,
-                                                 method->out().data(),
-                                                 (void*)(method),  // method context is reference to the call handler
-                                                 newNode.isNull() ? nullptr : newNode.ref());
+            throw_bad_status(
+                UA_Server_addMethodNode(server_or_throw(),
+                                        nodeId,
+                                        parent,
+                                        NodeId::HasOrderedComponent,
+                                        qn,
+                                        attr,
+                                        ServerMethod::methodCallback,
+                                        method->in().size() - 1,
+                                        method->in().data(),
+                                        method->out().size() - 1,
+                                        method->out().data(),
+                                        (void*)(method),  // method context is reference to the call handler
+                                        newNode.isNull() ? nullptr : newNode.ref()));
         }
-        return lastOK();
     }
 
     //
@@ -902,16 +903,12 @@ public:
         \param nodeId
         \return
     */
-    bool browseName(NodeId& nodeId, std::string& s, int& ns)
+    void browseName(const NodeId& nodeId, std::string& s, int& ns)
     {
-        if (!_server)
-            throw std::runtime_error("Null server");
         QualifiedName outBrowseName;
-        if (UA_Server_readBrowseName(_server, nodeId, outBrowseName) == UA_STATUSCODE_GOOD) {
-            s  = toString(outBrowseName.get().name);
-            ns = outBrowseName.get().namespaceIndex;
-        }
-        return lastOK();
+        throw_bad_status(UA_Server_readBrowseName(server_or_throw(), nodeId, outBrowseName));
+        s  = toString(outBrowseName.get().name);
+        ns = outBrowseName.get().namespaceIndex;
     }
 
     /*!
@@ -922,11 +919,9 @@ public:
     */
     void setBrowseName(const NodeId& nodeId, int nameSpaceIndex, const std::string& name)
     {
-        if (!server())
-            return;
         QualifiedName newBrowseName(nameSpaceIndex, name);
         WriteLock l(_mutex);
-        UA_Server_writeBrowseName(_server, nodeId, newBrowseName);
+        throw_bad_status(UA_Server_writeBrowseName(server_or_throw(), nodeId, newBrowseName));
     }
 
     /*!
@@ -944,7 +939,7 @@ public:
         \param nodeId
         \return true on success
     */
-    bool createFolderPath(const NodeId& start, const Path& path, int nameSpaceIndex, NodeId& nodeId);
+    void createFolderPath(const NodeId& start, const Path& path, int nameSpaceIndex, NodeId& nodeId);
 
     /*!
         \brief getChild
@@ -963,7 +958,7 @@ public:
         \param nameSpaceIndex name space index of new node, if non-zero otherwise namespace of parent
         \return true on success
     */
-    bool addFolder(const NodeId& parent,
+    void addFolder(const NodeId& parent,
                    const std::string& childName,
                    const NodeId& nodeId,
                    NodeId& newNode    = NodeId::Null,
@@ -976,7 +971,7 @@ public:
         \param childName
         \return true on success
     */
-    bool addVariable(const NodeId& parent,
+    void addVariable(const NodeId& parent,
                      const std::string& childName,
                      const Variant& value,
                      const NodeId& nodeId,
@@ -996,7 +991,7 @@ public:
         \param nameSpaceIndex
         \return true on success
     */
-    bool addVariable(const NodeId& parent,
+    void addVariable(const NodeId& parent,
                      const std::string& childName,
                      const NodeId& nodeId,
                      const std::string& c,
@@ -1004,11 +999,10 @@ public:
                      int nameSpaceIndex = 0)
     {
         NodeContext* cp = findContext(c);
-        if (cp) {
-            Variant v((T()));
-            return addVariable(parent, childName, v, nodeId, newNode, cp, nameSpaceIndex);
-        }
-        return false;
+        if (!cp)
+            throw StringException("Node context not found");
+        Variant v((T()));
+        addVariable(parent, childName, v, nodeId, newNode, cp, nameSpaceIndex);
     }
 
     /*!
@@ -1018,7 +1012,7 @@ public:
         \param childName
         \return true on success
     */
-    bool addHistoricalVariable(const NodeId& parent,
+    void addHistoricalVariable(const NodeId& parent,
                                const std::string& childName,
                                const Variant& value,
                                const NodeId& nodeId,
@@ -1038,7 +1032,7 @@ public:
         \param nameSpaceIndex
         \return true on success
     */
-    bool addHistoricalVariable(const NodeId& parent,
+    void addHistoricalVariable(const NodeId& parent,
                                const std::string& childName,
                                const NodeId& nodeId,
                                const std::string& c,
@@ -1046,11 +1040,10 @@ public:
                                int nameSpaceIndex = 0)
     {
         NodeContext* cp = findContext(c);
-        if (cp) {
-            Variant v((T()));
-            return addHistoricalVariable(parent, childName, v, nodeId, newNode, cp, nameSpaceIndex);
-        }
-        return false;
+        if (!cp)
+            throw StringException("NodeContext not found for string " + c);
+        Variant v((T()));
+        addHistoricalVariable(parent, childName, v, nodeId, newNode, cp, nameSpaceIndex);
     }
 
     template <typename T>
@@ -1066,7 +1059,7 @@ public:
         \param nameSpaceIndex
         \return true on success
     */
-    bool addProperty(const NodeId& parent,
+    void addProperty(const NodeId& parent,
                      const std::string& key,
                      const T& value,
                      const NodeId& nodeId = NodeId::Null,
@@ -1075,7 +1068,7 @@ public:
                      int nameSpaceIndex   = 0)
     {
         Variant v(value);
-        return addProperty(parent, key, v, nodeId, newNode, c, nameSpaceIndex);
+        addProperty(parent, key, v, nodeId, newNode, c, nameSpaceIndex);
     }
 
     /*!
@@ -1089,7 +1082,7 @@ public:
         \param nameSpaceIndex
         \return true on success
     */
-    bool addProperty(const NodeId& parent,
+    void addProperty(const NodeId& parent,
                      const std::string& key,
                      const Variant& value,
                      const NodeId& nodeId = NodeId::Null,
@@ -1103,16 +1096,13 @@ public:
         \param value
         \return true on success
     */
-    bool variable(const NodeId& nodeId, Variant& value)
+    void variable(const NodeId& nodeId, Variant& value)
     {
-        if (!server())
-            return false;
 
         // outValue is managed by caller - transfer to output value
         value.null();
         WriteLock l(_mutex);
-        UA_Server_readValue(_server, nodeId, value.ref());
-        return lastOK();
+        throw_bad_status(UA_Server_readValue(server_or_throw(), nodeId, value.ref()));
     }
     /*!
         \brief deleteNode
@@ -1120,14 +1110,10 @@ public:
         \param deleteReferences
         \return true on success
     */
-    bool deleteNode(const NodeId& nodeId, bool deleteReferences)
+    void deleteNode(const NodeId& nodeId, bool deleteReferences)
     {
-        if (!server())
-            return false;
-
         WriteLock l(_mutex);
-        _lastError = UA_Server_deleteNode(_server, nodeId, UA_Boolean(deleteReferences));
-        return _lastError != UA_STATUSCODE_GOOD;
+        throw_bad_status(UA_Server_deleteNode(server_or_throw(), nodeId, UA_Boolean(deleteReferences)));
     }
 
     /*!
@@ -1136,14 +1122,11 @@ public:
         \param ret
         \return true on sucess
     */
-    bool call(const CallMethodRequest& request, CallMethodResult& ret)
+    void call(const CallMethodRequest& request, CallMethodResult& ret)
     {
-        if (!server())
-            return false;
-
         WriteLock l(_mutex);
-        ret.get() = UA_Server_call(_server, request);
-        return ret.get().statusCode == UA_STATUSCODE_GOOD;
+        ret.get() = UA_Server_call(server_or_throw(), request);
+        throw_bad_status(ret.get().statusCode);
     }
 
     /*!
@@ -1152,21 +1135,13 @@ public:
         \param result
         \return true on sucess
     */
-    bool translateBrowsePathToNodeIds(const BrowsePath& path, BrowsePathResult& result)
+    void translateBrowsePathToNodeIds(const BrowsePath& path, BrowsePathResult& result)
     {
-        if (!server())
-            return false;
-
         WriteLock l(_mutex);
-        result.get() = UA_Server_translateBrowsePathToNodeIds(_server, path);
-        return result.get().statusCode == UA_STATUSCODE_GOOD;
+        result.get() = UA_Server_translateBrowsePathToNodeIds(server_or_throw(), path);
+        throw_bad_status(result.get().statusCode);
     }
 
-    /*!
-        \brief lastOK
-        \return last error code
-    */
-    bool lastOK() const { return _lastError == UA_STATUSCODE_GOOD; }
     //
     // Attributes
     //
@@ -1176,9 +1151,9 @@ public:
         \param outNodeId
         \return true on sucess
     */
-    bool readNodeId(const NodeId& nodeId, NodeId& outNodeId)
+    void readNodeId(const NodeId& nodeId, NodeId& outNodeId)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_NODEID, outNodeId);
+        readAttribute(nodeId, UA_ATTRIBUTEID_NODEID, outNodeId);
     }
     /*!
         \brief readNodeClass
@@ -1186,9 +1161,9 @@ public:
         \param outNodeClass
         \return true on success
     */
-    bool readNodeClass(const NodeId& nodeId, UA_NodeClass& outNodeClass)
+    void readNodeClass(const NodeId& nodeId, UA_NodeClass& outNodeClass)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_NODECLASS, &outNodeClass);
+        readAttribute(nodeId, UA_ATTRIBUTEID_NODECLASS, &outNodeClass);
     }
     /*!
         \brief readBrowseName
@@ -1196,9 +1171,9 @@ public:
         \param outBrowseName
         \return true on success
     */
-    bool readBrowseName(const NodeId& nodeId, QualifiedName& outBrowseName)
+    void readBrowseName(const NodeId& nodeId, QualifiedName& outBrowseName)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_BROWSENAME, outBrowseName);
+        readAttribute(nodeId, UA_ATTRIBUTEID_BROWSENAME, outBrowseName);
     }
     /*!
         \brief readDisplayName
@@ -1206,9 +1181,9 @@ public:
         \param outDisplayName
         \return true on sucess
     */
-    bool readDisplayName(const NodeId& nodeId, LocalizedText& outDisplayName)
+    void readDisplayName(const NodeId& nodeId, LocalizedText& outDisplayName)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_DISPLAYNAME, outDisplayName);
+        readAttribute(nodeId, UA_ATTRIBUTEID_DISPLAYNAME, outDisplayName);
     }
     /*!
         \brief readDescription
@@ -1216,9 +1191,9 @@ public:
         \param outDescription
         \return true on success
     */
-    bool readDescription(const NodeId& nodeId, LocalizedText& outDescription)
+    void readDescription(const NodeId& nodeId, LocalizedText& outDescription)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_DESCRIPTION, outDescription);
+        readAttribute(nodeId, UA_ATTRIBUTEID_DESCRIPTION, outDescription);
     }
     /*!
         \brief readWriteMask
@@ -1226,9 +1201,9 @@ public:
         \param outWriteMask
         \return true on sucess
     */
-    bool readWriteMask(const NodeId& nodeId, UA_UInt32& outWriteMask)
+    void readWriteMask(const NodeId& nodeId, UA_UInt32& outWriteMask)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_WRITEMASK, &outWriteMask);
+        readAttribute(nodeId, UA_ATTRIBUTEID_WRITEMASK, &outWriteMask);
     }
     /*!
         \brief readIsAbstract
@@ -1236,9 +1211,9 @@ public:
         \param outIsAbstract
         \return true on success
     */
-    bool readIsAbstract(const NodeId& nodeId, UA_Boolean& outIsAbstract)
+    void readIsAbstract(const NodeId& nodeId, UA_Boolean& outIsAbstract)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_ISABSTRACT, &outIsAbstract);
+        readAttribute(nodeId, UA_ATTRIBUTEID_ISABSTRACT, &outIsAbstract);
     }
     /*!
         \brief readSymmetric
@@ -1246,9 +1221,9 @@ public:
         \param outSymmetric
         \return true on success
     */
-    bool readSymmetric(const NodeId& nodeId, UA_Boolean& outSymmetric)
+    void readSymmetric(const NodeId& nodeId, UA_Boolean& outSymmetric)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_SYMMETRIC, &outSymmetric);
+        readAttribute(nodeId, UA_ATTRIBUTEID_SYMMETRIC, &outSymmetric);
     }
     /*!
         \brief readInverseName
@@ -1256,9 +1231,9 @@ public:
         \param outInverseName
         \return true on success
     */
-    bool readInverseName(const NodeId& nodeId, LocalizedText& outInverseName)
+    void readInverseName(const NodeId& nodeId, LocalizedText& outInverseName)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_INVERSENAME, outInverseName);
+        readAttribute(nodeId, UA_ATTRIBUTEID_INVERSENAME, outInverseName);
     }
     /*!
         \brief readContainsNoLoop
@@ -1266,9 +1241,9 @@ public:
         \param outContainsNoLoops
         \return true on success
     */
-    bool readContainsNoLoop(const NodeId& nodeId, UA_Boolean& outContainsNoLoops)
+    void readContainsNoLoop(const NodeId& nodeId, UA_Boolean& outContainsNoLoops)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_CONTAINSNOLOOPS, &outContainsNoLoops);
+        readAttribute(nodeId, UA_ATTRIBUTEID_CONTAINSNOLOOPS, &outContainsNoLoops);
     }
     /*!
         \brief readEventNotifier
@@ -1276,9 +1251,9 @@ public:
         \param outEventNotifier
         \return
     */
-    bool readEventNotifier(const NodeId& nodeId, UA_Byte& outEventNotifier)
+    void readEventNotifier(const NodeId& nodeId, UA_Byte& outEventNotifier)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_EVENTNOTIFIER, &outEventNotifier);
+        readAttribute(nodeId, UA_ATTRIBUTEID_EVENTNOTIFIER, &outEventNotifier);
     }
     /*!
         \brief readValue
@@ -1286,19 +1261,16 @@ public:
         \param outValue
         \return
     */
-    bool readValue(const NodeId& nodeId, Variant& outValue)
-    {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_VALUE, outValue);
-    }
+    void readValue(const NodeId& nodeId, Variant& outValue) { readAttribute(nodeId, UA_ATTRIBUTEID_VALUE, outValue); }
     /*!
         \brief readDataType
         \param nodeId
         \param outDataType
         \return
     */
-    bool readDataType(const NodeId& nodeId, NodeId& outDataType)
+    void readDataType(const NodeId& nodeId, NodeId& outDataType)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_DATATYPE, outDataType);
+        readAttribute(nodeId, UA_ATTRIBUTEID_DATATYPE, outDataType);
     }
     /*!
         \brief readValueRank
@@ -1306,9 +1278,9 @@ public:
         \param outValueRank
         \return
     */
-    bool readValueRank(const NodeId& nodeId, UA_Int32& outValueRank)
+    void readValueRank(const NodeId& nodeId, UA_Int32& outValueRank)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_VALUERANK, &outValueRank);
+        readAttribute(nodeId, UA_ATTRIBUTEID_VALUERANK, &outValueRank);
     }
 
     /* Returns a variant with an int32 array */
@@ -1318,9 +1290,9 @@ public:
         \param outArrayDimensions
         \return
     */
-    bool readArrayDimensions(const NodeId& nodeId, Variant& outArrayDimensions)
+    void readArrayDimensions(const NodeId& nodeId, Variant& outArrayDimensions)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_ARRAYDIMENSIONS, outArrayDimensions);
+        readAttribute(nodeId, UA_ATTRIBUTEID_ARRAYDIMENSIONS, outArrayDimensions);
     }
     /*!
         \brief readAccessLevel
@@ -1328,9 +1300,9 @@ public:
         \param outAccessLevel
         \return
     */
-    bool readAccessLevel(const NodeId& nodeId, UA_Byte& outAccessLevel)
+    void readAccessLevel(const NodeId& nodeId, UA_Byte& outAccessLevel)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_ACCESSLEVEL, &outAccessLevel);
+        readAttribute(nodeId, UA_ATTRIBUTEID_ACCESSLEVEL, &outAccessLevel);
     }
     /*!
         \brief readMinimumSamplingInterval
@@ -1338,9 +1310,9 @@ public:
         \param outMinimumSamplingInterval
         \return
     */
-    bool readMinimumSamplingInterval(const NodeId& nodeId, UA_Double& outMinimumSamplingInterval)
+    void readMinimumSamplingInterval(const NodeId& nodeId, UA_Double& outMinimumSamplingInterval)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_MINIMUMSAMPLINGINTERVAL, &outMinimumSamplingInterval);
+        readAttribute(nodeId, UA_ATTRIBUTEID_MINIMUMSAMPLINGINTERVAL, &outMinimumSamplingInterval);
     }
     /*!
         \brief readHistorizing
@@ -1348,9 +1320,9 @@ public:
         \param outHistorizing
         \return
     */
-    bool readHistorizing(const NodeId& nodeId, UA_Boolean& outHistorizing)
+    void readHistorizing(const NodeId& nodeId, UA_Boolean& outHistorizing)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_HISTORIZING, &outHistorizing);
+        readAttribute(nodeId, UA_ATTRIBUTEID_HISTORIZING, &outHistorizing);
     }
     /*!
         \brief readExecutable
@@ -1358,14 +1330,14 @@ public:
         \param outExecutable
         \return
     */
-    bool readExecutable(const NodeId& nodeId, UA_Boolean& outExecutable)
+    void readExecutable(const NodeId& nodeId, UA_Boolean& outExecutable)
     {
-        return readAttribute(nodeId, UA_ATTRIBUTEID_EXECUTABLE, &outExecutable);
+        readAttribute(nodeId, UA_ATTRIBUTEID_EXECUTABLE, &outExecutable);
     }
 
-    bool readObjectProperty(const NodeId& objectId, const QualifiedName& propertyName, Variant& value)
+    void readObjectProperty(const NodeId& objectId, const QualifiedName& propertyName, Variant& value)
     {
-        return UA_Server_readObjectProperty(server(), objectId, propertyName, value) == UA_STATUSCODE_GOOD;
+        throw_bad_status(UA_Server_readObjectProperty(server_or_throw(), objectId, propertyName, value));
     }
     /*!
         \brief writeBrowseName
@@ -1373,9 +1345,9 @@ public:
         \param browseName
         \return
     */
-    bool writeBrowseName(const NodeId& nodeId, QualifiedName& browseName)
+    void writeBrowseName(const NodeId& nodeId, QualifiedName& browseName)
     {
-        return writeAttribute(nodeId, UA_ATTRIBUTEID_BROWSENAME, &UA_TYPES[UA_TYPES_QUALIFIEDNAME], browseName);
+        writeAttribute(nodeId, UA_ATTRIBUTEID_BROWSENAME, &UA_TYPES[UA_TYPES_QUALIFIEDNAME], browseName);
     }
     /*!
         \brief writeDisplayName
@@ -1383,9 +1355,9 @@ public:
         \param displayName
         \return
     */
-    bool writeDisplayName(const NodeId& nodeId, LocalizedText& displayName)
+    void writeDisplayName(const NodeId& nodeId, LocalizedText& displayName)
     {
-        return writeAttribute(nodeId, UA_ATTRIBUTEID_DISPLAYNAME, &UA_TYPES[UA_TYPES_LOCALIZEDTEXT], displayName);
+        writeAttribute(nodeId, UA_ATTRIBUTEID_DISPLAYNAME, &UA_TYPES[UA_TYPES_LOCALIZEDTEXT], displayName);
     }
     /*!
         \brief writeDescription
@@ -1393,9 +1365,9 @@ public:
         \param description
         \return
     */
-    bool writeDescription(const NodeId& nodeId, LocalizedText& description)
+    void writeDescription(const NodeId& nodeId, LocalizedText& description)
     {
-        return writeAttribute(nodeId, UA_ATTRIBUTEID_DESCRIPTION, &UA_TYPES[UA_TYPES_LOCALIZEDTEXT], description);
+        writeAttribute(nodeId, UA_ATTRIBUTEID_DESCRIPTION, &UA_TYPES[UA_TYPES_LOCALIZEDTEXT], description);
     }
     /*!
         \brief writeWriteMask
@@ -1403,9 +1375,9 @@ public:
         \param writeMask
         \return
     */
-    bool writeWriteMask(const NodeId& nodeId, const UA_UInt32 writeMask)
+    void writeWriteMask(const NodeId& nodeId, const UA_UInt32 writeMask)
     {
-        return writeAttribute(nodeId, UA_ATTRIBUTEID_WRITEMASK, &UA_TYPES[UA_TYPES_UINT32], &writeMask);
+        writeAttribute(nodeId, UA_ATTRIBUTEID_WRITEMASK, &UA_TYPES[UA_TYPES_UINT32], &writeMask);
     }
     /*!
         \brief writeIsAbstract
@@ -1413,9 +1385,9 @@ public:
         \param isAbstract
         \return
     */
-    bool writeIsAbstract(const NodeId& nodeId, const UA_Boolean isAbstract)
+    void writeIsAbstract(const NodeId& nodeId, const UA_Boolean isAbstract)
     {
-        return writeAttribute(nodeId, UA_ATTRIBUTEID_ISABSTRACT, &UA_TYPES[UA_TYPES_BOOLEAN], &isAbstract);
+        writeAttribute(nodeId, UA_ATTRIBUTEID_ISABSTRACT, &UA_TYPES[UA_TYPES_BOOLEAN], &isAbstract);
     }
     /*!
         \brief writeInverseName
@@ -1423,9 +1395,9 @@ public:
         \param inverseName
         \return
     */
-    bool writeInverseName(const NodeId& nodeId, const UA_LocalizedText inverseName)
+    void writeInverseName(const NodeId& nodeId, const UA_LocalizedText inverseName)
     {
-        return writeAttribute(nodeId, UA_ATTRIBUTEID_INVERSENAME, &UA_TYPES[UA_TYPES_LOCALIZEDTEXT], &inverseName);
+        writeAttribute(nodeId, UA_ATTRIBUTEID_INVERSENAME, &UA_TYPES[UA_TYPES_LOCALIZEDTEXT], &inverseName);
     }
     /*!
         \brief writeEventNotifier
@@ -1433,9 +1405,9 @@ public:
         \param eventNotifier
         \return
     */
-    bool writeEventNotifier(const NodeId& nodeId, const UA_Byte eventNotifier)
+    void writeEventNotifier(const NodeId& nodeId, const UA_Byte eventNotifier)
     {
-        return writeAttribute(nodeId, UA_ATTRIBUTEID_EVENTNOTIFIER, &UA_TYPES[UA_TYPES_BYTE], &eventNotifier);
+        writeAttribute(nodeId, UA_ATTRIBUTEID_EVENTNOTIFIER, &UA_TYPES[UA_TYPES_BYTE], &eventNotifier);
     }
     /*!
         \brief writeValue
@@ -1443,14 +1415,10 @@ public:
         \param value
         \return
     */
-    bool writeValue(const NodeId& nodeId, const Variant& value)
+    void writeValue(const NodeId& nodeId, const Variant& value)
     {
-        if (!server())
-            return false;
-
-        return UA_STATUSCODE_GOOD ==
-               (_lastError =
-                    __UA_Server_write(_server, nodeId, UA_ATTRIBUTEID_VALUE, &UA_TYPES[UA_TYPES_VARIANT], value));
+        throw_bad_status(
+            __UA_Server_write(server_or_throw(), nodeId, UA_ATTRIBUTEID_VALUE, &UA_TYPES[UA_TYPES_VARIANT], value));
     }
     /*!
         \brief writeDataType
@@ -1458,9 +1426,9 @@ public:
         \param dataType
         \return
     */
-    bool writeDataType(const NodeId& nodeId, const NodeId& dataType)
+    void writeDataType(const NodeId& nodeId, const NodeId& dataType)
     {
-        return writeAttribute(nodeId, UA_ATTRIBUTEID_DATATYPE, &UA_TYPES[UA_TYPES_NODEID], dataType);
+        writeAttribute(nodeId, UA_ATTRIBUTEID_DATATYPE, &UA_TYPES[UA_TYPES_NODEID], dataType);
     }
     /*!
         \brief writeValueRank
@@ -1468,9 +1436,9 @@ public:
         \param valueRank
         \return
     */
-    bool writeValueRank(const NodeId& nodeId, const UA_Int32 valueRank)
+    void writeValueRank(const NodeId& nodeId, const UA_Int32 valueRank)
     {
-        return writeAttribute(nodeId, UA_ATTRIBUTEID_VALUERANK, &UA_TYPES[UA_TYPES_INT32], &valueRank);
+        writeAttribute(nodeId, UA_ATTRIBUTEID_VALUERANK, &UA_TYPES[UA_TYPES_INT32], &valueRank);
     }
 
     /*!
@@ -1479,9 +1447,9 @@ public:
         \param arrayDimensions
         \return
     */
-    bool writeArrayDimensions(const NodeId& nodeId, const Variant arrayDimensions)
+    void writeArrayDimensions(const NodeId& nodeId, const Variant arrayDimensions)
     {
-        return writeAttribute(nodeId, UA_ATTRIBUTEID_VALUE, &UA_TYPES[UA_TYPES_VARIANT], arrayDimensions.constRef());
+        writeAttribute(nodeId, UA_ATTRIBUTEID_VALUE, &UA_TYPES[UA_TYPES_VARIANT], arrayDimensions.constRef());
     }
     /*!
         \brief writeAccessLevel
@@ -1489,9 +1457,9 @@ public:
         \param accessLevel
         \return
     */
-    bool writeAccessLevel(const NodeId& nodeId, const UA_Byte accessLevel)
+    void writeAccessLevel(const NodeId& nodeId, const UA_Byte accessLevel)
     {
-        return writeAttribute(nodeId, UA_ATTRIBUTEID_ACCESSLEVEL, &UA_TYPES[UA_TYPES_BYTE], &accessLevel);
+        writeAttribute(nodeId, UA_ATTRIBUTEID_ACCESSLEVEL, &UA_TYPES[UA_TYPES_BYTE], &accessLevel);
     }
 
     // Some short cuts
@@ -1500,14 +1468,12 @@ public:
         \param nodeId
         \return
     */
-    bool writeEnable(const NodeId& nodeId)
+    void writeEnable(const NodeId& nodeId)
     {
         UA_Byte accessLevel;
-        if (readAccessLevel(nodeId, accessLevel)) {
-            accessLevel |= UA_ACCESSLEVELMASK_WRITE;
-            return writeAccessLevel(nodeId, accessLevel);
-        }
-        return false;
+        readAccessLevel(nodeId, accessLevel);
+        accessLevel |= UA_ACCESSLEVELMASK_WRITE;
+        writeAccessLevel(nodeId, accessLevel);
     }
     /*!
         \brief setReadOnly
@@ -1515,19 +1481,18 @@ public:
         \param historyEnable
         \return
     */
-    bool setReadOnly(const NodeId& nodeId, bool historyEnable = false)
+    void setReadOnly(const NodeId& nodeId, bool historyEnable = false)
     {
         UA_Byte accessLevel;
-        if (readAccessLevel(nodeId, accessLevel)) {
-            // remove the write bits
-            accessLevel &= ~(UA_ACCESSLEVELMASK_WRITE | UA_ACCESSLEVELMASK_HISTORYWRITE);
-            // add the read bits
-            accessLevel |= UA_ACCESSLEVELMASK_READ;
-            if (historyEnable)
-                accessLevel |= UA_ACCESSLEVELMASK_HISTORYREAD;
-            return writeAccessLevel(nodeId, accessLevel);
+        readAccessLevel(nodeId, accessLevel);
+        // remove the write bits
+        accessLevel &= ~(UA_ACCESSLEVELMASK_WRITE | UA_ACCESSLEVELMASK_HISTORYWRITE);
+        // add the read bits
+        accessLevel |= UA_ACCESSLEVELMASK_READ;
+        if (historyEnable) {
+            accessLevel |= UA_ACCESSLEVELMASK_HISTORYREAD;
         }
-        return false;
+        writeAccessLevel(nodeId, accessLevel);
     }
 
     /*!
@@ -1536,12 +1501,12 @@ public:
         \param miniumSamplingInterval
         \return
     */
-    bool writeMinimumSamplingInterval(const NodeId& nodeId, const UA_Double miniumSamplingInterval)
+    void writeMinimumSamplingInterval(const NodeId& nodeId, const UA_Double miniumSamplingInterval)
     {
-        return writeAttribute(nodeId,
-                              UA_ATTRIBUTEID_MINIMUMSAMPLINGINTERVAL,
-                              &UA_TYPES[UA_TYPES_DOUBLE],
-                              &miniumSamplingInterval);
+        writeAttribute(nodeId,
+                       UA_ATTRIBUTEID_MINIMUMSAMPLINGINTERVAL,
+                       &UA_TYPES[UA_TYPES_DOUBLE],
+                       &miniumSamplingInterval);
     }
     /*!
         \brief writeExecutable
@@ -1549,9 +1514,9 @@ public:
         \param executable
         \return
     */
-    bool writeExecutable(const NodeId& nodeId, const UA_Boolean executable)
+    void writeExecutable(const NodeId& nodeId, const UA_Boolean executable)
     {
-        return writeAttribute(nodeId, UA_ATTRIBUTEID_EXECUTABLE, &UA_TYPES[UA_TYPES_BOOLEAN], &executable);
+        writeAttribute(nodeId, UA_ATTRIBUTEID_EXECUTABLE, &UA_TYPES[UA_TYPES_BOOLEAN], &executable);
     }
 
     /*!
@@ -1561,9 +1526,9 @@ public:
      * \param value
      * \return true on success
      */
-    bool writeObjectProperty(const NodeId& objectId, const QualifiedName& propertyName, const Variant& value)
+    void writeObjectProperty(const NodeId& objectId, const QualifiedName& propertyName, const Variant& value)
     {
-        return UA_Server_writeObjectProperty(server(), objectId, propertyName, value) == UA_STATUSCODE_GOOD;
+        throw_bad_status(UA_Server_writeObjectProperty(server_or_throw(), objectId, propertyName, value));
     }
 
     template <typename T>
@@ -1574,11 +1539,11 @@ public:
      * \param value
      * \return
      */
-    bool writeObjectProperty(const NodeId& objectId, const std::string& propertyName, const T& value)
+    void writeObjectProperty(const NodeId& objectId, const std::string& propertyName, const T& value)
     {
         Variant v(value);
         QualifiedName qn(0, propertyName);
-        return writeObjectProperty(objectId, qn, v);
+        writeObjectProperty(objectId, qn, v);
     }
     /*!
      * \brief writeObjectProperty_scalar
@@ -1588,13 +1553,13 @@ public:
      * \param type
      * \return true on success
      */
-    bool writeObjectProperty_scalar(const NodeId& objectId,
+    void writeObjectProperty_scalar(const NodeId& objectId,
                                     const std::string& propertyName,
                                     const void* value,
                                     const UA_DataType* type)
     {
         QualifiedName qn(0, propertyName);
-        return UA_Server_writeObjectProperty_scalar(server(), objectId, qn, value, type) == UA_STATUSCODE_GOOD;
+        throw_bad_status(UA_Server_writeObjectProperty_scalar(server_or_throw(), objectId, qn, value, type));
     }
 
     //
@@ -1612,7 +1577,7 @@ public:
         \param instantiationCallback
         \return
     */
-    bool addVariableNode(const NodeId& requestedNewNodeId,
+    void addVariableNode(const NodeId& requestedNewNodeId,
                          const NodeId& parentNodeId,
                          const NodeId& referenceTypeId,
                          const QualifiedName& browseName,
@@ -1621,20 +1586,16 @@ public:
                          NodeId& outNewNodeId = NodeId::Null,
                          NodeContext* nc      = nullptr)
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Server_addVariableNode(_server,
-                                               requestedNewNodeId,
-                                               parentNodeId,
-                                               referenceTypeId,
-                                               browseName,
-                                               typeDefinition,
-                                               attr,
-                                               nc,
-                                               outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
-
-        return lastOK();
+        throw_bad_status(UA_Server_addVariableNode(server_or_throw(),
+                                                   requestedNewNodeId,
+                                                   parentNodeId,
+                                                   referenceTypeId,
+                                                   browseName,
+                                                   typeDefinition,
+                                                   attr,
+                                                   nc,
+                                                   outNewNodeId.isNull() ? nullptr : outNewNodeId.ref()));
     }
 
     /*!
@@ -1649,7 +1610,7 @@ public:
         \param instantiationCallback
         \return
     */
-    bool addVariableTypeNode(const NodeId& requestedNewNodeId,
+    void addVariableTypeNode(const NodeId& requestedNewNodeId,
                              const NodeId& parentNodeId,
                              const NodeId& referenceTypeId,
                              const QualifiedName& browseName,
@@ -1658,19 +1619,16 @@ public:
                              NodeId& outNewNodeId               = NodeId::Null,
                              NodeContext* instantiationCallback = nullptr)
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Server_addVariableTypeNode(_server,
-                                                   requestedNewNodeId,
-                                                   parentNodeId,
-                                                   referenceTypeId,
-                                                   browseName,
-                                                   typeDefinition,
-                                                   attr,
-                                                   instantiationCallback,
-                                                   outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
-        return lastOK();
+        throw_bad_status(UA_Server_addVariableTypeNode(server_or_throw(),
+                                                       requestedNewNodeId,
+                                                       parentNodeId,
+                                                       referenceTypeId,
+                                                       browseName,
+                                                       typeDefinition,
+                                                       attr,
+                                                       instantiationCallback,
+                                                       outNewNodeId.isNull() ? nullptr : outNewNodeId.ref()));
     }
 
     /*!
@@ -1685,7 +1643,7 @@ public:
         \param instantiationCallback
         \return
     */
-    bool addObjectNode(const NodeId& requestedNewNodeId,
+    void addObjectNode(const NodeId& requestedNewNodeId,
                        const NodeId& parentNodeId,
                        const NodeId& referenceTypeId,
                        const QualifiedName& browseName,
@@ -1694,20 +1652,17 @@ public:
                        NodeId& outNewNodeId               = NodeId::Null,
                        NodeContext* instantiationCallback = nullptr)
     {
-        if (!server())
-            return false;
 
         WriteLock l(_mutex);
-        _lastError = UA_Server_addObjectNode(_server,
-                                             requestedNewNodeId,
-                                             parentNodeId,
-                                             referenceTypeId,
-                                             browseName,
-                                             typeDefinition,
-                                             attr,
-                                             instantiationCallback,
-                                             outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef());
-        return lastOK();
+        throw_bad_status(UA_Server_addObjectNode(server_or_throw(),
+                                                 requestedNewNodeId,
+                                                 parentNodeId,
+                                                 referenceTypeId,
+                                                 browseName,
+                                                 typeDefinition,
+                                                 attr,
+                                                 instantiationCallback,
+                                                 outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef()));
     }
 
     /*!
@@ -1721,7 +1676,7 @@ public:
         \param instantiationCallback
         \return
     */
-    bool addObjectTypeNode(const NodeId& requestedNewNodeId,
+    void addObjectTypeNode(const NodeId& requestedNewNodeId,
                            const NodeId& parentNodeId,
                            const NodeId& referenceTypeId,
                            const QualifiedName& browseName,
@@ -1729,18 +1684,14 @@ public:
                            NodeId& outNewNodeId               = NodeId::Null,
                            NodeContext* instantiationCallback = nullptr)
     {
-        if (!server())
-            return false;
-
-        _lastError = UA_Server_addObjectTypeNode(_server,
-                                                 requestedNewNodeId,
-                                                 parentNodeId,
-                                                 referenceTypeId,
-                                                 browseName,
-                                                 attr,
-                                                 instantiationCallback,
-                                                 outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef());
-        return lastOK();
+        throw_bad_status(UA_Server_addObjectTypeNode(server_or_throw(),
+                                                     requestedNewNodeId,
+                                                     parentNodeId,
+                                                     referenceTypeId,
+                                                     browseName,
+                                                     attr,
+                                                     instantiationCallback,
+                                                     outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef()));
     }
 
     /*!
@@ -1754,7 +1705,7 @@ public:
         \param instantiationCallback
         \return
     */
-    bool addViewNode(const NodeId& requestedNewNodeId,
+    void addViewNode(const NodeId& requestedNewNodeId,
                      const NodeId& parentNodeId,
                      const NodeId& referenceTypeId,
                      const QualifiedName& browseName,
@@ -1762,19 +1713,15 @@ public:
                      NodeId& outNewNodeId               = NodeId::Null,
                      NodeContext* instantiationCallback = nullptr)
     {
-        if (!server())
-            return false;
-
         WriteLock l(_mutex);
-        _lastError = UA_Server_addViewNode(_server,
-                                           requestedNewNodeId,
-                                           parentNodeId,
-                                           referenceTypeId,
-                                           browseName,
-                                           attr,
-                                           instantiationCallback,
-                                           outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef());
-        return lastOK();
+        throw_bad_status(UA_Server_addViewNode(server_or_throw(),
+                                               requestedNewNodeId,
+                                               parentNodeId,
+                                               referenceTypeId,
+                                               browseName,
+                                               attr,
+                                               instantiationCallback,
+                                               outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef()));
     }
 
     /*!
@@ -1788,7 +1735,7 @@ public:
         \param instantiationCallback
         \return
     */
-    bool addReferenceTypeNode(const NodeId& requestedNewNodeId,
+    void addReferenceTypeNode(const NodeId& requestedNewNodeId,
                               const NodeId& parentNodeId,
                               const NodeId& referenceTypeId,
                               const QualifiedName& browseName,
@@ -1796,19 +1743,15 @@ public:
                               NodeId& outNewNodeId               = NodeId::Null,
                               NodeContext* instantiationCallback = nullptr)
     {
-        if (!server())
-            return false;
-
         WriteLock l(_mutex);
-        _lastError = UA_Server_addReferenceTypeNode(_server,
-                                                    requestedNewNodeId,
-                                                    parentNodeId,
-                                                    referenceTypeId,
-                                                    browseName,
-                                                    attr,
-                                                    instantiationCallback,
-                                                    outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef());
-        return lastOK();
+        throw_bad_status(UA_Server_addReferenceTypeNode(server_or_throw(),
+                                                        requestedNewNodeId,
+                                                        parentNodeId,
+                                                        referenceTypeId,
+                                                        browseName,
+                                                        attr,
+                                                        instantiationCallback,
+                                                        outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef()));
     }
 
     /*!
@@ -1822,7 +1765,7 @@ public:
         \param instantiationCallback
         \return
     */
-    bool addDataTypeNode(const NodeId& requestedNewNodeId,
+    void addDataTypeNode(const NodeId& requestedNewNodeId,
                          const NodeId& parentNodeId,
                          const NodeId& referenceTypeId,
                          const QualifiedName& browseName,
@@ -1830,19 +1773,15 @@ public:
                          NodeId& outNewNodeId               = NodeId::Null,
                          NodeContext* instantiationCallback = nullptr)
     {
-        if (!server())
-            return false;
-
         WriteLock l(_mutex);
-        _lastError = UA_Server_addDataTypeNode(_server,
-                                               requestedNewNodeId,
-                                               parentNodeId,
-                                               referenceTypeId,
-                                               browseName,
-                                               attr,
-                                               instantiationCallback,
-                                               outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef());
-        return lastOK();
+        throw_bad_status(UA_Server_addDataTypeNode(server_or_throw(),
+                                                   requestedNewNodeId,
+                                                   parentNodeId,
+                                                   referenceTypeId,
+                                                   browseName,
+                                                   attr,
+                                                   instantiationCallback,
+                                                   outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef()));
     }
 
     /*!
@@ -1857,7 +1796,7 @@ public:
         \param outNewNodeId
         \return
     */
-    bool addDataSourceVariableNode(const NodeId& requestedNewNodeId,
+    void addDataSourceVariableNode(const NodeId& requestedNewNodeId,
                                    const NodeId& parentNodeId,
                                    const NodeId& referenceTypeId,
                                    const QualifiedName& browseName,
@@ -1867,22 +1806,17 @@ public:
                                    NodeId& outNewNodeId               = NodeId::Null,
                                    NodeContext* instantiationCallback = nullptr)
     {
-        if (!server())
-            return false;
-
         WriteLock l(_mutex);
-        _lastError = UA_Server_addDataSourceVariableNode(_server,
-                                                         requestedNewNodeId,
-                                                         parentNodeId,
-                                                         referenceTypeId,
-                                                         browseName,
-                                                         typeDefinition,
-                                                         attr,
-                                                         dataSource,
-                                                         instantiationCallback,
-                                                         outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
-
-        return lastOK();
+        throw_bad_status(UA_Server_addDataSourceVariableNode(server_or_throw(),
+                                                             requestedNewNodeId,
+                                                             parentNodeId,
+                                                             referenceTypeId,
+                                                             browseName,
+                                                             typeDefinition,
+                                                             attr,
+                                                             dataSource,
+                                                             instantiationCallback,
+                                                             outNewNodeId.isNull() ? nullptr : outNewNodeId.ref()));
     }
 
     /*!
@@ -1893,13 +1827,10 @@ public:
         \param isForward
         \return
     */
-    bool addReference(const NodeId& sourceId, const NodeId& refTypeId, const ExpandedNodeId& targetId, bool isForward)
+    void addReference(const NodeId& sourceId, const NodeId& refTypeId, const ExpandedNodeId& targetId, bool isForward)
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Server_addReference(server(), sourceId, refTypeId, targetId, isForward);
-        return lastOK();
+        throw_bad_status(UA_Server_addReference(server_or_throw(), sourceId, refTypeId, targetId, isForward));
     }
 
     /*!
@@ -1907,9 +1838,9 @@ public:
         \param nodeId
         \return
     */
-    bool markMandatory(const NodeId& nodeId)
+    void markMandatory(const NodeId& nodeId)
     {
-        return addReference(nodeId, NodeId::HasModellingRule, ExpandedNodeId::ModellingRuleMandatory, true);
+        addReference(nodeId, NodeId::HasModellingRule, ExpandedNodeId::ModellingRuleMandatory, true);
     }
 
     /*!
@@ -1921,23 +1852,20 @@ public:
         \param deleteBidirectional
         \return
     */
-    bool deleteReference(const NodeId& sourceNodeId,
+    void deleteReference(const NodeId& sourceNodeId,
                          const NodeId& referenceTypeId,
                          bool isForward,
                          const ExpandedNodeId& targetNodeId,
                          bool deleteBidirectional)
     {
-        if (!server())
-            return false;
 
         WriteLock l(_mutex);
-        _lastError = UA_Server_deleteReference(server(),
-                                               sourceNodeId,
-                                               referenceTypeId,
-                                               isForward,
-                                               targetNodeId,
-                                               deleteBidirectional);
-        return lastOK();
+        throw_bad_status(UA_Server_deleteReference(server_or_throw(),
+                                                   sourceNodeId,
+                                                   referenceTypeId,
+                                                   isForward,
+                                                   targetNodeId,
+                                                   deleteBidirectional));
     }
 
     /*!
@@ -1947,21 +1875,18 @@ public:
         \param nodeId
         \return
     */
-    bool addInstance(const std::string& n,
+    void addInstance(const std::string& n,
                      const NodeId& requestedNewNodeId,
                      const NodeId& parent,
                      const NodeId& typeId,
                      NodeId& nodeId       = NodeId::Null,
                      NodeContext* context = nullptr)
     {
-        if (!server())
-            return false;
-
         ObjectAttributes oAttr;
         oAttr.setDefault();
         oAttr.setDisplayName(n);
         QualifiedName qn(parent.nameSpaceIndex(), n);
-        return addObjectNode(requestedNewNodeId, parent, NodeId::Organizes, qn, typeId, oAttr, nodeId, context);
+        addObjectNode(requestedNewNodeId, parent, NodeId::Organizes, qn, typeId, oAttr, nodeId, context);
     }
     //
     //
@@ -1972,13 +1897,10 @@ public:
         @param eventType The type of the event for which a node should be created
         @param outNodeId The NodeId of the newly created node for the event
         @return The StatusCode of the UA_Server_createEvent method */
-    bool createEvent(const NodeId& eventType, NodeId& outNodeId)
+    void createEvent(const NodeId& eventType, NodeId& outNodeId)
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Server_createEvent(_server, eventType, outNodeId.ref());
-        return lastOK();
+        throw_bad_status(UA_Server_createEvent(server_or_throw(), eventType, outNodeId.ref()));
     }
 
     /*  Triggers a node representation of an event by applying EventFilters and
@@ -1988,16 +1910,14 @@ public:
         @param outEvent the EventId of the new event
         @param deleteEventNode Specifies whether the node representation of the event should be deleted
         @return The StatusCode of the UA_Server_triggerEvent method */
-    bool triggerEvent(const NodeId& eventNodeId,
+    void triggerEvent(const NodeId& eventNodeId,
                       const NodeId& sourceNode,
                       UA_ByteString* outEventId = nullptr,
                       bool deleteEventNode      = true)
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Server_triggerEvent(_server, eventNodeId, sourceNode, outEventId, deleteEventNode);
-        return lastOK();
+        throw_bad_status(
+            UA_Server_triggerEvent(server_or_throw(), eventNodeId, sourceNode, outEventId, deleteEventNode));
     }
 
     /*!
@@ -2007,27 +1927,22 @@ public:
      \param eventType  the event type node
      \return true on success
  */
-    bool addNewEventType(const std::string& name,
-                         NodeId& eventType,
-                         const std::string& description = std::string())
+    void addNewEventType(const std::string& name, NodeId& eventType, const std::string& description = std::string())
     {
-        if (!server())
-            return false;
         ObjectTypeAttributes attr;
         attr.setDefault();
         attr.setDisplayName(name);
         attr.setDescription((description.empty() ? name : description));
         QualifiedName qn(0, name);
         WriteLock l(_mutex);
-        _lastError = UA_Server_addObjectTypeNode(server(),
-                                                 UA_NODEID_NULL,
-                                                 UA_NODEID_NUMERIC(0, UA_NS0ID_BASEEVENTTYPE),
-                                                 UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
-                                                 qn,
-                                                 attr,
-                                                 NULL,
-                                                 eventType.clearRef());
-        return lastOK();
+        throw_bad_status(UA_Server_addObjectTypeNode(server_or_throw(),
+                                                     UA_NODEID_NULL,
+                                                     UA_NODEID_NUMERIC(0, UA_NS0ID_BASEEVENTTYPE),
+                                                     UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
+                                                     qn,
+                                                     attr,
+                                                     NULL,
+                                                     eventType.clearRef()));
     }
 
     /*!
@@ -2040,49 +1955,44 @@ public:
         \return true on success
     */
 
-    bool setUpEvent(NodeId& outId,
+    void setUpEvent(NodeId& outId,
                     const NodeId& eventType,
                     const std::string& eventMessage,
                     const std::string& eventSourceName,
                     int eventSeverity     = 100,
                     UA_DateTime eventTime = UA_DateTime_now())
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
         outId.notNull();
-        _lastError = UA_Server_createEvent(server(), eventType, outId);
-        if (lastOK()) {
+        throw_bad_status(UA_Server_createEvent(server_or_throw(), eventType, outId));
 
-            /* Set the Event Attributes */
-            /* Setting the Time is required or else the event will not show up in UAExpert! */
-            UA_Server_writeObjectProperty_scalar(server(),
-                                                 outId,
-                                                 UA_QUALIFIEDNAME(0, const_cast<char*>("Time")),
-                                                 &eventTime,
-                                                 &UA_TYPES[UA_TYPES_DATETIME]);
+        /* Set the Event Attributes */
+        /* Setting the Time is required or else the event will not show up in UAExpert! */
+        throw_bad_status(UA_Server_writeObjectProperty_scalar(server_or_throw(),
+                                                              outId,
+                                                              UA_QUALIFIEDNAME(0, const_cast<char*>("Time")),
+                                                              &eventTime,
+                                                              &UA_TYPES[UA_TYPES_DATETIME]));
 
-            UA_Server_writeObjectProperty_scalar(server(),
-                                                 outId,
-                                                 UA_QUALIFIEDNAME(0, const_cast<char*>("Severity")),
-                                                 &eventSeverity,
-                                                 &UA_TYPES[UA_TYPES_UINT16]);
+        throw_bad_status(UA_Server_writeObjectProperty_scalar(server_or_throw(),
+                                                              outId,
+                                                              UA_QUALIFIEDNAME(0, const_cast<char*>("Severity")),
+                                                              &eventSeverity,
+                                                              &UA_TYPES[UA_TYPES_UINT16]));
 
-            LocalizedText eM(const_cast<char*>("en-US"), eventMessage);
-            UA_Server_writeObjectProperty_scalar(server(),
-                                                 outId,
-                                                 UA_QUALIFIEDNAME(0, const_cast<char*>("Message")),
-                                                 eM.clearRef(),
-                                                 &UA_TYPES[UA_TYPES_LOCALIZEDTEXT]);
+        LocalizedText eM(const_cast<char*>("en-US"), eventMessage);
+        throw_bad_status(UA_Server_writeObjectProperty_scalar(server_or_throw(),
+                                                              outId,
+                                                              UA_QUALIFIEDNAME(0, const_cast<char*>("Message")),
+                                                              eM.clearRef(),
+                                                              &UA_TYPES[UA_TYPES_LOCALIZEDTEXT]));
 
-            UA_String eSN = UA_STRING(const_cast<char*>(eventSourceName.c_str()));
-            UA_Server_writeObjectProperty_scalar(server(),
-                                                 outId,
-                                                 UA_QUALIFIEDNAME(0, const_cast<char*>("SourceName")),
-                                                 &eSN,
-                                                 &UA_TYPES[UA_TYPES_STRING]);
-        }
-        return lastOK();
+        UA_String eSN = UA_STRING(const_cast<char*>(eventSourceName.c_str()));
+        throw_bad_status(UA_Server_writeObjectProperty_scalar(server_or_throw(),
+                                                              outId,
+                                                              UA_QUALIFIEDNAME(0, const_cast<char*>("SourceName")),
+                                                              &eSN,
+                                                              &UA_TYPES[UA_TYPES_STRING]));
     }
 
     /*!
@@ -2094,22 +2004,19 @@ public:
         \param closeSecureChannels
         \return true on success
     */
-    bool updateCertificate(const UA_ByteString* oldCertificate,
+    void updateCertificate(const UA_ByteString* oldCertificate,
                            const UA_ByteString* newCertificate,
                            const UA_ByteString* newPrivateKey,
                            bool closeSessions       = true,
                            bool closeSecureChannels = true)
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Server_updateCertificate(_server,
-                                                 oldCertificate,
-                                                 newCertificate,
-                                                 newPrivateKey,
-                                                 closeSessions,
-                                                 closeSecureChannels);
-        return lastOK();
+        throw_bad_status(UA_Server_updateCertificate(server_or_throw(),
+                                                     oldCertificate,
+                                                     newCertificate,
+                                                     newPrivateKey,
+                                                     closeSessions,
+                                                     closeSecureChannels));
     }
 
     /*!
@@ -2342,7 +2249,7 @@ public:
      * \param hierarchialReferenceType
      * \return true on success
      */
-    bool createCondition(const NodeId& conditionType,
+    void createCondition(const NodeId& conditionType,
                          const std::string& conditionName,
                          const NodeId& conditionSource,  // parent
                          Condition_p& outCondition,      // newly created condition object has the condition node
@@ -2352,22 +2259,19 @@ public:
         QualifiedName qn(conditionSource.nameSpaceIndex(), conditionName);
         outConditionId.notNull();  // this is the key to the condition dictionary
         outCondition = nullptr;
-        _lastError   = UA_Server_createCondition(server(),
-                                               NodeId::Null,
-                                               conditionType,
-                                               qn,
-                                               conditionSource,
-                                               hierarchialReferenceType,
-                                               outConditionId.isNull() ? nullptr : outConditionId.clearRef());
-        if (lastOK()) {
-            // create the condition object
-            ConditionPtr c(new T(*this, outConditionId, conditionSource));
-            outCondition       = c.get();
-            unsigned key       = UA_NodeId_hash(outConditionId.clearRef());
-            _conditionMap[key] = std::move(c);  // servers own the condition objects
-            return true;
-        }
-        return false;
+        throw_bad_status(UA_Server_createCondition(server_or_throw(),
+                                                   NodeId::Null,
+                                                   conditionType,
+                                                   qn,
+                                                   conditionSource,
+                                                   hierarchialReferenceType,
+                                                   outConditionId.isNull() ? nullptr : outConditionId.clearRef()));
+
+        // create the condition object
+        ConditionPtr c(new T(*this, outConditionId, conditionSource));
+        outCondition       = c.get();
+        unsigned key       = UA_NodeId_hash(outConditionId.clearRef());
+        _conditionMap[key] = std::move(c);  // servers own the condition objects
     }
 
     /*!
@@ -2384,16 +2288,15 @@ public:
      * \return
      */
 #ifdef UA_ENABLE_SUBSCRIPTIONS_ALARMS_CONDITIONS
-    bool setConditionTwoStateVariableCallback(const NodeId& condition,
+    void setConditionTwoStateVariableCallback(const NodeId& condition,
                                               UA_TwoStateVariableCallbackType callbackType,
                                               bool removeBranch = false)
     {
         ConditionPtr& c = findCondition(condition);  // conditions are bound to servers - possible for the same node id
                                                      // to be used in different servers
-        if (c) {
-            return c->setCallback(callbackType, removeBranch);
-        }
-        return false;
+        if (!c)
+            throw StringException("Condition not found");
+        c->setCallback(callbackType, removeBranch);
     }
 #endif
     /*!
@@ -2402,18 +2305,30 @@ public:
      * \param foundIndex
      * \return
      */
-    bool getNamespaceByName(const std::string& namespaceUri, size_t& foundIndex)
+    void getNamespaceByName(const std::string& namespaceUri, size_t& foundIndex) const
     {
         String ua(namespaceUri);
-        _lastError = UA_Server_getNamespaceByName(server(), ua, &foundIndex);
-        return lastOK();
+        throw_bad_status(UA_Server_getNamespaceByName(server_or_throw(), ua, &foundIndex));
+    }
+    /*!
+     * \brief getNamespaceByName
+     * \param namespaceUri
+     * \param foundIndex
+     * \return
+     */
+    size_t getNamespaceByName(const std::string& namespaceUri) const
+    {
+        String ua(namespaceUri);
+        size_t foundIndex;
+        throw_bad_status(UA_Server_getNamespaceByName(server_or_throw(), ua, &foundIndex));
+        return foundIndex;
     }
 
     /*!
      * \brief UA_Server_getStatistics
      * \return
      */
-    UA_ServerStatistics getStatistics() { return UA_Server_getStatistics(server()); }
+    UA_ServerStatistics getStatistics() { return UA_Server_getStatistics(server_or_throw()); }
 
     //
     // Async Access
@@ -2426,11 +2341,9 @@ public:
      * \param isAsync
      * \return
      */
-    bool setMethodNodeAsync(const NodeId& id, bool isAsync)
+    void setMethodNodeAsync(const NodeId& id, bool isAsync)
     {
-
-        _lastError = UA_Server_setMethodNodeAsync(server(), id, (UA_Boolean)isAsync);
-        return lastOK();
+        throw_bad_status(UA_Server_setMethodNodeAsync(server_or_throw(), id, (UA_Boolean)isAsync));
     }
 
     /*!
@@ -2446,7 +2359,7 @@ public:
                                       void** context,
                                       UA_DateTime* timeout)
     {
-        return UA_Server_getAsyncOperationNonBlocking(server(), type, request, context, timeout) == UA_TRUE;
+        return UA_Server_getAsyncOperationNonBlocking(server_or_throw(), type, request, context, timeout) == UA_TRUE;
     }
 
     /*!
@@ -2456,7 +2369,7 @@ public:
      */
     void setAsyncOperationResult(const UA_AsyncOperationResponse* response, void* context)
     {
-        UA_Server_setAsyncOperationResult(server(), response, context);
+        UA_Server_setAsyncOperationResult(server_or_throw(), response, context);
     }
 
     // object property
@@ -2468,18 +2381,14 @@ public:
      * \param callbackId
      * \return
      */
-    bool addTimedEvent(unsigned msDelay, UA_UInt64& callbackId, std::function<void(Timer&)> func)
+    void addTimedEvent(unsigned msDelay, UA_UInt64& callbackId, std::function<void(Timer&)> func)
     {
-        if (_server) {
-            UA_DateTime dt = UA_DateTime_nowMonotonic() + (UA_DATETIME_MSEC * msDelay);
-            TimerPtr t(new Timer(this, 0, true, func));
-            _lastError = UA_Server_addTimedCallback(_server, Server::timerCallback, t.get(), dt, &callbackId);
-            t->setId(callbackId);
-            _timerMap[callbackId] = std::move(t);
-            return lastOK();
-        }
-        callbackId = 0;
-        return false;
+        UA_DateTime dt = UA_DateTime_nowMonotonic() + (UA_DATETIME_MSEC * msDelay);
+        TimerPtr t(new Timer(this, 0, true, func));
+        throw_bad_status(
+            UA_Server_addTimedCallback(server_or_throw(), Server::timerCallback, t.get(), dt, &callbackId));
+        t->setId(callbackId);
+        _timerMap[callbackId] = std::move(t);
     }
 
     /* Add a callback for cyclic repetition to the client.
@@ -2496,18 +2405,13 @@ public:
      * @return Upon success, UA_STATUSCODE_GOOD is returned. An error code
      *         otherwise. */
 
-    bool addRepeatedTimerEvent(UA_Double interval_ms, UA_UInt64& callbackId, std::function<void(Timer&)> func)
+    void addRepeatedTimerEvent(UA_Double interval_ms, UA_UInt64& callbackId, std::function<void(Timer&)> func)
     {
-        if (_server) {
-            TimerPtr t(new Timer(this, 0, false, func));
-            _lastError =
-                UA_Server_addRepeatedCallback(_server, Server::timerCallback, t.get(), interval_ms, &callbackId);
-            t->setId(callbackId);
-            _timerMap[callbackId] = std::move(t);
-            return lastOK();
-        }
-        callbackId = 0;
-        return false;
+        TimerPtr t(new Timer(this, 0, false, func));
+        throw_bad_status(
+            UA_Server_addRepeatedCallback(server_or_throw(), Server::timerCallback, t.get(), interval_ms, &callbackId));
+        t->setId(callbackId);
+        _timerMap[callbackId] = std::move(t);
     }
     /*!
      * \brief changeRepeatedCallbackInterval
@@ -2515,13 +2419,9 @@ public:
      * \param interval_ms
      * \return
      */
-    bool changeRepeatedTimerInterval(UA_UInt64 callbackId, UA_Double interval_ms)
+    void changeRepeatedTimerInterval(UA_UInt64 callbackId, UA_Double interval_ms)
     {
-        if (_server) {
-            _lastError = UA_Server_changeRepeatedCallbackInterval(_server, callbackId, interval_ms);
-            return lastOK();
-        }
-        return false;
+        throw_bad_status(UA_Server_changeRepeatedCallbackInterval(server_or_throw(), callbackId, interval_ms));
     }
     /*!
      * \brief UA_Client_removeCallback

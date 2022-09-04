@@ -29,8 +29,6 @@ class UA_EXPORT ServerRepeatedCallback
     ServerRepeatedCallbackFunc _func;  // functior to handle event
 
 protected:
-    UA_StatusCode _lastError = 0;
-
 public:
     /*!
         \brief callbackFunction
@@ -56,25 +54,20 @@ public:
         \brief start
         \return
     */
-    bool start();
+    void start();
 
     /*!
         \brief changeInterval
         \param i
         \return
     */
-    bool changeInterval(unsigned i);
+    void changeInterval(unsigned i);
     /*!
         \brief stop
         \return
     */
     bool stop();
 
-    /*!
-        \brief lastError
-        \return
-    */
-    UA_StatusCode lastError() const { return _lastError; }
     /*!
         \brief server
         \return
@@ -94,11 +87,6 @@ public:
         if (_func)
             _func(*this);
     }  // The callback
-    /*!
-        \brief lastOK
-        \return
-    */
-    bool lastOK() const { return _lastError == UA_STATUSCODE_GOOD; }
 };
 /*!
     \brief ServerRepeatedCallbackRef

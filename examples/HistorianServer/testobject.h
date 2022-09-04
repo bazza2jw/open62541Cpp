@@ -11,13 +11,12 @@ public:
     {
     }
 
-    bool addChildren(const Open62541::NodeId& parent) override
+    void addChildren(const Open62541::NodeId& parent) override
     {
         Open62541::NodeId n;
         Open62541::NodeId a;
         addObjectTypeVariable<double>("Current", parent, n.notNull());
         addObjectTypeVariable<double>("Average", n, a.notNull());
-        return true;
     }
 };
 

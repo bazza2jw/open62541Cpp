@@ -12,14 +12,14 @@ public:
         : ServerObjectType(s, "AR_ObjectType")
     {
     }
-    bool addChildren(const Open62541::NodeId& parent) override
+    void addChildren(const Open62541::NodeId& parent) override
     {
         Open62541::NodeId n;
         Open62541::NodeId a;
         Open62541::NodeId b;
-        return addObjectTypeVariable<double>("Current", parent, n.notNull()) &&
-               addDerivedObjectType ("Golash", parent, a.notNull())&&
-               addObjectTypeArrayVariable<int, 5>("Average", a, b.notNull());
+        addObjectTypeVariable<double>("Current", parent, n.notNull());
+        addDerivedObjectType("Golash", parent, a.notNull());
+        addObjectTypeArrayVariable<int, 5>("Average", a, b.notNull());
     }
 };
 

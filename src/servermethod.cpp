@@ -11,6 +11,9 @@
  */
 #include <open62541cpp/servermethod.h>
 #include <open62541cpp/open62541server.h>
+
+#include <utility>
+
 /*!
     \brief Open62541::ServerMethod::methodCallback
     \param handle
@@ -34,9 +37,9 @@ UA_StatusCode Open62541::ServerMethod::methodCallback(UA_Server* server,
                                                       UA_Variant* output)
 {
     UA_StatusCode ret = UA_STATUSCODE_GOOD;
-    if (methodContext) {
+    if (methodContext != nullptr) {
         Server* s = Server::findServer(server);
-        if (s) {
+        if (s != nullptr) {
             Open62541::ServerMethod* p = (Open62541::ServerMethod*)methodContext;
             if (p->_func) {
                 return p->_func(*s, objectId, inputSize, input, outputSize, output);  // was the functor defined
@@ -68,7 +71,7 @@ Open62541::ServerMethod::ServerMethod(const std::string& n, int nInputs, int nOu
 
 Open62541::ServerMethod::ServerMethod(const std::string& n, MethodFunc f, int nInputs, int nOutputs)
     : NodeContext(n)
-    , _func(f)
+    , _func(std::move(f))
 {
     _in.resize(nInputs + 1);  // create parameter space
     _out.resize(nOutputs + 1);
@@ -80,10 +83,9 @@ Open62541::ServerMethod::ServerMethod(const std::string& n, MethodFunc f, int nI
  * \param node
  * \return
  */
-bool Open62541::ServerMethod::setMethodNodeCallBack(Open62541::Server& s, Open62541::NodeId& node)
+void Open62541::ServerMethod::setMethodNodeCallBack(Open62541::Server& s, const Open62541::NodeId& node)
 {
-    return s.server() ? (UA_Server_setMethodNode_callback(s.server(), node, methodCallback) == UA_STATUSCODE_GOOD)
-                      : false;
+    throw_bad_status(UA_Server_setMethodNode_callback(s.server(), node, methodCallback));
 }
 
 /*!
@@ -95,12 +97,12 @@ bool Open62541::ServerMethod::setMethodNodeCallBack(Open62541::Server& s, Open62
  * \param nameSpaceIndex
  * \return
  */
-bool Open62541::ServerMethod::addServerMethod(Open62541::Server& s,
+void Open62541::ServerMethod::addServerMethod(Open62541::Server& s,
                                               const std::string& browseName,
-                                              Open62541::NodeId& parent,
-                                              Open62541::NodeId& nodeId,
+                                              const Open62541::NodeId& parent,
+                                              const Open62541::NodeId& nodeId,
                                               Open62541::NodeId& newNode,
                                               int nameSpaceIndex)
 {
-    return s.addServerMethod(this, browseName, parent, nodeId, newNode, nameSpaceIndex);
+    s.addServerMethod(this, browseName, parent, nodeId, newNode, nameSpaceIndex);
 }

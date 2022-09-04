@@ -64,6 +64,7 @@
 #include "open62541/plugin/accesscontrol_default.h"
 #include "open62541/plugin/pki_default.h"
 #include "open62541/plugin/securitypolicy_default.h"
+#include "exception.h"
 #endif
 #undef UA_LOGLEVEL
 #define UA_LOGLEVEL UA_LOGLEVEL_ORIG
@@ -642,7 +643,7 @@ public:
     unsigned hash() const { return UA_NodeId_hash(constRef()); }
 
     NodeId()
-        : TypeBase()
+        : TypeBase(UA_NodeId_new())
     {
     }
 
@@ -1269,28 +1270,32 @@ public:
     using TypeBase<UA_VariableAttributes, UA_TYPES_VARIABLEATTRIBUTES>::operator=;
     void setDefault() { *this = UA_VariableAttributes_default; }
 
-
-    //feat: Add member function for array dimension and size
+    // feat: Add member function for array dimension and size
     template <typename T>
-    Variant getVariantMatrix(const UA_UInt32 rows, const UA_UInt32 cols,const size_t dim_size, const UA_DataType *type,const int value_rank,const T* array) 
+    Variant getVariantMatrix(const UA_UInt32 rows,
+                             const UA_UInt32 cols,
+                             const size_t dim_size,
+                             const UA_DataType* type,
+                             const int value_rank,
+                             const T* array)
     {
         *this = UA_VariableAttributes_default;
         Variant variant;
-        //set the VariableAttribute values' constraints
-        get().valueRank = value_rank;
-        get().dataType = type->typeId;
-        get().arrayDimensions = (UA_UInt32 *)UA_Array_new(dim_size, type);
+        // set the VariableAttribute values' constraints
+        get().valueRank           = value_rank;
+        get().dataType            = type->typeId;
+        get().arrayDimensions     = (UA_UInt32*)UA_Array_new(dim_size, type);
         get().arrayDimensionsSize = dim_size;
-        get().arrayDimensions[0]=rows;
-        get().arrayDimensions[1]=cols;
-        
-        //Set the value from the argument array. The array dimensions need to be the same for the value
+        get().arrayDimensions[0]  = rows;
+        get().arrayDimensions[1]  = cols;
+
+        // Set the value from the argument array. The array dimensions need to be the same for the value
         size_t arraySize = sizeof(*array) / sizeof(array);
         UA_Variant_setArrayCopy(&get().value, array, arraySize, type);
-        get().value.arrayDimensions = (UA_UInt32 *)UA_Array_new(dim_size, type);
+        get().value.arrayDimensions     = (UA_UInt32*)UA_Array_new(dim_size, type);
         get().value.arrayDimensionsSize = dim_size;
-        get().value.arrayDimensions[0]=rows;
-        get().value.arrayDimensions[1]=cols;
+        get().value.arrayDimensions[0]  = rows;
+        get().value.arrayDimensions[1]  = cols;
         UA_Variant_copy(&get().value, variant);
         return variant;
     }
@@ -1392,13 +1397,20 @@ public:
 class UA_EXPORT RelativePathElement : public TypeBase<UA_RelativePathElement, UA_TYPES_RELATIVEPATHELEMENT>
 {
 public:
-    RelativePathElement(QualifiedName& item, NodeId& typeId, bool inverse = false, bool includeSubTypes = false)
+    RelativePathElement(const QualifiedName& item,
+                        const NodeId& typeId,
+                        bool inverse         = false,
+                        bool includeSubTypes = false)
         : TypeBase(UA_RelativePathElement_new())
     {
-        get().referenceTypeId = typeId.get();
-        get().isInverse       = includeSubTypes;
-        get().includeSubtypes = inverse;
-        get().targetName      = item.get();  // shallow copy!!!
+        if (UA_StatusCode ret = UA_NodeId_copy(typeId.ref(), &get().referenceTypeId) != UA_STATUSCODE_GOOD) {
+            throw std::runtime_error("copying NodeId name failed with " + std::string(UA_StatusCode_name(ret)));
+        }
+        get().isInverse       = inverse;
+        get().includeSubtypes = includeSubTypes;
+        if (UA_StatusCode ret = UA_QualifiedName_copy(item.ref(), &get().targetName) != UA_STATUSCODE_GOOD) {
+            throw std::runtime_error("copying qualified name failed with " + std::string(UA_StatusCode_name(ret)));
+        }
     }
 };
 
@@ -1407,7 +1419,55 @@ public:
 */
 class UA_EXPORT RelativePath : public TypeBase<UA_RelativePath, UA_TYPES_RELATIVEPATH>
 {
+private:
+    void set_element(size_t i, const ::Open62541::QualifiedName& qn, const NodeId& referenceTypeId)
+    {
+        UA_RelativePathElement& element = this->get().elements[i];
+        UA_RelativePathElement_init(&element);
+        element.includeSubtypes = false;
+        element.isInverse       = false;
+        throw_bad_status(UA_QualifiedName_copy(qn, &element.targetName));
+        throw_bad_status(UA_NodeId_copy(referenceTypeId, &element.referenceTypeId));
+    }
+
 public:
+    RelativePath()
+        : TypeBase(UA_RelativePath_new())
+    {
+    }
+
+    RelativePath(const ::std::vector<::Open62541::QualifiedName>& qualifiedNames)
+        : TypeBase(UA_RelativePath_new())
+    {
+        this->get().elementsSize = qualifiedNames.size();
+        this->get().elements     = static_cast<UA_RelativePathElement*>(
+            UA_Array_new(qualifiedNames.size(), &UA_TYPES[UA_TYPES_RELATIVEPATHELEMENT]));
+        if (this->get().elements == nullptr) {
+            throw ::std::runtime_error("Out of memory. Cannot allocate memory for relative path element");
+        }
+
+        for (size_t i = 0U; i < qualifiedNames.size(); ++i) {
+            this->set_element(i, qualifiedNames.at(i), ::Open62541::NodeId::Null);
+        }
+    }
+
+    RelativePath(const ::std::vector<::std::pair<::Open62541::QualifiedName, ::Open62541::NodeId>>&
+                     qualifiedNamesWithReferenceTypes)
+        : TypeBase(UA_RelativePath_new())
+    {
+        this->get().elementsSize = qualifiedNamesWithReferenceTypes.size();
+        this->get().elements     = static_cast<UA_RelativePathElement*>(
+            UA_Array_new(qualifiedNamesWithReferenceTypes.size(), &UA_TYPES[UA_TYPES_RELATIVEPATHELEMENT]));
+        if (this->get().elements == nullptr) {
+            throw ::std::runtime_error("Out of memory. Cannot allocate memory for relative path element");
+        }
+
+        for (size_t i = 0U; i < qualifiedNamesWithReferenceTypes.size(); ++i) {
+            this->set_element(i,
+                              qualifiedNamesWithReferenceTypes.at(i).first,
+                              qualifiedNamesWithReferenceTypes.at(i).second);
+        }
+    }
 };
 
 /*!
@@ -1631,7 +1691,7 @@ public:
         \brief UANodeTree
         \param p
     */
-    UANodeTree(NodeId& p)
+    UANodeTree(const NodeId& p)
         : _parent(p)
     {
         root().setData(p);
@@ -1645,7 +1705,7 @@ public:
         \brief parent
         \return
     */
-    NodeId& parent() { return _parent; }
+    const NodeId& parent() { return _parent; }
     //
     // client and server have different methods - TO DO unify client and server - and template
     // only deal with value nodes and folders - for now
@@ -1653,25 +1713,26 @@ public:
         \brief addFolderNode
         \return
     */
-    virtual bool addFolderNode(NodeId& /*parent*/, const std::string& /*s*/, NodeId& /*newNode*/) { return false; }
+    virtual void addFolderNode(const NodeId& /*parent*/, const std::string& /*s*/, NodeId& /*newNode*/) = 0;
     /*!
         \brief addValueNode
         \return
     */
-    virtual bool addValueNode(NodeId& /*parent*/, const std::string& /*s*/, NodeId& /*newNode*/, Variant& /*v*/)
-    {
-        return false;
-    }
+    virtual void addValueNode(const NodeId& /*parent*/,
+                              const std::string& /*s*/,
+                              NodeId& /*newNode*/,
+                              const Variant& /*v*/) = 0;
+
     /*!
         \brief getValue
         \return
     */
-    virtual bool getValue(NodeId&, Variant&) { return false; }
+    virtual void getValue(const NodeId&, Variant&) = 0;
     /*!
         \brief setValue
         \return
     */
-    virtual bool setValue(NodeId&, Variant&) { return false; }
+    virtual void setValue(const NodeId&, const Variant&) = 0;
     //
 
     /*!
@@ -1681,31 +1742,22 @@ public:
         \param level
         \return
     */
-    bool createPathFolders(UAPath& p, UANode* n, int level = 0)
+    void createPathFolders(const UAPath& p, UANode* n, int level = 0)
     {
-        bool ret = false;
-        if(n)
-        {
-            if (!n->hasChild(p[level])) {
-                NodeId no;
-                no.notNull();
-                ret = addFolderNode(n->data(), p[level], no);
-                if (ret) {
-                    auto nn = n->add(p[level]);
-                    if (nn)
-                        nn->setData(no);
-                }
-            }
-
-            // recurse
-            n = n->child(p[level]);
-            level++;
-            if (level < int(p.size())) {
-                ret = createPathFolders(p, n, level);
-            }
+        if (!n->hasChild(p[level])) {
+            NodeId no;
+            addFolderNode(n->data(), p[level], no);
+            auto nn = n->add(p[level]);
+            if (nn)
+                nn->setData(no);
         }
-        //
-        return ret;
+
+        // recurse
+        n = n->child(p[level]);
+        level++;
+        if (level < int(p.size())) {
+            createPathFolders(p, n, level);
+        }
     }
     /*!
         \brief createPath
@@ -1713,61 +1765,47 @@ public:
         \param level
         \return
     */
-    bool createPath(UAPath& p, UANode* n, Variant& v, int level = 0)
+    void createPath(const UAPath& p, UANode* n, const Variant& v, int level = 0)
     {
-        bool ret = false;
-        if(n)
-        {
-            if (!n->hasChild(p[level])) {
-                if (level == int(p.size() - 1)) {  // terminal node , hence value
-                    NodeId no;
-                    no.notNull();
-                    ret = addValueNode(n->data(), p[level], no, v);
-                    if (ret) {
-                        auto nn = n->add(p[level]);
-                        if (nn)
-                            nn->setData(no);
-                    }
-                }
-                else {
-                    NodeId no;
-                    no.notNull();
-                    ret = addFolderNode(n->data(), p[level], no);
-                    if (ret) {
-                        auto nn = n->add(p[level]);
-                        if (nn)
-                            nn->setData(no);
-                    }
-                }
+        if (!n->hasChild(p[level])) {
+            if (level == int(p.size() - 1)) {  // terminal node , hence value
+                NodeId no;
+                addValueNode(n->data(), p[level], no, v);
+                auto nn = n->add(p[level]);
+                if (nn)
+                    nn->setData(no);
+            }
+            else {
+                NodeId no;
+                addFolderNode(n->data(), p[level], no);
+                auto nn = n->add(p[level]);
+                if (nn)
+                    nn->setData(no);
             }
 
-            // recurse
-            n = n->child(p[level]);
-            level++;
-            if (level < int(p.size())) {
-                ret = createPath(p, n, v, level);
-            }
+        // recurse
+        n = n->child(p[level]);
+        level++;
+        if (level < int(p.size())) {
+            createPath(p, n, v, level);
         }
-        //
-        return ret;
     }
 
     /*!
         \brief setNodeValue
         \return
     */
-    bool setNodeValue(UAPath& p, Variant& v)
+    void setNodeValue(const UAPath& p, const Variant& v)
     {
+        if (p.empty())
+            return;
         if (exists(p)) {
-            return setValue(node(p)->data(), v);  // easy
+            setValue(node(p)->data(), v);  // easy
+            return;
         }
-        else if (p.size() > 0) {
-            // create the path and add nodes as needed
-            if (createPath(p, rootNode(), v)) {
-                return setValue(node(p)->data(), v);
-            }
-        }
-        return false;
+        // create the path and add nodes as needed
+        createPath(p, rootNode(), v);
+        setValue(node(p)->data(), v);
     }
     /*!
         \brief getNodeValue
@@ -1775,25 +1813,23 @@ public:
         \param v
         \return
     */
-    bool getNodeValue(UAPath& p, Variant& v)
+    void getNodeValue(const UAPath& p, Variant& v)
     {
         v.null();
         UANode* np = node(p);
-        if (np) {  // path exist ?
-            return getValue(np->data(), v);
-        }
-        return false;
+        if (!np)
+            throw StringException("Node for path not found");
+        getValue(np->data(), v);
     }  // get a node if it exists
     /*!
         \brief setNodeValue
         \return
     */
-    bool setNodeValue(UAPath& p, const std::string& child, Variant& v)
+    void setNodeValue(const UAPath& p, const std::string& child, const Variant& v)
     {
-        p.push_back(child);
-        bool ret = setNodeValue(p, v);
-        p.pop_back();
-        return ret;
+        UAPath p_copy = p;
+        p_copy.push_back(child);
+        setNodeValue(p_copy, v);
     }
     /*!
         \brief getNodeValue
@@ -1801,12 +1837,11 @@ public:
         \param v
         \return
     */
-    bool getNodeValue(UAPath& p, const std::string& child, Variant& v)
+    void getNodeValue(const UAPath& p, const std::string& child, Variant& v)
     {
-        p.push_back(child);
-        bool ret = getNodeValue(p, v);
-        p.pop_back();
-        return ret;
+        UAPath p_copy = p;
+        p_copy.push_back(child);
+        getNodeValue(p, v);
     }  // get a node if it exists
 
     /*!
@@ -1982,8 +2017,8 @@ public:
     BrowserBase() = default;
     virtual ~BrowserBase() { _list.clear(); }
     BrowseList& list() { return _list; }
-    virtual void browse(UA_NodeId /*start*/) {}
-    virtual bool browseName(NodeId& /*n*/, std::string& /*s*/, int& /*i*/) { return false; }
+    virtual void browse(UA_NodeId /*start*/)                                     = 0;
+    virtual void browseName(const NodeId& /*n*/, std::string& /*s*/, int& /*i*/) = 0;
 
     /*!
         \brief print
@@ -2019,7 +2054,7 @@ public:
     }
     T& obj() { return _obj; }
 
-    bool browseName(NodeId& n, std::string& s, int& i) { return _obj.browseName(n, s, i); }
+    void browseName(const NodeId& n, std::string& s, int& i) override { _obj.browseName(n, s, i); }
 };
 
 // debug helpers

@@ -32,7 +32,6 @@ public:
     typedef std::function<void(Server&, NodeId&, const UA_NumericRange*, const UA_DataValue&)> ConstValueFunc;
 
 protected:
-    UA_StatusCode _lastError;
     // Functor read write interface
     DataFunc _readData;
     ConstDataFunc _writeData;
@@ -89,18 +88,6 @@ public:
     void setWriteData(ConstDataFunc f) { _writeData = f; }
     void setReadValue(ValueFunc f) { _readValue = f; }
     void setWriteValue(ConstValueFunc f) { _writeValue = f; }
-
-    /*!
-        \brief lastError
-        \return
-    */
-    UA_StatusCode lastError() const { return _lastError; }
-
-    /*!
-        \brief lastOK
-        \return last error code
-    */
-    bool lastOK() const { return _lastError == UA_STATUSCODE_GOOD; }
 
     /*!
      * \brief name
@@ -188,7 +175,7 @@ public:
      * \param n
      * \return true on success
      */
-    bool setTypeLifeCycle(Server& server, NodeId& n);
+    void setTypeLifeCycle(Server& server, const NodeId& n);
 
     //
     // Set up the data and value callbacks
@@ -228,7 +215,7 @@ public:
      * \param n
      * \return true on success
      */
-    bool setAsDataSource(Server& server, NodeId& n);
+    void setAsDataSource(Server& server, const NodeId& n);
 
     /*!
         \brief readDataSource
@@ -276,7 +263,7 @@ public:
      * \param n
      * \return true on success
      */
-    bool setValueCallback(Open62541::Server& server, NodeId& n);
+    void setValueCallback(Open62541::Server& server, const NodeId& n);
     /*!
         \brief readValue
         \param node

@@ -69,92 +69,70 @@ void TestServer::initialise()
 
     // Add a node and set its context to test context
     Open62541::NodeId newFolder(_idx, "ServerMethodItem");
-    if (!addFolder(Open62541::NodeId::Objects, "ServerMethodItem", newFolder, Open62541::NodeId::Null)) {
-        cout << "Failed to add folder "
-             << " " << UA_StatusCode_name(lastError()) << endl;
-        return;
-    }
+    addFolder(Open62541::NodeId::Objects, "ServerMethodItem", newFolder, Open62541::NodeId::Null);
 
     // Add a string value to the folder
     Open62541::NodeId variable(_idx, "String_Value");
     Open62541::Variant v("A String Value");
-    if (!addVariable(Open62541::NodeId::Objects, "String_Value", v, variable, Open62541::NodeId::Null, &_context)) {
-        cout << "Failed to add node " << Open62541::toString(variable) << " " << UA_StatusCode_name(lastError())
-             << endl;
-    }
-    else {
-        // attach value callbacks to this node
-        if (!_context.setValueCallback(*this, variable)) {
-            cout << "Failed to set value callback" << endl;
-        }
-    }
-    
-   //Example adding an array by setting it with setArrayCopy
+    addVariable(Open62541::NodeId::Objects, "String_Value", v, variable, Open62541::NodeId::Null, &_context);
+    // attach value callbacks to this node
+    _context.setValueCallback(*this, variable);
+
+    // Example adding an array by setting it with setArrayCopy
     Open62541::NodeId setArrayCopy_array_id(_idx, "Array_By_Copy");
     UA_Double setArrayCopy_temp_array[4] = {1.0, 2.0, 3.0, 4.0};
-    const size_t array_size = 4;
+    const size_t array_size              = 4;
     Open62541::Variant setArrayCopy_variant;
     setArrayCopy_variant.setArrayCopy(&setArrayCopy_temp_array, array_size, &UA_TYPES[UA_TYPES_DOUBLE]);
-    addVariable(Open62541::NodeId::Objects, "Array_By_Copy", setArrayCopy_variant , setArrayCopy_array_id, Open62541::NodeId::Null);
+    addVariable(Open62541::NodeId::Objects,
+                "Array_By_Copy",
+                setArrayCopy_variant,
+                setArrayCopy_array_id,
+                Open62541::NodeId::Null);
 
-    //Example adding an array by setting it with setArray as a child for Array_With_Copy
+    // Example adding an array by setting it with setArray as a child for Array_With_Copy
     Open62541::NodeId setArray_array_id(_idx, "Array_By_Set");
     Open62541::Variant setArray_variant;
     const size_t setArray_array_size = 3;
-    UA_Double *setArray_array = (UA_Double *) UA_Array_new(3, &UA_TYPES[UA_TYPES_DOUBLE]);
-    setArray_array[0] = 1;
-    setArray_array[1] = 3;
-    setArray_array[2] = 5;
-    setArray_variant.setArray(setArray_array , setArray_array_size, &UA_TYPES[UA_TYPES_DOUBLE]);
-    addVariable(setArrayCopy_array_id, "Array_By_Set", setArray_variant , setArray_array_id, Open62541::NodeId::Null);
+    UA_Double* setArray_array        = (UA_Double*)UA_Array_new(3, &UA_TYPES[UA_TYPES_DOUBLE]);
+    setArray_array[0]                = 1;
+    setArray_array[1]                = 3;
+    setArray_array[2]                = 5;
+    setArray_variant.setArray(setArray_array, setArray_array_size, &UA_TYPES[UA_TYPES_DOUBLE]);
+    addVariable(setArrayCopy_array_id, "Array_By_Set", setArray_variant, setArray_array_id, Open62541::NodeId::Null);
 
-    //Example adding a matrix 
+    // Example adding a matrix
     Open62541::NodeId test_matrix_id(_idx, "Matrix_Example");
     Open62541::VariableAttributes vattr;
     Open62541::Variant vattr_value;
-    //set required dimensions and values for the matrix
+    // set required dimensions and values for the matrix
     UA_Double matrix_temp_array[6] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
-    UA_Int32 rows = 3;
-    UA_Int32 cols = 2;
-    size_t matrix_dims = 2;
-    int value_rank = 2;
-    vattr_value = vattr.getVariantMatrix(rows, cols, matrix_dims, &UA_TYPES[UA_TYPES_DOUBLE], value_rank, &matrix_temp_array);
+    UA_Int32 rows                  = 3;
+    UA_Int32 cols                  = 2;
+    size_t matrix_dims             = 2;
+    int value_rank                 = 2;
+    vattr_value =
+        vattr.getVariantMatrix(rows, cols, matrix_dims, &UA_TYPES[UA_TYPES_DOUBLE], value_rank, &matrix_temp_array);
     addVariable(Open62541::NodeId::Objects, "Matrix_Example", vattr_value, test_matrix_id, Open62541::NodeId::Null);
 
     // Set up an event source - monitor this item to get the events in UA Expert
     _testTriggerSource.notNull();
-    if (!addVariable(Open62541::NodeId::Objects, "TestTrigger", v, Open62541::NodeId::Null, _testTriggerSource)) {
-        cout << "Failed to add node " << Open62541::toString(variable) << " " << UA_StatusCode_name(lastError())
-             << endl;
-    }
+    addVariable(Open62541::NodeId::Objects, "TestTrigger", v, Open62541::NodeId::Null, _testTriggerSource);
 
     cout << "Create Number_Value" << endl;
     Open62541::NodeId nodeNumber(_idx, "Number_Value");
     Open62541::Variant numberValue(1);
-    if (!addVariable(Open62541::NodeId::Objects, "Number_Value", numberValue, nodeNumber, Open62541::NodeId::Null)) {
-        cout << "Failed to create Number Value Node " << endl;
-    }
+    addVariable(Open62541::NodeId::Objects, "Number_Value", numberValue, nodeNumber, Open62541::NodeId::Null);
     //
     // Create TestMethod node
     //
     Open62541::NodeId methodId(_idx, 12345);
-    if (_method.addServerMethod(*this, "TestMethod", newFolder, methodId, Open62541::NodeId::Null, _idx)) {
-        cout << "Added TestMethod - Adds two numbers together - call from client (e.g. UAExpert)" << endl;
-    }
-    else {
-        cout << "Failed to add method "
-             << " " << UA_StatusCode_name(lastError()) << endl;
-    }
+    _method.addServerMethod(*this, "TestMethod", newFolder, methodId, Open62541::NodeId::Null, _idx);
     //
     // Define an object type
     //
     Open62541::NodeId testType(_idx, "AR_ObjectType");
-    if (!_object.addType(testType)) {
-        cout << "Failed to create object type" << endl;
-    }
-    else {
-        cout << "Added TestObject type" << endl;
-    }
+    _object.addType(testType);
 
     Open62541::NodeId exampleInstance(_idx, "ExampleInstance");
     _object.addInstance("ExampleInstance", newFolder, exampleInstance);
@@ -162,13 +140,7 @@ void TestServer::initialise()
     // Add the event method
     //
     Open62541::NodeId eventMethodId(_idx, 12346);
-    if (_eventMethod.addServerMethod(*this, "EventMethod", newFolder, eventMethodId, Open62541::NodeId::Null, _idx)) {
-        cout << "Added EventMethod" << endl;
-    }
-    else {
-        cout << "Failed to add method "
-             << " " << UA_StatusCode_name(lastError()) << endl;
-    }
+    _eventMethod.addServerMethod(*this, "EventMethod", newFolder, eventMethodId, Open62541::NodeId::Null, _idx);
 }
 
 TestServer* server_instance = nullptr;

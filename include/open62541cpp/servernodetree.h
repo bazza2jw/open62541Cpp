@@ -54,22 +54,22 @@ public:
         \param s
         \return
     */
-    virtual bool addFolderNode(NodeId& parent, const std::string& s, NodeId& no);
+    void addFolderNode(const NodeId& parent, const std::string& s, NodeId& no) override;
     /*!
         \brief addValueNode
         \return
     */
-    virtual bool addValueNode(NodeId& parent, const std::string& s, NodeId& no, Variant& v);
+    void addValueNode(const NodeId& parent, const std::string& s, NodeId& no, const Variant& v) override;
     /*!
         \brief getValue
         \return
     */
-    virtual bool getValue(NodeId& n, Variant& v);
+    void getValue(const NodeId& n, Variant& v) override;
     /*!
         \brief setValue
         \return
     */
-    virtual bool setValue(NodeId& n, Variant& v);
+    void setValue(const NodeId& n, const Variant& v) override;
 };
 
 }  // namespace Open62541

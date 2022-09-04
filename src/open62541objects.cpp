@@ -94,7 +94,7 @@ std::string Open62541::variantToString(UA_Variant& v)
             ^^^^^^^
         */
         case UA_DATATYPEKIND_BOOLEAN: {
-            ret = ((UA_Boolean*)(v.data)) ? "true" : "false";
+            ret = ((UA_Boolean*)(v.data)) != nullptr ? "true" : "false";
         } break;
 
         /**
@@ -295,15 +295,15 @@ std::string Open62541::toString(const UA_NodeId& n)
 */
 void Open62541::UANodeTree::printNode(UANode* n, std::ostream& os, int level)
 {
-    if (n) {
+    if (n != nullptr) {
         std::string indent(level, ' ');
         os << indent << n->name();
         os << " : " << toString(n->data());
         os << std::endl;
-        if (n->children().size() > 0) {
+        if (!n->children().empty()) {
             level++;
-            for (auto i = n->children().begin(); i != n->children().end(); i++) {
-                printNode(i->second, os, level);  // recurse
+            for (auto& i : n->children()) {
+                printNode(i.second, os, level);  // recurse
             }
         }
     }
@@ -317,15 +317,19 @@ void Open62541::UANodeTree::printNode(UANode* n, std::ostream& os, int level)
     \param handle
     \return status
 */
-UA_StatusCode Open62541::BrowserBase::browseIter(UA_NodeId childId,
-                                                 UA_Boolean isInverse,
-                                                 UA_NodeId referenceTypeId,
+UA_StatusCode Open62541::BrowserBase::browseIter(const UA_NodeId childId,
+                                                 const UA_Boolean isInverse,
+                                                 const UA_NodeId referenceTypeId,
                                                  void* handle)
 {
     // node iterator for browsing
-    if (isInverse) return UA_STATUSCODE_GOOD;  // TO DO what does this do?
+
+    if (isInverse) {
+        return UA_STATUSCODE_GOOD;  // TO DO what does this do?
+    }
+
     Open62541::BrowserBase* p = (Open62541::BrowserBase*)handle;
-    if (p) {
+    if (p != nullptr) {
         p->process(childId, referenceTypeId);  // process record
     }
     return UA_STATUSCODE_GOOD;
@@ -342,10 +346,9 @@ void Open62541::BrowserBase::print(std::ostream& os)
         int j;
         NodeId n;
         n = i.childId;
-        if (browseName(n, s, j)) {
-            os << toString(i.childId) << " ns:" << i.nameSpace << ": " << i.name
-               << " Ref:" << toString(i.referenceTypeId) << std::endl;
-        }
+        browseName(n, s, j);
+        os << toString(i.childId) << " ns:" << i.nameSpace << ": " << i.name << " Ref:" << toString(i.referenceTypeId)
+           << std::endl;
     }
 }
 /*!
@@ -357,7 +360,12 @@ Open62541::BrowseList::iterator Open62541::BrowserBase::find(const std::string& 
 {
     BrowseList::iterator i = _list.begin();
     for (i = _list.begin(); i != _list.end(); i++) {
-        if ((*i).name == s) break;
+
+        BrowseItem& b = *i;
+        if (b.name == s) {
+            break;
+        }
+
     }
     return i;
 }
@@ -367,15 +375,14 @@ Open62541::BrowseList::iterator Open62541::BrowserBase::find(const std::string& 
     \param childId
     \param referenceTypeId
 */
-void Open62541::BrowserBase::process(UA_NodeId childId, UA_NodeId referenceTypeId)
+void Open62541::BrowserBase::process(const UA_NodeId childId, UA_NodeId referenceTypeId)
 {
     std::string s;
     int i;
     NodeId n;
     n = childId;
-    if (browseName(n, s, i)) {
-        _list.push_back(BrowseItem(s, i, childId, referenceTypeId));
-    }
+    browseName(n, s, i);
+    _list.push_back(BrowseItem(s, i, childId, referenceTypeId));
 }
 
 /*!
@@ -383,7 +390,7 @@ void Open62541::BrowserBase::process(UA_NodeId childId, UA_NodeId referenceTypeI
     \param name
     \param date
 */
-std::string Open62541::timestampToString(UA_DateTime date)
+std::string Open62541::timestampToString(const UA_DateTime date)
 {
     UA_DateTimeStruct dts = UA_DateTime_toStruct(date);
     char b[64];
