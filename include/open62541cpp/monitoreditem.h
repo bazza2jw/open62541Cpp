@@ -18,9 +18,10 @@ namespace Open62541 {
 class ClientSubscription;
 
 // Callback for a (data change)  monitored item
-typedef std::function<void(ClientSubscription&, UA_DataValue*)> monitorItemFunc;
+class MonitoredItemEvent;
+typedef std::function<void(ClientSubscription&, MonitoredItem *,  UA_DataValue*)> monitorItemFunc;
 // call back for an event
-typedef std::function<void(ClientSubscription&, VariantArray&)> monitorEventFunc;
+typedef std::function<void(ClientSubscription&, MonitoredItemEvent *, VariantArray&)> monitorEventFunc;
 /*!
     \brief The MonitoredItem class
     This is a single monitored event. Monitored events are associated (owned) by subscriptions
@@ -168,7 +169,7 @@ public:
     virtual void dataChangeNotification(UA_DataValue* value)
     {
         if (_func)
-            _func(subscription(), value);  // invoke functor
+            _func(subscription(),this, value);  // invoke functor
     }
 
     /*!
@@ -233,7 +234,7 @@ public:
         if (_func) {
             VariantArray va;
             va.setList(nEventFields, eventFields);
-            _func(subscription(), va);  // invoke functor
+            _func(subscription(),this, va);  // invoke functor
             va.release();
         }
     }

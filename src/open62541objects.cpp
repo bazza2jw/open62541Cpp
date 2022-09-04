@@ -298,7 +298,7 @@ void Open62541::UANodeTree::printNode(UANode* n, std::ostream& os, int level)
     if (n != nullptr) {
         std::string indent(level, ' ');
         os << indent << n->name();
-        os << toString(n->data());
+        os << " : " << toString(n->data());
         os << std::endl;
         if (!n->children().empty()) {
             level++;
@@ -323,9 +323,11 @@ UA_StatusCode Open62541::BrowserBase::browseIter(const UA_NodeId childId,
                                                  void* handle)
 {
     // node iterator for browsing
+
     if (isInverse) {
         return UA_STATUSCODE_GOOD;  // TO DO what does this do?
     }
+
     Open62541::BrowserBase* p = (Open62541::BrowserBase*)handle;
     if (p != nullptr) {
         p->process(childId, referenceTypeId);  // process record
@@ -358,10 +360,12 @@ Open62541::BrowseList::iterator Open62541::BrowserBase::find(const std::string& 
 {
     BrowseList::iterator i = _list.begin();
     for (i = _list.begin(); i != _list.end(); i++) {
+
         BrowseItem& b = *i;
         if (b.name == s) {
             break;
         }
+
     }
     return i;
 }

@@ -222,7 +222,7 @@ void Open62541::Client::nodeIdFromPath(const NodeId& start, const Path& path, No
         throw StringException("Node not found due to empty path.");
     }
     // nodeId is a shallow copy - do not delete and is volatile
-    UA_NodeId n = start.get();
+    nodeId = start;
 
     int level = 0;
 
@@ -255,7 +255,7 @@ void Open62541::Client::createFolderPath(const NodeId& start, const Path& path, 
     //
     // create folder path first then add varaibles to path's end leaf
     //
-    UA_NodeId n = start.get();
+    NodeId n = start;
     //
     int level = 0;
     Open62541::ClientBrowser b(*this);
@@ -279,6 +279,23 @@ void Open62541::Client::createFolderPath(const NodeId& start, const Path& path, 
             addFolder(nodeId, path[level], nf, newNode.notNull(), nameSpaceIndex);
             nodeId = newNode;  // assign
             level++;
+            n = (*i).childId;
+        }
+        if (level == int(path.size())) {
+            nodeId = n;
+        }
+        else {
+            NodeId nf(nameSpaceIndex, 0);  // auto generate NODE id
+            nodeId = n;
+            NodeId newNode;
+            while (level < int(path.size())) {
+                addFolder(nodeId, path[level], nf, newNode.notNull(), nameSpaceIndex);
+                if (!lastOK()) {
+                    break;
+                }
+                nodeId = newNode;  // assign
+                level++;
+            }
         }
     }
 }

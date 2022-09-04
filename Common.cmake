@@ -1,6 +1,6 @@
 # Common CMAKE definitions
-
-set(CMAKE_INSTALL_PREFIX /usr/local)
+set(PROJECT_DIR ${CMAKE_CURRENT_SOURCE_DIR})  # Set the project source code location (location of this file)
+set(CMAKE_INSTALL_PREFIX ${PIROOT}/usr/local)
 # the open62541 C library must have been installed
 find_library(OPEN62541 open62541 ${CMAKE_INSTALL_PREFIX}/lib)
 #
