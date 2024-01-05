@@ -660,7 +660,10 @@ public:
         \brief server
         \return pointer to underlying server structure
     */
-    UA_Server* server() const { return _server; }
+    UA_Server* server() const {
+        if(!_server) throw std::runtime_error("Null Server Pointer");
+        return _server;
+    }
 
     operator UA_Server*() const { return _server; }
     /*!
@@ -677,10 +680,8 @@ public:
     */
     bool getNodeContext(const NodeId& n, NodeContext*& c)
     {
-        if (!server())
-            return false;
         void* p    = (void*)(c);
-        _lastError = UA_Server_getNodeContext(_server, n.get(), &p);
+        _lastError = UA_Server_getNodeContext(server(), n.get(), &p);
         return lastOK();
     }
 
@@ -700,9 +701,7 @@ public:
     */
     bool setNodeContext(const NodeId& n, const NodeContext* c)
     {
-        if (!server())
-            return false;
-        _lastError = UA_Server_setNodeContext(_server, n.get(), (void*)(c));
+        _lastError = UA_Server_setNodeContext(server(), n.get(), (void*)(c));
         return lastOK();
     }
 
@@ -715,10 +714,8 @@ public:
     */
     bool readAttribute(const UA_NodeId* nodeId, UA_AttributeId attributeId, void* v)
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
-        _lastError = __UA_Server_read(_server, nodeId, attributeId, v);
+        _lastError = __UA_Server_read(server(), nodeId, attributeId, v);
         return lastOK();
     }
 
@@ -735,10 +732,8 @@ public:
                         const UA_DataType* attr_type,
                         const void* attr)
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
-        _lastError = __UA_Server_write(_server, nodeId, attributeId, attr_type, attr) == UA_STATUSCODE_GOOD;
+        _lastError = __UA_Server_write(server(), nodeId, attributeId, attr_type, attr) == UA_STATUSCODE_GOOD;
         return lastOK();
     }
     /*!
@@ -807,7 +802,7 @@ public:
                                     const QualifiedName& browsePath,
                                     BrowsePathResult& result)
     {
-        result.get() = UA_Server_browseSimplifiedBrowsePath(_server, origin, browsePathSize, browsePath.constRef());
+        result.get() = UA_Server_browseSimplifiedBrowsePath(server(), origin, browsePathSize, browsePath.constRef());
         _lastError   = result.ref()->statusCode;
         return lastOK();
     }
@@ -828,12 +823,10 @@ public:
     */
     UA_UInt16 addNamespace(const std::string& s)
     {
-        if (!server())
-            return 0;
         UA_UInt16 ret = 0;
         {
             WriteLock l(mutex());
-            ret = UA_Server_addNamespace(_server, s.c_str());
+            ret = UA_Server_addNamespace(server(), s.c_str());
         }
         return ret;
     }
@@ -863,9 +856,6 @@ public:
                          int nameSpaceIndex = 0)
     {
         //
-        if (!server())
-            return false;
-        //
         if (nameSpaceIndex == 0)
             nameSpaceIndex = parent.nameSpaceIndex();  // inherit parent by default
         //
@@ -878,7 +868,7 @@ public:
         QualifiedName qn(nameSpaceIndex, browseName);
         {
             WriteLock l(mutex());
-            _lastError = UA_Server_addMethodNode(_server,
+            _lastError = UA_Server_addMethodNode(server(),
                                                  nodeId,
                                                  parent,
                                                  NodeId::HasOrderedComponent,
@@ -904,10 +894,8 @@ public:
     */
     bool browseName(NodeId& nodeId, std::string& s, int& ns)
     {
-        if (!_server)
-            throw std::runtime_error("Null server");
         QualifiedName outBrowseName;
-        if (UA_Server_readBrowseName(_server, nodeId, outBrowseName) == UA_STATUSCODE_GOOD) {
+        if (UA_Server_readBrowseName(server(), nodeId, outBrowseName) == UA_STATUSCODE_GOOD) {
             s  = toString(outBrowseName.get().name);
             ns = outBrowseName.get().namespaceIndex;
         }
@@ -922,11 +910,9 @@ public:
     */
     void setBrowseName(const NodeId& nodeId, int nameSpaceIndex, const std::string& name)
     {
-        if (!server())
-            return;
         QualifiedName newBrowseName(nameSpaceIndex, name);
         WriteLock l(_mutex);
-        UA_Server_writeBrowseName(_server, nodeId, newBrowseName);
+        UA_Server_writeBrowseName(server(), nodeId, newBrowseName);
     }
 
     /*!
@@ -1105,13 +1091,10 @@ public:
     */
     bool variable(const NodeId& nodeId, Variant& value)
     {
-        if (!server())
-            return false;
-
         // outValue is managed by caller - transfer to output value
         value.null();
         WriteLock l(_mutex);
-        UA_Server_readValue(_server, nodeId, value.ref());
+        UA_Server_readValue(server(), nodeId, value.ref());
         return lastOK();
     }
     /*!
@@ -1122,11 +1105,8 @@ public:
     */
     bool deleteNode(const NodeId& nodeId, bool deleteReferences)
     {
-        if (!server())
-            return false;
-
         WriteLock l(_mutex);
-        _lastError = UA_Server_deleteNode(_server, nodeId, UA_Boolean(deleteReferences));
+        _lastError = UA_Server_deleteNode(server(), nodeId, UA_Boolean(deleteReferences));
         return _lastError != UA_STATUSCODE_GOOD;
     }
 
@@ -1138,11 +1118,8 @@ public:
     */
     bool call(const CallMethodRequest& request, CallMethodResult& ret)
     {
-        if (!server())
-            return false;
-
         WriteLock l(_mutex);
-        ret.get() = UA_Server_call(_server, request);
+        ret.get() = UA_Server_call(server(), request);
         return ret.get().statusCode == UA_STATUSCODE_GOOD;
     }
 
@@ -1154,11 +1131,8 @@ public:
     */
     bool translateBrowsePathToNodeIds(const BrowsePath& path, BrowsePathResult& result)
     {
-        if (!server())
-            return false;
-
         WriteLock l(_mutex);
-        result.get() = UA_Server_translateBrowsePathToNodeIds(_server, path);
+        result.get() = UA_Server_translateBrowsePathToNodeIds(server(), path);
         return result.get().statusCode == UA_STATUSCODE_GOOD;
     }
 
@@ -1445,12 +1419,10 @@ public:
     */
     bool writeValue(const NodeId& nodeId, const Variant& value)
     {
-        if (!server())
-            return false;
 
         return UA_STATUSCODE_GOOD ==
                (_lastError =
-                    __UA_Server_write(_server, nodeId, UA_ATTRIBUTEID_VALUE, &UA_TYPES[UA_TYPES_VARIANT], value));
+                    __UA_Server_write(server(), nodeId, UA_ATTRIBUTEID_VALUE, &UA_TYPES[UA_TYPES_VARIANT], value));
     }
     /*!
         \brief writeDataType
@@ -1621,10 +1593,8 @@ public:
                          NodeId& outNewNodeId = NodeId::Null,
                          NodeContext* nc      = nullptr)
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Server_addVariableNode(_server,
+        _lastError = UA_Server_addVariableNode(server(),
                                                requestedNewNodeId,
                                                parentNodeId,
                                                referenceTypeId,
@@ -1658,10 +1628,8 @@ public:
                              NodeId& outNewNodeId               = NodeId::Null,
                              NodeContext* instantiationCallback = nullptr)
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Server_addVariableTypeNode(_server,
+        _lastError = UA_Server_addVariableTypeNode(server(),
                                                    requestedNewNodeId,
                                                    parentNodeId,
                                                    referenceTypeId,
@@ -1694,11 +1662,8 @@ public:
                        NodeId& outNewNodeId               = NodeId::Null,
                        NodeContext* instantiationCallback = nullptr)
     {
-        if (!server())
-            return false;
-
         WriteLock l(_mutex);
-        _lastError = UA_Server_addObjectNode(_server,
+        _lastError = UA_Server_addObjectNode(server(),
                                              requestedNewNodeId,
                                              parentNodeId,
                                              referenceTypeId,
@@ -1729,10 +1694,7 @@ public:
                            NodeId& outNewNodeId               = NodeId::Null,
                            NodeContext* instantiationCallback = nullptr)
     {
-        if (!server())
-            return false;
-
-        _lastError = UA_Server_addObjectTypeNode(_server,
+        _lastError = UA_Server_addObjectTypeNode(server(),
                                                  requestedNewNodeId,
                                                  parentNodeId,
                                                  referenceTypeId,
@@ -1762,11 +1724,8 @@ public:
                      NodeId& outNewNodeId               = NodeId::Null,
                      NodeContext* instantiationCallback = nullptr)
     {
-        if (!server())
-            return false;
-
         WriteLock l(_mutex);
-        _lastError = UA_Server_addViewNode(_server,
+        _lastError = UA_Server_addViewNode(server(),
                                            requestedNewNodeId,
                                            parentNodeId,
                                            referenceTypeId,
@@ -1796,11 +1755,8 @@ public:
                               NodeId& outNewNodeId               = NodeId::Null,
                               NodeContext* instantiationCallback = nullptr)
     {
-        if (!server())
-            return false;
-
         WriteLock l(_mutex);
-        _lastError = UA_Server_addReferenceTypeNode(_server,
+        _lastError = UA_Server_addReferenceTypeNode(server(),
                                                     requestedNewNodeId,
                                                     parentNodeId,
                                                     referenceTypeId,
@@ -1830,11 +1786,8 @@ public:
                          NodeId& outNewNodeId               = NodeId::Null,
                          NodeContext* instantiationCallback = nullptr)
     {
-        if (!server())
-            return false;
-
         WriteLock l(_mutex);
-        _lastError = UA_Server_addDataTypeNode(_server,
+        _lastError = UA_Server_addDataTypeNode(server(),
                                                requestedNewNodeId,
                                                parentNodeId,
                                                referenceTypeId,
@@ -1867,11 +1820,8 @@ public:
                                    NodeId& outNewNodeId               = NodeId::Null,
                                    NodeContext* instantiationCallback = nullptr)
     {
-        if (!server())
-            return false;
-
         WriteLock l(_mutex);
-        _lastError = UA_Server_addDataSourceVariableNode(_server,
+        _lastError = UA_Server_addDataSourceVariableNode(server(),
                                                          requestedNewNodeId,
                                                          parentNodeId,
                                                          referenceTypeId,
@@ -1895,8 +1845,6 @@ public:
     */
     bool addReference(const NodeId& sourceId, const NodeId& refTypeId, const ExpandedNodeId& targetId, bool isForward)
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
         _lastError = UA_Server_addReference(server(), sourceId, refTypeId, targetId, isForward);
         return lastOK();
@@ -1927,9 +1875,6 @@ public:
                          const ExpandedNodeId& targetNodeId,
                          bool deleteBidirectional)
     {
-        if (!server())
-            return false;
-
         WriteLock l(_mutex);
         _lastError = UA_Server_deleteReference(server(),
                                                sourceNodeId,
@@ -1954,9 +1899,6 @@ public:
                      NodeId& nodeId       = NodeId::Null,
                      NodeContext* context = nullptr)
     {
-        if (!server())
-            return false;
-
         ObjectAttributes oAttr;
         oAttr.setDefault();
         oAttr.setDisplayName(n);
@@ -1974,10 +1916,8 @@ public:
         @return The StatusCode of the UA_Server_createEvent method */
     bool createEvent(const NodeId& eventType, NodeId& outNodeId)
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Server_createEvent(_server, eventType, outNodeId.ref());
+        _lastError = UA_Server_createEvent(server(), eventType, outNodeId.ref());
         return lastOK();
     }
 
@@ -1993,10 +1933,8 @@ public:
                       UA_ByteString* outEventId = nullptr,
                       bool deleteEventNode      = true)
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Server_triggerEvent(_server, eventNodeId, sourceNode, outEventId, deleteEventNode);
+        _lastError = UA_Server_triggerEvent(server(), eventNodeId, sourceNode, outEventId, deleteEventNode);
         return lastOK();
     }
 
@@ -2011,8 +1949,6 @@ public:
                          NodeId& eventType,
                          const std::string& description = std::string())
     {
-        if (!server())
-            return false;
         ObjectTypeAttributes attr;
         attr.setDefault();
         attr.setDisplayName(name);
@@ -2047,8 +1983,6 @@ public:
                     int eventSeverity     = 100,
                     UA_DateTime eventTime = UA_DateTime_now())
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
         outId.notNull();
         _lastError = UA_Server_createEvent(server(), eventType, outId);
@@ -2100,10 +2034,8 @@ public:
                            bool closeSessions       = true,
                            bool closeSecureChannels = true)
     {
-        if (!server())
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Server_updateCertificate(_server,
+        _lastError = UA_Server_updateCertificate(server(),
                                                  oldCertificate,
                                                  newCertificate,
                                                  newPrivateKey,
@@ -2470,10 +2402,10 @@ public:
      */
     bool addTimedEvent(unsigned msDelay, UA_UInt64& callbackId, std::function<void(Timer&)> func)
     {
-        if (_server) {
+        if (server()) {
             UA_DateTime dt = UA_DateTime_nowMonotonic() + (UA_DATETIME_MSEC * msDelay);
             TimerPtr t(new Timer(this, 0, true, func));
-            _lastError = UA_Server_addTimedCallback(_server, Server::timerCallback, t.get(), dt, &callbackId);
+            _lastError = UA_Server_addTimedCallback(server(), Server::timerCallback, t.get(), dt, &callbackId);
             t->setId(callbackId);
             _timerMap[callbackId] = std::move(t);
             return lastOK();
@@ -2498,10 +2430,10 @@ public:
 
     bool addRepeatedTimerEvent(UA_Double interval_ms, UA_UInt64& callbackId, std::function<void(Timer&)> func)
     {
-        if (_server) {
+        if (server()) {
             TimerPtr t(new Timer(this, 0, false, func));
             _lastError =
-                UA_Server_addRepeatedCallback(_server, Server::timerCallback, t.get(), interval_ms, &callbackId);
+                UA_Server_addRepeatedCallback(server(), Server::timerCallback, t.get(), interval_ms, &callbackId);
             t->setId(callbackId);
             _timerMap[callbackId] = std::move(t);
             return lastOK();
@@ -2517,11 +2449,8 @@ public:
      */
     bool changeRepeatedTimerInterval(UA_UInt64 callbackId, UA_Double interval_ms)
     {
-        if (_server) {
-            _lastError = UA_Server_changeRepeatedCallbackInterval(_server, callbackId, interval_ms);
+            _lastError = UA_Server_changeRepeatedCallbackInterval(server(), callbackId, interval_ms);
             return lastOK();
-        }
-        return false;
     }
     /*!
      * \brief UA_Client_removeCallback

@@ -391,8 +391,6 @@ UA_Boolean Open62541::Server::allowTransferSubscriptionHandler(UA_Server* server
 */
 bool Open62541::Server::deleteTree(const NodeId& nodeId)
 {
-    if (!_server)
-        return false;
     NodeIdMap m;  // set of nodes to delete
     browseTree(nodeId, m);
     for (auto i = m.begin(); i != m.end(); i++) {
@@ -400,7 +398,7 @@ bool Open62541::Server::deleteTree(const NodeId& nodeId)
             UA_NodeId& ni = i->second;
             if (ni.namespaceIndex > 0) {  // namespaces 0  appears to be reserved
                 WriteLock l(_mutex);
-                UA_Server_deleteNode(_server, i->second, true);
+                UA_Server_deleteNode(server(), i->second, true);
             }
         }
     }
@@ -437,13 +435,11 @@ static UA_StatusCode browseTreeCallBack(UA_NodeId childId,
 
 bool Open62541::Server::browseChildren(const UA_NodeId& nodeId, NodeIdMap& m)
 {
-    if (!_server)
-        return false;
     Open62541::UANodeIdList l;
     {
 
         WriteLock ll(_mutex);
-        UA_Server_forEachChildNodeCall(_server, nodeId, browseTreeCallBack, &l);  // get the childlist
+        UA_Server_forEachChildNodeCall(server(), nodeId, browseTreeCallBack, &l);  // get the childlist
     }
     for (int i = 0; i < int(l.size()); i++) {
         if (l[i].namespaceIndex == nodeId.namespaceIndex) {  // only in same namespace
@@ -477,20 +473,18 @@ bool Open62541::Server::browseTree(const Open62541::NodeId& nodeId, Open62541::U
 */
 bool Open62541::Server::browseTree(const UA_NodeId& nodeId, Open62541::UANode* node)
 {
-    if (!_server)
-        return false;
     // form a heirachical tree of nodes
     Open62541::UANodeIdList l;  // shallow copy node IDs and take ownership
     {
         WriteLock ll(_mutex);
-        UA_Server_forEachChildNodeCall(_server, nodeId, browseTreeCallBack, &l);  // get the childlist
+        UA_Server_forEachChildNodeCall(server(), nodeId, browseTreeCallBack, &l);  // get the childlist
     }
     for (int i = 0; i < int(l.size()); i++) {
         if (l[i].namespaceIndex > 0) {
             QualifiedName outBrowseName;
             {
                 WriteLock ll(_mutex);
-                _lastError = __UA_Server_read(_server, &l[i], UA_ATTRIBUTEID_BROWSENAME, outBrowseName);
+                _lastError = __UA_Server_read(server(), &l[i], UA_ATTRIBUTEID_BROWSENAME, outBrowseName);
             }
             if (_lastError == UA_STATUSCODE_GOOD) {
                 std::string s = toString(outBrowseName.get().name);  // get the browse name and leak key
@@ -527,9 +521,9 @@ void Open62541::Server::terminate()
 #ifdef UA_ENABLE_SUBSCRIPTIONS_ALARMS_CONDITIONS
         _conditionMap.clear();
 #endif
-        UA_Server_run_shutdown(_server);
-        UA_Server_delete(_server);
-        _serverMap.erase(_server);
+        UA_Server_run_shutdown(server());
+        UA_Server_delete(server());
+        _serverMap.erase(server());
         _server = nullptr;
     }
 }
@@ -542,13 +536,13 @@ void Open62541::Server::start()
 {  // start the server
     if (!_running) {
         _running = true;
-        if (_server) {
-            _serverMap[_server] = this;  // map for call backs
-            UA_Server_run_startup(_server);
+        if (server()) {
+            _serverMap[server()] = this;  // map for call backs
+            UA_Server_run_startup(server());
             initialise();
             while (_running) {
                 {
-                    UA_Server_run_iterate(_server, true);
+                    UA_Server_run_iterate(server(), true);
                 }
                 process();  // called from time to time - Only safe places to access server are in process() and
                             // callbacks
@@ -669,8 +663,6 @@ bool Open62541::Server::addFolder(const NodeId& parent,
                                   NodeId& newNode,
                                   int nameSpaceIndex)
 {
-    if (!_server)
-        return false;
     if (nameSpaceIndex == 0)
         nameSpaceIndex = parent.nameSpaceIndex();  // inherit parent by default
     QualifiedName qn(nameSpaceIndex, childName);
@@ -679,7 +671,7 @@ bool Open62541::Server::addFolder(const NodeId& parent,
     attr.setDisplayName(childName);
     attr.setDescription(childName);
     WriteLock l(_mutex);
-    _lastError = UA_Server_addObjectNode(_server,
+    _lastError = UA_Server_addObjectNode(server(),
                                          nodeId,
                                          parent,
                                          NodeId::Organizes,
@@ -706,7 +698,7 @@ bool Open62541::Server::addVariable(const NodeId& parent,
                                     NodeContext* c,
                                     int nameSpaceIndex)
 {
-    if (!_server)
+    if (!server())
         return false;
     if (nameSpaceIndex == 0)
         nameSpaceIndex = parent.nameSpaceIndex();  // inherit parent by default
@@ -720,7 +712,7 @@ bool Open62541::Server::addVariable(const NodeId& parent,
     var_attr.setValue(value);
     var_attr.get().dataType = value.get().type->typeId;
     WriteLock l(_mutex);
-    _lastError = UA_Server_addVariableNode(_server,
+    _lastError = UA_Server_addVariableNode(server(),
                                            nodeId,
                                            parent,
                                            NodeId::Organizes,
@@ -747,8 +739,6 @@ bool Open62541::Server::addHistoricalVariable(const NodeId& parent,
                                               NodeContext* c,
                                               int nameSpaceIndex)
 {
-    if (!_server)
-        return false;
     if (nameSpaceIndex == 0)
         nameSpaceIndex = parent.nameSpaceIndex();  // inherit parent by default
 
@@ -762,7 +752,7 @@ bool Open62541::Server::addHistoricalVariable(const NodeId& parent,
     var_attr.get().dataType    = value.get().type->typeId;
     var_attr.get().historizing = true;
     WriteLock l(_mutex);
-    _lastError = UA_Server_addVariableNode(_server,
+    _lastError = UA_Server_addVariableNode(server(),
                                            nodeId,
                                            parent,
                                            NodeId::Organizes,
@@ -793,8 +783,6 @@ bool Open62541::Server::addProperty(const NodeId& parent,
                                     NodeContext* c,
                                     int nameSpaceIndex)
 {
-    if (!_server)
-        return false;
     VariableAttributes var_attr;
     var_attr.setDefault();
     QualifiedName qn(nameSpaceIndex, key);
@@ -802,7 +790,7 @@ bool Open62541::Server::addProperty(const NodeId& parent,
     var_attr.setDescription(key);
     var_attr.get().accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
     var_attr.setValue(value);
-    _lastError = UA_Server_addVariableNode(_server,
+    _lastError = UA_Server_addVariableNode(server(),
                                            nodeId,
                                            parent,
                                            UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY),
@@ -845,7 +833,7 @@ void Open62541::Server::registerServerCallback(const UA_RegisteredServer* regist
 
 bool Open62541::Server::registerDiscovery(Client& client, const std::string& semaphoreFilePath)
 {
-    _lastError = UA_Server_register_discovery(_server,
+    _lastError = UA_Server_register_discovery(server(),
                                               client.client(),
                                               semaphoreFilePath.empty() ? nullptr : semaphoreFilePath.c_str());
     return lastOK();
@@ -857,8 +845,6 @@ bool Open62541::Server::registerDiscovery(Client& client, const std::string& sem
 */
 bool Open62541::Server::unregisterDiscovery(Client& client)
 {
-    if (!server())
-        return false;
     _lastError = UA_Server_unregister_discovery(server(), client.client());
     return lastOK();
 }
@@ -878,8 +864,6 @@ bool Open62541::Server::addPeriodicServerRegister(
     UA_UInt32 intervalMs,  // default to 10 minutes
     UA_UInt32 delayFirstRegisterMs)
 {
-    if (!server())
-        return false;
     _lastError = UA_Server_addPeriodicServerRegisterCallback(server(),
                                                              client.client(),
                                                              discoveryServerUrl.c_str(),

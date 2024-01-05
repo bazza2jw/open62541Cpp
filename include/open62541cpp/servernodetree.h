@@ -59,7 +59,7 @@ public:
         \brief addValueNode
         \return
     */
-    virtual bool addValueNode(NodeId& parent, const std::string& s, NodeId& no, Variant& v);
+    virtual bool addValueNode(NodeId& parent, const std::string& s, NodeId& no, const Variant& v);
     /*!
         \brief getValue
         \return
@@ -69,7 +69,7 @@ public:
         \brief setValue
         \return
     */
-    virtual bool setValue(NodeId& n, Variant& v);
+    virtual bool setValue(NodeId& n, const Variant& v);
 };
 
 }  // namespace Open62541

@@ -101,6 +101,25 @@
 // If the template is the base of a class it is exported
 //
 namespace Open62541 {
+
+template <typename T> inline const T * throw_if_null_const(const T *p)
+{
+#ifdef ENABLE_EXCEPTIONS
+    if(!p) throw std::runtime_error("Invalid Null Pointer");
+#endif
+    return p;
+}
+
+template <typename T> inline T * throw_if_null( T *p)
+{
+#ifdef ENABLE_EXCEPTIONS
+    if(!p) throw std::runtime_error("Invalid Null Pointer");
+#endif
+    return p;
+}
+
+
+
 //
 // Base wrapper for most C open62541 object types
 // use unique_ptr
@@ -1658,7 +1677,7 @@ public:
         \brief addValueNode
         \return
     */
-    virtual bool addValueNode(NodeId& /*parent*/, const std::string& /*s*/, NodeId& /*newNode*/, Variant& /*v*/)
+    virtual bool addValueNode(NodeId& /*parent*/, const std::string& /*s*/, NodeId& /*newNode*/, const Variant& /*v*/)
     {
         return false;
     }
@@ -1671,7 +1690,7 @@ public:
         \brief setValue
         \return
     */
-    virtual bool setValue(NodeId&, Variant&) { return false; }
+    virtual bool setValue(NodeId&, const Variant&) { return false; }
     //
 
     /*!
@@ -1713,7 +1732,7 @@ public:
         \param level
         \return
     */
-    bool createPath(UAPath& p, UANode* n, Variant& v, int level = 0)
+    bool createPath(UAPath& p, UANode* n, const Variant& v, int level = 0)
     {
         bool ret = false;
         if(n)
@@ -1756,7 +1775,7 @@ public:
         \brief setNodeValue
         \return
     */
-    bool setNodeValue(UAPath& p, Variant& v)
+    bool setNodeValue(UAPath& p, const Variant& v)
     {
         if (exists(p)) {
             return setValue(node(p)->data(), v);  // easy
@@ -1788,7 +1807,7 @@ public:
         \brief setNodeValue
         \return
     */
-    bool setNodeValue(UAPath& p, const std::string& child, Variant& v)
+    bool setNodeValue(UAPath& p, const std::string& child, const Variant& v)
     {
         p.push_back(child);
         bool ret = setNodeValue(p, v);

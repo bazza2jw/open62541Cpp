@@ -75,7 +75,7 @@ public:
             , _handler(func)
         {
         }
-        virtual ~Timer() { UA_Client_removeCallback(_client->client(), _id); }
+        virtual ~Timer() { if(client()) UA_Client_removeCallback(client()->client(), _id); }
         virtual void handle()
         {
             if (_handler)
@@ -189,8 +189,8 @@ public:
      */
     bool runIterate(uint32_t interval = 100)
     {
-        if (_client && (_connectStatus == UA_STATUSCODE_GOOD)) {
-            _lastError = UA_Client_run_iterate(_client, interval);
+        if (client() && (_connectStatus == UA_STATUSCODE_GOOD)) {
+            _lastError = UA_Client_run_iterate(client(), interval);
             return lastOK();
         }
         return false;
@@ -213,7 +213,7 @@ public:
     {
         if (_client) {
             disconnect();
-            UA_Client_delete(_client);
+            UA_Client_delete(client());
             _client = nullptr;
         }
         _client = UA_Client_new();
@@ -222,6 +222,10 @@ public:
             UA_Client_getConfig(_client)->clientContext                  = this;
             UA_Client_getConfig(_client)->stateCallback                  = stateCallback;
             UA_Client_getConfig(_client)->subscriptionInactivityCallback = subscriptionInactivityCallback;
+        }
+        else
+        {
+            throw std::runtime_error("UA_Client_new() Fails");
         }
     }
     /*!
@@ -363,13 +367,11 @@ public:
     */
     bool getEndpoints(const std::string& serverUrl, EndpointDescriptionArray& list)
     {
-        if (!_client)
-            return false;
         WriteLock l(_mutex);
         size_t endpointDescriptionsSize              = 0;
         UA_EndpointDescription* endpointDescriptions = nullptr;
         _lastError =
-            UA_Client_getEndpoints(_client, serverUrl.c_str(), &endpointDescriptionsSize, &endpointDescriptions);
+            UA_Client_getEndpoints(client(), serverUrl.c_str(), &endpointDescriptionsSize, &endpointDescriptions);
         if (lastOK()) {
             // copy list so it is managed by the caller
             list.setList(endpointDescriptionsSize, endpointDescriptions);
@@ -390,10 +392,8 @@ public:
                      StringArray& localeIds,
                      ApplicationDescriptionArray& registeredServers)
     {
-        if (!_client)
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Client_findServers(_client,
+        _lastError = UA_Client_findServers(client(),
                                            serverUrl.c_str(),
                                            serverUris.length(),
                                            serverUris.data(),
@@ -420,10 +420,8 @@ public:
                               StringArray& serverCapabilityFilter,
                               ServerOnNetworkArray& serverOnNetwork)
     {
-        if (!_client)
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Client_findServersOnNetwork(_client,
+        _lastError = UA_Client_findServersOnNetwork(client(),
                                                     serverUrl.c_str(),
                                                     startingRecordId,
                                                     maxRecordsToReturn,
@@ -443,10 +441,8 @@ public:
     */
     bool readAttribute(const UA_NodeId* nodeId, UA_AttributeId attributeId, void* out, const UA_DataType* outDataType)
     {
-        if (!_client)
-            return false;
         WriteLock l(_mutex);
-        _lastError = __UA_Client_readAttribute(_client, nodeId, attributeId, out, outDataType);
+        _lastError = __UA_Client_readAttribute(client(), nodeId, attributeId, out, outDataType);
         return lastOK();
     }
 
@@ -463,10 +459,8 @@ public:
                         const void* in,
                         const UA_DataType* inDataType)
     {
-        if (!_client)
-            return false;
         WriteLock l(_mutex);
-        _lastError = __UA_Client_writeAttribute(_client, nodeId, attributeId, in, inDataType);
+        _lastError = __UA_Client_writeAttribute(client(), nodeId, attributeId, in, inDataType);
         return lastOK();
     }
 
@@ -482,12 +476,11 @@ public:
     UA_StatusCode getState(UA_SecureChannelState& channelState, UA_SessionState& sessionState)
     {
         ReadLock l(_mutex);
-        if (_client) {
+        if (_client) { // can be NULL and valid
             UA_StatusCode c;
-            UA_Client_getState(_client, &channelState, &sessionState, &c);
+            UA_Client_getState(client(), &channelState, &sessionState, &c);
             return c;
         }
-        throw std::runtime_error("Null client");
         return UA_STATUSCODE_BADCONNECTIONCLOSED;
     }
 
@@ -501,7 +494,7 @@ public:
     */
     UA_Client* client()
     {
-        ReadLock l(_mutex);
+        if(!_client) throw std::runtime_error("Null Client");
         return _client;
     }
     //
@@ -528,9 +521,7 @@ public:
     {
         initialise();
         WriteLock l(_mutex);
-        if (!_client)
-            throw std::runtime_error("Null client");
-        _lastError = UA_Client_connect(_client, endpointUrl.c_str());
+        _lastError = UA_Client_connect(client(), endpointUrl.c_str());
         if (lastOK()) {
             _connectionType = ConnectionType::CONNECTION;
         }
@@ -551,9 +542,7 @@ public:
     {
         initialise();
         WriteLock l(_mutex);
-        if (!_client)
-            throw std::runtime_error("Null client");
-        _lastError = UA_Client_connectUsername(_client, endpoint.c_str(), username.c_str(), password.c_str());
+        _lastError = UA_Client_connectUsername(client(), endpoint.c_str(), username.c_str(), password.c_str());
         if (lastOK()) {
             _connectionType = ConnectionType::CONNECTION;
         }
@@ -571,16 +560,14 @@ public:
     {
         initialise();
         WriteLock l(_mutex);
-        if (!_client)
-            throw std::runtime_error("Null client");
-        _lastError = UA_Client_connectAsync(_client, endpoint.c_str());
-        return lastOK();
+        _lastError = UA_Client_connectAsync(client(), endpoint.c_str());
         if (lastOK()) {
             _connectionType = ConnectionType::ASYNC;
         }
         else {
             _connectionType = ConnectionType::NONE;
         }
+        return lastOK();
     }
 
     /*!
@@ -592,9 +579,7 @@ public:
     {
         initialise();
         WriteLock l(_mutex);
-        if (!_client)
-            throw std::runtime_error("Null client");
-        _lastError = UA_Client_connectSecureChannel(_client, endpoint.c_str());
+        _lastError = UA_Client_connectSecureChannel(client(), endpoint.c_str());
         if (lastOK()) {
             _connectionType = ConnectionType::SECURE;
         }
@@ -614,9 +599,7 @@ public:
     {
         initialise();
         WriteLock l(_mutex);
-        if (!_client)
-            throw std::runtime_error("Null client");
-        _lastError = UA_Client_connectSecureChannelAsync(_client, endpoint.c_str());
+        _lastError = UA_Client_connectSecureChannelAsync(client(), endpoint.c_str());
         if (lastOK()) {
             _connectionType = ConnectionType::SECUREASYNC;
         }
@@ -634,12 +617,10 @@ public:
     bool disconnect()
     {
         WriteLock l(_mutex);
-        if (!_client)
-            throw std::runtime_error("Null client");
         // close subscriptions
         subscriptions().clear();
         _timerMap.clear();  // remove timer objects
-        _lastError      = UA_Client_disconnect(_client);
+        _lastError      = UA_Client_disconnect(client());
         _connectionType = ConnectionType::NONE;
         return lastOK();
     }
@@ -650,10 +631,8 @@ public:
     bool disconnectAsync()
     {
         WriteLock l(_mutex);
-        if (!_client)
-            throw std::runtime_error("Null client");
         _timerMap.clear();  // remove timer objects
-        _lastError      = UA_Client_disconnectAsync(_client);
+        _lastError      = UA_Client_disconnectAsync(client());
         _connectionType = ConnectionType::NONE;
         return lastOK();
     }
@@ -661,11 +640,9 @@ public:
     bool disconnectSecureChannel()
     {
         WriteLock l(_mutex);
-        if (!_client)
-            throw std::runtime_error("Null client");
         _timerMap.clear();  // remove timer objects
         if ((_connectionType == ConnectionType::SECURE) || (_connectionType == ConnectionType::SECUREASYNC)) {
-            _lastError      = UA_Client_disconnectSecureChannel(_client);
+            _lastError      = UA_Client_disconnectSecureChannel(client());
             _connectionType = ConnectionType::NONE;
         }
         else {
@@ -704,11 +681,9 @@ public:
     int namespaceGetIndex(const std::string& namespaceUri)
     {
         WriteLock l(_mutex);
-        if (!_client)
-            throw std::runtime_error("Null client");
         int namespaceIndex = 0;
         UA_String s        = toUA_String(namespaceUri);
-        if (UA_Client_NamespaceGetIndex(_client, &s, (UA_UInt16*)(&namespaceIndex)) == UA_STATUSCODE_GOOD) {
+        if (UA_Client_NamespaceGetIndex(client(), &s, (UA_UInt16*)(&namespaceIndex)) == UA_STATUSCODE_GOOD) {
             return namespaceIndex;
         }
         return -1;  // value
@@ -722,10 +697,8 @@ public:
     bool browseName(NodeId& nodeId, std::string& s, int& ns)
     {
         WriteLock l(_mutex);
-        if (!_client)
-            throw std::runtime_error("Null client");
         QualifiedName outBrowseName;
-        if ((_lastError = UA_Client_readBrowseNameAttribute(_client, nodeId, outBrowseName)) == UA_STATUSCODE_GOOD) {
+        if ((_lastError = UA_Client_readBrowseNameAttribute(client(), nodeId, outBrowseName)) == UA_STATUSCODE_GOOD) {
             s  = toString(outBrowseName.get().name);
             ns = outBrowseName.get().namespaceIndex;
         }
@@ -741,10 +714,8 @@ public:
     void setBrowseName(NodeId& nodeId, int nameSpaceIndex, const std::string& name)
     {
         WriteLock l(_mutex);
-        if (!_client)
-            throw std::runtime_error("Null client");
         QualifiedName newBrowseName(nameSpaceIndex, name);
-        UA_Client_writeBrowseNameAttribute(_client, nodeId, newBrowseName);
+        UA_Client_writeBrowseNameAttribute(client(), nodeId, newBrowseName);
     }
 
     /*!
@@ -842,9 +813,7 @@ public:
     */
     bool setVariable(NodeId& nodeId, Variant& value)
     {
-        if (!_client)
-            return false;
-        _lastError = UA_Client_writeValueAttribute(_client, nodeId, value);
+        _lastError = UA_Client_writeValueAttribute(client(), nodeId, value);
         return lastOK();
     }
 
@@ -1008,13 +977,11 @@ public:
     */
     bool readArrayDimensionsAttribute(NodeId& nodeId, std::vector<UA_UInt32>& ret)
     {
-        if (!_client)
-            return false;
         WriteLock l(_mutex);
         size_t outArrayDimensionsSize;
         UA_UInt32* outArrayDimensions = nullptr;
         _lastError =
-            UA_Client_readArrayDimensionsAttribute(_client, nodeId, &outArrayDimensionsSize, &outArrayDimensions);
+            UA_Client_readArrayDimensionsAttribute(client(), nodeId, &outArrayDimensionsSize, &outArrayDimensions);
         if (_lastError == UA_STATUSCODE_GOOD) {
             if (outArrayDimensions) {
                 for (int i = 0; i < int(outArrayDimensionsSize); i++) {
@@ -1248,7 +1215,7 @@ public:
     bool setArrayDimensionsAttribute(NodeId& nodeId, std::vector<UA_UInt32>& newArrayDimensions)
     {
         UA_UInt32 v = newArrayDimensions.size();
-        _lastError  = UA_Client_writeArrayDimensionsAttribute(_client, nodeId, v, newArrayDimensions.data());
+        _lastError  = UA_Client_writeArrayDimensionsAttribute(client(), nodeId, v, newArrayDimensions.data());
         return lastOK();
     }
     /*!
@@ -1328,12 +1295,10 @@ public:
     */
     bool variable(NodeId& nodeId, Variant& value)
     {
-        if (!_client)
-            return false;
         WriteLock l(_mutex);
         // outValue is managed by caller - transfer to output value
         value.clear();
-        _lastError = UA_Client_readValueAttribute(_client, nodeId, value);  // shallow copy
+        _lastError = UA_Client_readValueAttribute(client(), nodeId, value);  // shallow copy
         return lastOK();
     }
 
@@ -1346,9 +1311,7 @@ public:
     bool nodeClass(NodeId& nodeId, NodeClass& c)
     {
         WriteLock l(_mutex);
-        if (!_client)
-            throw std::runtime_error("Null client");
-        _lastError = UA_Client_readNodeClassAttribute(_client, nodeId, &c);
+        _lastError = UA_Client_readNodeClassAttribute(client(), nodeId, &c);
         return lastOK();
     }
 
@@ -1361,9 +1324,7 @@ public:
     bool deleteNode(NodeId& nodeId, bool deleteReferences)
     {
         WriteLock l(_mutex);
-        if (!_client)
-            throw std::runtime_error("Null client");
-        _lastError = UA_Client_deleteNode(_client, nodeId, UA_Boolean(deleteReferences));
+        _lastError = UA_Client_deleteNode(client(), nodeId, UA_Boolean(deleteReferences));
         return lastOK();
     }
 
@@ -1392,10 +1353,8 @@ public:
         WriteLock l(_mutex);
         size_t outputSize  = 0;
         UA_Variant* output = nullptr;
-        if (!_client)
-            throw std::runtime_error("Null client");
         _lastError = UA_STATUSCODE_GOOD;
-        _lastError = UA_Client_call(_client, objectId, methodId, in.size(), in.data(), &outputSize, &output);
+        _lastError = UA_Client_call(client(), objectId, methodId, in.size(), in.data(), &outputSize, &output);
         if (_lastError == UA_STATUSCODE_GOOD) {
             out.set(output, outputSize);
         }
@@ -1408,11 +1367,14 @@ public:
     */
     virtual bool process() { return true; }
 
+
     /*!
         \brief lastOK
         \return   true if last error is UA_STATUSCODE_GOOD
     */
-    bool lastOK() const { return _lastError == UA_STATUSCODE_GOOD; }
+    bool lastOK() const {
+        return _lastError == UA_STATUSCODE_GOOD;
+    }
 
     // Add nodes - templated from docs
     /*!
@@ -1432,10 +1394,8 @@ public:
                              VariableTypeAttributes& attr,
                              NodeId& outNewNodeId = NodeId::Null)
     {
-        if (!_client)
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Client_addVariableTypeNode(_client,
+        _lastError = UA_Client_addVariableTypeNode(client(),
                                                    requestedNewNodeId,
                                                    parentNodeId,
                                                    referenceTypeId,
@@ -1463,10 +1423,8 @@ public:
                        ObjectAttributes& attr,
                        NodeId& outNewNodeId = NodeId::Null)
     {
-        if (!_client)
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Client_addObjectNode(_client,
+        _lastError = UA_Client_addObjectNode(client(),
                                              requestedNewNodeId,
                                              parentNodeId,
                                              referenceTypeId,
@@ -1493,10 +1451,8 @@ public:
                            ObjectTypeAttributes& attr,
                            NodeId& outNewNodeId = NodeId::Null)
     {
-        if (!_client)
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Client_addObjectTypeNode(_client,
+        _lastError = UA_Client_addObjectTypeNode(client(),
                                                  requestedNewNodeId,
                                                  parentNodeId,
                                                  referenceTypeId,
@@ -1522,10 +1478,8 @@ public:
                      ViewAttributes& attr,
                      NodeId& outNewNodeId = NodeId::Null)
     {
-        if (!_client)
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Client_addViewNode(_client,
+        _lastError = UA_Client_addViewNode(client(),
                                            requestedNewNodeId,
                                            parentNodeId,
                                            referenceTypeId,
@@ -1551,10 +1505,8 @@ public:
                               ReferenceTypeAttributes& attr,
                               NodeId& outNewNodeId = NodeId::Null)
     {
-        if (!_client)
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Client_addReferenceTypeNode(_client,
+        _lastError = UA_Client_addReferenceTypeNode(client(),
                                                     requestedNewNodeId,
                                                     parentNodeId,
                                                     referenceTypeId,
@@ -1580,10 +1532,8 @@ public:
                          DataTypeAttributes& attr,
                          NodeId& outNewNodeId = NodeId::Null)
     {
-        if (!_client)
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Client_addDataTypeNode(_client,
+        _lastError = UA_Client_addDataTypeNode(client(),
                                                requestedNewNodeId,
                                                parentNodeId,
                                                referenceTypeId,
@@ -1609,10 +1559,8 @@ public:
                        MethodAttributes& attr,
                        NodeId& outNewNodeId = NodeId::Null)
     {
-        if (!_client)
-            return false;
         WriteLock l(_mutex);
-        _lastError = UA_Client_addMethodNode(_client,
+        _lastError = UA_Client_addMethodNode(client(),
                                              requestedNewNodeId,
                                              parentNodeId,
                                              referenceTypeId,
@@ -1720,7 +1668,7 @@ public:
                         bool returnBounds                        = false,
                         UA_TimestampsToReturn timestampsToReturn = UA_TIMESTAMPSTORETURN_BOTH)
     {
-        _lastError = UA_Client_HistoryRead_raw(_client,
+        _lastError = UA_Client_HistoryRead_raw(client(),
                                                n.constRef(),
                                                historicalIteratorCallback,
                                                startTime,
@@ -1741,7 +1689,7 @@ public:
     bool historyUpdateInsert(const NodeId& n, const UA_DataValue& value)
     {
 
-        _lastError = UA_Client_HistoryUpdate_insert(_client, n.constRef(), const_cast<UA_DataValue*>(&value));
+        _lastError = UA_Client_HistoryUpdate_insert(client(), n.constRef(), const_cast<UA_DataValue*>(&value));
         return lastOK();
     }
     /*!
@@ -1753,7 +1701,7 @@ public:
     bool historyUpdateReplace(const NodeId& n, const UA_DataValue& value)
     {
 
-        _lastError = UA_Client_HistoryUpdate_replace(_client, n.constRef(), const_cast<UA_DataValue*>(&value));
+        _lastError = UA_Client_HistoryUpdate_replace(client(), n.constRef(), const_cast<UA_DataValue*>(&value));
         return lastOK();
     }
     /*!
@@ -1765,7 +1713,7 @@ public:
     bool historyUpdateUpdate(const NodeId& n, const UA_DataValue& value)
     {
 
-        _lastError = UA_Client_HistoryUpdate_update(_client, n.constRef(), const_cast<UA_DataValue*>(&value));
+        _lastError = UA_Client_HistoryUpdate_update(client(), n.constRef(), const_cast<UA_DataValue*>(&value));
         return lastOK();
     }
     /*!
@@ -1777,7 +1725,7 @@ public:
     */
     bool historyUpdateDeleteRaw(const NodeId& n, UA_DateTime startTimestamp, UA_DateTime endTimestamp)
     {
-        _lastError = UA_Client_HistoryUpdate_deleteRaw(_client, n.constRef(), startTimestamp, endTimestamp);
+        _lastError = UA_Client_HistoryUpdate_deleteRaw(client(), n.constRef(), startTimestamp, endTimestamp);
         return lastOK();
     }
 
@@ -1800,7 +1748,7 @@ public:
         if (_client) {
             UA_DateTime date = UA_DateTime_nowMonotonic() + (UA_DATETIME_MSEC * msDelay);
             TimerPtr t(new Timer(this, 0, true, func));
-            _lastError = UA_Client_addTimedCallback(_client, Client::clientCallback, t.get(), date, &callbackId);
+            _lastError = UA_Client_addTimedCallback(client(), Client::clientCallback, t.get(), date, &callbackId);
             t->setId(callbackId);
             _timerMap[callbackId] = std::move(t);
             return lastOK();
@@ -1828,7 +1776,7 @@ public:
         if (_client) {
             TimerPtr t(new Timer(this, 0, false, func));
             _lastError =
-                UA_Client_addRepeatedCallback(_client, Client::clientCallback, t.get(), interval_ms, &callbackId);
+                UA_Client_addRepeatedCallback(client(), Client::clientCallback, t.get(), interval_ms, &callbackId);
             t->setId(callbackId);
             _timerMap[callbackId] = std::move(t);
             return lastOK();
@@ -1845,7 +1793,7 @@ public:
     bool changeRepeatedTimerInterval(UA_UInt64 callbackId, UA_Double interval_ms)
     {
         if (_client) {
-            _lastError = UA_Client_changeRepeatedCallbackInterval(_client, callbackId, interval_ms);
+            _lastError = UA_Client_changeRepeatedCallbackInterval(client(), callbackId, interval_ms);
             return lastOK();
         }
         return false;

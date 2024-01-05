@@ -69,17 +69,15 @@ void Open62541::Client::stateCallback(UA_Client* client,
 */
 bool Open62541::Client::deleteTree(NodeId& nodeId)
 {
-    if (_client) {
         NodeIdMap m;
         browseTree(nodeId, m);
         for (auto i = m.begin(); i != m.end(); i++) {
             UA_NodeId& ni = i->second;
             if (ni.namespaceIndex > 0) {  // namespace 0 appears to be reserved
                 WriteLock l(_mutex);
-                UA_Client_deleteNode(_client, i->second, true);
+                UA_Client_deleteNode(client(), i->second, true);
             }
         }
-    }
     return lastOK();
 }
 
@@ -115,7 +113,7 @@ bool Open62541::Client::browseChildren(UA_NodeId& nodeId, NodeIdMap& m)
     Open62541::UANodeIdList l;
     {
         WriteLock ll(mutex());
-        UA_Client_forEachChildNodeCall(_client, nodeId, browseTreeCallBack, &l);  // get the childlist
+        UA_Client_forEachChildNodeCall(client(), nodeId, browseTreeCallBack, &l);  // get the childlist
     }
     for (int i = 0; i < int(l.size()); i++) {
         if (l[i].namespaceIndex == nodeId.namespaceIndex) {  // only in same namespace
@@ -155,14 +153,14 @@ bool Open62541::Client::browseTree(UA_NodeId& nodeId, Open62541::UANode* node)
         Open62541::UANodeIdList l;
         {
             WriteLock ll(mutex());
-            UA_Client_forEachChildNodeCall(_client, nodeId, browseTreeCallBack, &l);  // get the childlist
+            UA_Client_forEachChildNodeCall(client(), nodeId, browseTreeCallBack, &l);  // get the childlist
         }
         for (int i = 0; i < int(l.size()); i++) {
             if (l[i].namespaceIndex > 0) {
                 QualifiedName outBrowseName;
                 {
                     WriteLock ll(mutex());
-                    _lastError = __UA_Client_readAttribute(_client,
+                    _lastError = __UA_Client_readAttribute(client(),
                                                            &l[i],
                                                            UA_ATTRIBUTEID_BROWSENAME,
                                                            outBrowseName,
@@ -201,14 +199,14 @@ bool Open62541::Client::browseTree(NodeId& nodeId, NodeIdMap& m)
 */
 UA_StatusCode Open62541::Client::getEndpoints(const std::string& serverUrl, std::vector<std::string>& list)
 {
-    if (_client) {
+    if (client()) {
         UA_EndpointDescription* endpointDescriptions = nullptr;
         size_t endpointDescriptionsSize              = 0;
 
         {
             WriteLock l(_mutex);
             _lastError =
-                UA_Client_getEndpoints(_client, serverUrl.c_str(), &endpointDescriptionsSize, &endpointDescriptions);
+                UA_Client_getEndpoints(client(), serverUrl.c_str(), &endpointDescriptionsSize, &endpointDescriptions);
         }
         if (_lastError == UA_STATUSCODE_GOOD) {
             for (int i = 0; i < int(endpointDescriptionsSize); i++) {
@@ -218,7 +216,6 @@ UA_StatusCode Open62541::Client::getEndpoints(const std::string& serverUrl, std:
         }
         return _lastError;
     }
-    throw std::runtime_error("Null client");
     return 0;
 }
 
@@ -322,8 +319,6 @@ bool Open62541::Client::addFolder(NodeId& parent,
                                   NodeId& newNode,
                                   int nameSpaceIndex)
 {
-    if (!_client)
-        return false;
     WriteLock l(_mutex);
     //
     if (nameSpaceIndex == 0)
@@ -334,7 +329,7 @@ bool Open62541::Client::addFolder(NodeId& parent,
     attr.setDisplayName(childName);
     attr.setDescription(childName);
     //
-    _lastError = UA_Client_addObjectNode(_client,
+    _lastError = UA_Client_addObjectNode(client(),
                                          nodeId,
                                          parent,
                                          NodeId::Organizes,
@@ -360,8 +355,6 @@ bool Open62541::Client::addVariable(NodeId& parent,
                                     NodeId& newNode,
                                     int nameSpaceIndex)
 {
-    if (!_client)
-        return false;
     WriteLock l(_mutex);
     if (nameSpaceIndex == 0)
         nameSpaceIndex = parent.nameSpaceIndex();  // inherit parent by default
@@ -370,7 +363,7 @@ bool Open62541::Client::addVariable(NodeId& parent,
     var_attr.setDisplayName(childName);
     var_attr.setDescription(childName);
     var_attr.setValue(value);
-    _lastError = UA_Client_addVariableNode(_client,
+    _lastError = UA_Client_addVariableNode(client(),
                                            nodeId,  // Assign new/random NodeID
                                            parent,
                                            NodeId::Organizes,
@@ -398,8 +391,6 @@ bool Open62541::Client::addProperty(NodeId& parent,
                                     NodeId& newNode,
                                     int nameSpaceIndex)
 {
-    if (!_client)
-        return false;
     WriteLock l(_mutex);
     if (nameSpaceIndex == 0)
         nameSpaceIndex = parent.nameSpaceIndex();  // inherit parent by default
@@ -408,7 +399,7 @@ bool Open62541::Client::addProperty(NodeId& parent,
     var_attr.setDisplayName(key);
     var_attr.setDescription(key);
     var_attr.setValue(value);
-    _lastError = UA_Client_addVariableNode(_client,
+    _lastError = UA_Client_addVariableNode(client(),
                                            nodeId,  // Assign new/random NodeID
                                            parent,
                                            UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY),
