@@ -57,16 +57,26 @@ public:
             , _handler(func)
         {
         }
-        virtual ~Timer() { UA_Server_removeCallback(_server->server(), _id); }
+        virtual ~Timer() {
+            UA_Server_removeCallback(_server->server(), _id);
+        }
         virtual void handle()
         {
             if (_handler)
                 _handler(*this);
         }
-        Server* server() const { return _server; }
-        UA_UInt64 id() const { return _id; }
-        void setId(UA_UInt64 i) { _id = i; }
-        bool oneShot() const { return _oneShot; }
+        Server* server() const {
+            return _server;
+        }
+        UA_UInt64 id() const {
+            return _id;
+        }
+        void setId(UA_UInt64 i) {
+            _id = i;
+        }
+        bool oneShot() const {
+            return _oneShot;
+        }
     };
 
 protected:
@@ -138,11 +148,11 @@ private:
      * @return Return UA_TRUE if the child node shall be instantiatet,
      *         UA_FALSE otherwise. */
     static UA_Boolean createOptionalChildCallback(UA_Server* server,
-                                                  const UA_NodeId* sessionId,
-                                                  void* sessionContext,
-                                                  const UA_NodeId* sourceNodeId,
-                                                  const UA_NodeId* targetParentNodeId,
-                                                  const UA_NodeId* referenceTypeId);
+            const UA_NodeId* sessionId,
+            void* sessionContext,
+            const UA_NodeId* sourceNodeId,
+            const UA_NodeId* targetParentNodeId,
+            const UA_NodeId* referenceTypeId);
 
     /* Can be NULL. Called when a node is to be copied during recursive
      * node instantiation. Allows definition of the NodeId for the new node.
@@ -158,12 +168,12 @@ private:
      * @param referenceTypeId Identifies the reference type which that the parent
      *        node has to the new node. */
     static UA_StatusCode generateChildNodeIdCallback(UA_Server* server,
-                                                     const UA_NodeId* sessionId,
-                                                     void* sessionContext,
-                                                     const UA_NodeId* sourceNodeId,
-                                                     const UA_NodeId* targetParentNodeId,
-                                                     const UA_NodeId* referenceTypeId,
-                                                     UA_NodeId* targetNodeId);
+            const UA_NodeId* sessionId,
+            void* sessionContext,
+            const UA_NodeId* sourceNodeId,
+            const UA_NodeId* targetParentNodeId,
+            const UA_NodeId* referenceTypeId,
+            UA_NodeId* targetNodeId);
 
     //
     //
@@ -184,29 +194,29 @@ private:
                                           const UA_AddNodesItem* item);
 
     static UA_Boolean allowAddReferenceHandler(UA_Server* server,
-                                               UA_AccessControl* ac,
-                                               const UA_NodeId* sessionId,
-                                               void* sessionContext,
-                                               const UA_AddReferencesItem* item);
+            UA_AccessControl* ac,
+            const UA_NodeId* sessionId,
+            void* sessionContext,
+            const UA_AddReferencesItem* item);
 
     static UA_Boolean allowDeleteNodeHandler(UA_Server* server,
-                                             UA_AccessControl* ac,
-                                             const UA_NodeId* sessionId,
-                                             void* sessionContext,
-                                             const UA_DeleteNodesItem* item);
+            UA_AccessControl* ac,
+            const UA_NodeId* sessionId,
+            void* sessionContext,
+            const UA_DeleteNodesItem* item);
     static UA_Boolean allowDeleteReferenceHandler(UA_Server* server,
-                                                  UA_AccessControl* ac,
-                                                  const UA_NodeId* sessionId,
-                                                  void* sessionContext,
-                                                  const UA_DeleteReferencesItem* item);
+            UA_AccessControl* ac,
+            const UA_NodeId* sessionId,
+            void* sessionContext,
+            const UA_DeleteReferencesItem* item);
     //
     static UA_StatusCode activateSessionHandler(UA_Server* server,
-                                                UA_AccessControl* ac,
-                                                const UA_EndpointDescription* endpointDescription,
-                                                const UA_ByteString* secureChannelRemoteCertificate,
-                                                const UA_NodeId* sessionId,
-                                                const UA_ExtensionObject* userIdentityToken,
-                                                void** sessionContext);
+            UA_AccessControl* ac,
+            const UA_EndpointDescription* endpointDescription,
+            const UA_ByteString* secureChannelRemoteCertificate,
+            const UA_NodeId* sessionId,
+            const UA_ExtensionObject* userIdentityToken,
+            void** sessionContext);
 
     /* Deauthenticate a session and cleanup */
     static void closeSessionHandler(UA_Server* server,
@@ -216,75 +226,75 @@ private:
 
     /* Access control for all nodes*/
     static UA_UInt32 getUserRightsMaskHandler(UA_Server* server,
-                                              UA_AccessControl* ac,
-                                              const UA_NodeId* sessionId,
-                                              void* sessionContext,
-                                              const UA_NodeId* nodeId,
-                                              void* nodeContext);
+            UA_AccessControl* ac,
+            const UA_NodeId* sessionId,
+            void* sessionContext,
+            const UA_NodeId* nodeId,
+            void* nodeContext);
 
     /* Additional access control for variable nodes */
     static UA_Byte getUserAccessLevelHandler(UA_Server* server,
-                                             UA_AccessControl* ac,
-                                             const UA_NodeId* sessionId,
-                                             void* sessionContext,
-                                             const UA_NodeId* nodeId,
-                                             void* nodeContext);
+            UA_AccessControl* ac,
+            const UA_NodeId* sessionId,
+            void* sessionContext,
+            const UA_NodeId* nodeId,
+            void* nodeContext);
 
     /* Additional access control for method nodes */
     static UA_Boolean getUserExecutableHandler(UA_Server* server,
-                                               UA_AccessControl* ac,
-                                               const UA_NodeId* sessionId,
-                                               void* sessionContext,
-                                               const UA_NodeId* methodId,
-                                               void* methodContext);
+            UA_AccessControl* ac,
+            const UA_NodeId* sessionId,
+            void* sessionContext,
+            const UA_NodeId* methodId,
+            void* methodContext);
 
     /*  Additional access control for calling a method node in the context of a
         specific object */
     static UA_Boolean getUserExecutableOnObjectHandler(UA_Server* server,
-                                                       UA_AccessControl* ac,
-                                                       const UA_NodeId* sessionId,
-                                                       void* sessionContext,
-                                                       const UA_NodeId* methodId,
-                                                       void* methodContext,
-                                                       const UA_NodeId* objectId,
-                                                       void* objectContext);
+            UA_AccessControl* ac,
+            const UA_NodeId* sessionId,
+            void* sessionContext,
+            const UA_NodeId* methodId,
+            void* methodContext,
+            const UA_NodeId* objectId,
+            void* objectContext);
     /* Allow insert,replace,update of historical data */
     static UA_Boolean allowHistoryUpdateUpdateDataHandler(UA_Server* server,
-                                                          UA_AccessControl* ac,
-                                                          const UA_NodeId* sessionId,
-                                                          void* sessionContext,
-                                                          const UA_NodeId* nodeId,
-                                                          UA_PerformUpdateType performInsertReplace,
-                                                          const UA_DataValue* value);
+            UA_AccessControl* ac,
+            const UA_NodeId* sessionId,
+            void* sessionContext,
+            const UA_NodeId* nodeId,
+            UA_PerformUpdateType performInsertReplace,
+            const UA_DataValue* value);
 
     /* Allow delete of historical data */
     static UA_Boolean allowHistoryUpdateDeleteRawModifiedHandler(UA_Server* server,
-                                                                 UA_AccessControl* ac,
-                                                                 const UA_NodeId* sessionId,
-                                                                 void* sessionContext,
-                                                                 const UA_NodeId* nodeId,
-                                                                 UA_DateTime startTimestamp,
-                                                                 UA_DateTime endTimestamp,
-                                                                 bool isDeleteModified);
+            UA_AccessControl* ac,
+            const UA_NodeId* sessionId,
+            void* sessionContext,
+            const UA_NodeId* nodeId,
+            UA_DateTime startTimestamp,
+            UA_DateTime endTimestamp,
+            bool isDeleteModified);
 
     /* Allow browsing a node */
     static UA_Boolean allowBrowseNodeHandler(UA_Server* server,
-                                             UA_AccessControl* ac,
-                                             const UA_NodeId* sessionId,
-                                             void* sessionContext,
-                                             const UA_NodeId* nodeId,
-                                             void* nodeContext);
+            UA_AccessControl* ac,
+            const UA_NodeId* sessionId,
+            void* sessionContext,
+            const UA_NodeId* nodeId,
+            void* nodeContext);
 
 #ifdef UA_ENABLE_SUBSCRIPTIONS
     /* Allow transfer of a subscription to another session. The Server shall
      * validate that the Client of that Session is operating on behalf of the
      * same user */
     static UA_Boolean allowTransferSubscriptionHandler(UA_Server* server,
-                                                       UA_AccessControl* ac,
-                                                       const UA_NodeId* oldSessionId,
-                                                       void* oldSessionContext,
-                                                       const UA_NodeId* newSessionId,
-                                                       void* newSessionContext);
+            UA_AccessControl* ac,
+            const UA_NodeId* oldSessionId,
+            void* oldSessionContext,
+            const UA_NodeId* newSessionId,
+            void* newSessionContext);
 #endif
 
     // Async handler
@@ -301,17 +311,21 @@ private:
      * \param removed
      */
     static void monitoredItemRegisterCallback(UA_Server* server,
-                                              const UA_NodeId* sessionId,
-                                              void* sessionContext,
-                                              const UA_NodeId* nodeId,
-                                              void* nodeContext,
-                                              UA_UInt32 attibuteId,
-                                              UA_Boolean removed);
+            const UA_NodeId* sessionId,
+            void* sessionContext,
+            const UA_NodeId* nodeId,
+            void* nodeContext,
+            UA_UInt32 attibuteId,
+            UA_Boolean removed);
 
 public:
 #ifdef UA_ENABLE_SUBSCRIPTIONS_ALARMS_CONDITIONS
-    ConditionPtr& findCondition(const UA_NodeId* condition) { return _conditionMap[UA_NodeId_hash(condition)]; }
-    ConditionPtr& findCondition(UA_UInt32 n) { return _conditionMap[n]; }
+    ConditionPtr& findCondition(const UA_NodeId* condition) {
+        return _conditionMap[UA_NodeId_hash(condition)];
+    }
+    ConditionPtr& findCondition(UA_UInt32 n) {
+        return _conditionMap[n];
+    }
 #endif
 
 public:
@@ -472,7 +486,9 @@ public:
         Array of user name / passowrds - TODO add clear, add, delete update
         \return
     */
-    std::vector<UA_UsernamePasswordLogin>& logins() { return _logins; }
+    std::vector<UA_UsernamePasswordLogin>& logins() {
+        return _logins;
+    }
 
     /*!
         \brief applyEndpoints
@@ -491,7 +507,7 @@ public:
     void configClean()
     {
         if (_config)
-            UA_ServerConfig_clean(_config);
+            UA_ServerConfig_clear(_config);
     }
 
     /*!
@@ -500,12 +516,11 @@ public:
         This gives username / password access and disables anomyous access
         \return
     */
-    bool enableSimpleLogin(bool allowAnonymous = true, const std::string& userTokenPolicyUri = "")
+    bool enableSimpleLogin(bool allowAnonymous = true)
     {
-        ByteString ut(userTokenPolicyUri);
         // install access control into the config that maps on to the server hence its virtual functions
-        UA_AccessControl_default(_config, allowAnonymous, nullptr,
-                                  &_config->securityPolicies[_config->securityPoliciesSize-1].policyUri,
+        UA_AccessControl_default(_config, allowAnonymous,
+                                 &_config->securityPolicies[_config->securityPoliciesSize-1].policyUri,
                                  _logins.size(), _logins.data());
         setAccessControl(&_config->accessControl);  // map access control requests to this object
         return true;
@@ -513,7 +528,9 @@ public:
 
     /* Set a custom hostname in server configuration */
 
-    void setCustomHostname(const std::string& customHostname) { _customHostName = customHostname; }
+    void setCustomHostname(const std::string& customHostname) {
+        _customHostName = customHostname;
+    }
 
     /*!
         \brief setServerUri
@@ -543,7 +560,9 @@ public:
         \param s
         \return
     */
-    static Server* findServer(UA_Server* s) { return _serverMap[s]; }
+    static Server* findServer(UA_Server* s) {
+        return _serverMap[s];
+    }
     //
     // Discovery
     //
@@ -553,32 +572,29 @@ public:
         \param semaphoreFilePath
         \return true on success
     */
-    bool registerDiscovery(Client& client, const std::string& semaphoreFilePath = "");
+    bool registerDiscovery(Client& client, const std::string & discoveryUrl ="opc.tcp://localhost:4840", const std::string& semaphoreFilePath = "");
 
     /*!
         \brief unregisterDiscovery
         \return  true on success
     */
-    bool unregisterDiscovery(Client& client);
+    bool unregisterDiscovery(Client& client, const std::string &discoveryUrl="opc.tcp://localhost:4840");
 
     /*!
-        \brief addPeriodicServerRegister
+        \brief addPeriodicServerRegister - REMOVED for 1.4
         \param discoveryServerUrl
         \param intervalMs
         \param delayFirstRegisterMs
         \param periodicCallbackId
         \return true on success
     */
-    bool addPeriodicServerRegister(const std::string& discoveryServerUrl,  // url must persist - that is be static
-                                   Client& client,
-                                   UA_UInt64& periodicCallbackId,
-                                   UA_UInt32 intervalMs           = 600 * 1000,  // default to 10 minutes
-                                   UA_UInt32 delayFirstRegisterMs = 1000);
 
     /*!
         \brief registerServer
     */
-    virtual void registerServer(const UA_RegisteredServer* /*registeredServer*/) { OPEN62541_TRC }
+    virtual void registerServer(const UA_RegisteredServer* /*registeredServer*/) {
+        OPEN62541_TRC
+    }
 
     /*!
         \brief registerServerCallback
@@ -654,7 +670,9 @@ public:
         \brief lastError
         \return
     */
-    UA_StatusCode lastError() const { return _lastError; }
+    UA_StatusCode lastError() const {
+        return _lastError;
+    }
 
     /*!
         \brief server
@@ -665,12 +683,16 @@ public:
         return _server;
     }
 
-    operator UA_Server*() const { return _server; }
+    operator UA_Server*() const {
+        return _server;
+    }
     /*!
         \brief running
         \return running state
     */
-    UA_Boolean running() const { return _running; }
+    UA_Boolean running() const {
+        return _running;
+    }
 
     /*!
         \brief getNodeContext
@@ -835,7 +857,9 @@ public:
         \brief serverConfig
         \return  server configuration
     */
-    UA_ServerConfig& serverConfig() { return *UA_Server_getConfig(server()); }
+    UA_ServerConfig& serverConfig() {
+        return *UA_Server_getConfig(server());
+    }
     //
 
     /*!
@@ -1140,7 +1164,9 @@ public:
         \brief lastOK
         \return last error code
     */
-    bool lastOK() const { return _lastError == UA_STATUSCODE_GOOD; }
+    bool lastOK() const {
+        return _lastError == UA_STATUSCODE_GOOD;
+    }
     //
     // Attributes
     //
@@ -1630,14 +1656,14 @@ public:
     {
         WriteLock l(_mutex);
         _lastError = UA_Server_addVariableTypeNode(server(),
-                                                   requestedNewNodeId,
-                                                   parentNodeId,
-                                                   referenceTypeId,
-                                                   browseName,
-                                                   typeDefinition,
-                                                   attr,
-                                                   instantiationCallback,
-                                                   outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
+                     requestedNewNodeId,
+                     parentNodeId,
+                     referenceTypeId,
+                     browseName,
+                     typeDefinition,
+                     attr,
+                     instantiationCallback,
+                     outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
         return lastOK();
     }
 
@@ -1695,13 +1721,13 @@ public:
                            NodeContext* instantiationCallback = nullptr)
     {
         _lastError = UA_Server_addObjectTypeNode(server(),
-                                                 requestedNewNodeId,
-                                                 parentNodeId,
-                                                 referenceTypeId,
-                                                 browseName,
-                                                 attr,
-                                                 instantiationCallback,
-                                                 outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef());
+                     requestedNewNodeId,
+                     parentNodeId,
+                     referenceTypeId,
+                     browseName,
+                     attr,
+                     instantiationCallback,
+                     outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef());
         return lastOK();
     }
 
@@ -1757,13 +1783,13 @@ public:
     {
         WriteLock l(_mutex);
         _lastError = UA_Server_addReferenceTypeNode(server(),
-                                                    requestedNewNodeId,
-                                                    parentNodeId,
-                                                    referenceTypeId,
-                                                    browseName,
-                                                    attr,
-                                                    instantiationCallback,
-                                                    outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef());
+                     requestedNewNodeId,
+                     parentNodeId,
+                     referenceTypeId,
+                     browseName,
+                     attr,
+                     instantiationCallback,
+                     outNewNodeId.isNull() ? nullptr : outNewNodeId.clearRef());
         return lastOK();
     }
 
@@ -1822,15 +1848,15 @@ public:
     {
         WriteLock l(_mutex);
         _lastError = UA_Server_addDataSourceVariableNode(server(),
-                                                         requestedNewNodeId,
-                                                         parentNodeId,
-                                                         referenceTypeId,
-                                                         browseName,
-                                                         typeDefinition,
-                                                         attr,
-                                                         dataSource,
-                                                         instantiationCallback,
-                                                         outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
+                     requestedNewNodeId,
+                     parentNodeId,
+                     referenceTypeId,
+                     browseName,
+                     typeDefinition,
+                     attr,
+                     dataSource,
+                     instantiationCallback,
+                     outNewNodeId.isNull() ? nullptr : outNewNodeId.ref());
 
         return lastOK();
     }
@@ -1944,7 +1970,7 @@ public:
      \param description
      \param eventType  the event type node
      \return true on success
- */
+    */
     bool addNewEventType(const std::string& name,
                          NodeId& eventType,
                          const std::string& description = std::string())
@@ -1956,13 +1982,13 @@ public:
         QualifiedName qn(0, name);
         WriteLock l(_mutex);
         _lastError = UA_Server_addObjectTypeNode(server(),
-                                                 UA_NODEID_NULL,
-                                                 UA_NODEID_NUMERIC(0, UA_NS0ID_BASEEVENTTYPE),
-                                                 UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
-                                                 qn,
-                                                 attr,
-                                                 NULL,
-                                                 eventType.clearRef());
+                     UA_NODEID_NULL,
+                     UA_NODEID_NUMERIC(0, UA_NS0ID_BASEEVENTTYPE),
+                     UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
+                     qn,
+                     attr,
+                     NULL,
+                     eventType.clearRef());
         return lastOK();
     }
 
@@ -2020,28 +2046,34 @@ public:
     }
 
     /*!
-        \brief updateCertificate
-        \param oldCertificate
-        \param newCertificate
-        \param newPrivateKey
-        \param closeSessions
-        \param closeSecureChannels
-        \return true on success
-    */
-    bool updateCertificate(const UA_ByteString* oldCertificate,
-                           const UA_ByteString* newCertificate,
-                           const UA_ByteString* newPrivateKey,
-                           bool closeSessions       = true,
-                           bool closeSecureChannels = true)
+     * \brief updateCertificate
+     * \param certificateGroupId
+     * \param certificateTypeId
+     * \param newCertificate
+     * \param newPrivateKey
+     * \return true on success
+     */
+    bool updateCertificate(
+        const Open62541::NodeId &certificateGroupId,
+        const Open62541::NodeId &certificateTypeId,
+        const std::string & newCertificate,
+        const std::string & newPrivateKey
+    )
     {
-        WriteLock l(_mutex);
-        _lastError = UA_Server_updateCertificate(server(),
-                                                 oldCertificate,
-                                                 newCertificate,
-                                                 newPrivateKey,
-                                                 closeSessions,
-                                                 closeSecureChannels);
-        return lastOK();
+        if(server() && _config)
+        {
+            WriteLock l(_mutex);
+            Open62541::ByteString cert(newCertificate);
+            Open62541::ByteString key(newPrivateKey);
+
+            _lastError = UA_Server_updateCertificate(server(),
+                         certificateGroupId,
+                         certificateTypeId,
+                         cert,
+                         key);
+            return lastOK();
+        }
+        return false;
     }
 
     /*!
@@ -2200,23 +2232,23 @@ public:
     }
     /* Allow insert,replace,update of historical data */
     virtual bool allowHistoryUpdateUpdateData(UA_AccessControl* /*ac*/,
-                                              const UA_NodeId* /*sessionId*/,
-                                              void* /*sessionContext*/,
-                                              const UA_NodeId* /*nodeId*/,
-                                              UA_PerformUpdateType /*performInsertReplace*/,
-                                              const UA_DataValue* /*value*/)
+            const UA_NodeId* /*sessionId*/,
+            void* /*sessionContext*/,
+            const UA_NodeId* /*nodeId*/,
+            UA_PerformUpdateType /*performInsertReplace*/,
+            const UA_DataValue* /*value*/)
     {
         return false;
     }
 
     /* Allow delete of historical data */
     virtual bool allowHistoryUpdateDeleteRawModified(UA_AccessControl* /*ac*/,
-                                                     const UA_NodeId* /*sessionId*/,
-                                                     void* /*sessionContext*/,
-                                                     const UA_NodeId* /*nodeId*/,
-                                                     UA_DateTime /*startTimestamp*/,
-                                                     UA_DateTime /* endTimestamp*/,
-                                                     bool /*isDeleteModified*/)
+            const UA_NodeId* /*sessionId*/,
+            void* /*sessionContext*/,
+            const UA_NodeId* /*nodeId*/,
+            UA_DateTime /*startTimestamp*/,
+            UA_DateTime /* endTimestamp*/,
+            bool /*isDeleteModified*/)
     {
         return false;
     }
@@ -2285,12 +2317,12 @@ public:
         outConditionId.notNull();  // this is the key to the condition dictionary
         outCondition = nullptr;
         _lastError   = UA_Server_createCondition(server(),
-                                               NodeId::Null,
-                                               conditionType,
-                                               qn,
-                                               conditionSource,
-                                               hierarchialReferenceType,
-                                               outConditionId.isNull() ? nullptr : outConditionId.clearRef());
+                       NodeId::Null,
+                       conditionType,
+                       qn,
+                       conditionSource,
+                       hierarchialReferenceType,
+                       outConditionId.isNull() ? nullptr : outConditionId.clearRef());
         if (lastOK()) {
             // create the condition object
             ConditionPtr c(new T(*this, outConditionId, conditionSource));
@@ -2306,7 +2338,9 @@ public:
      * \brief deleteCondition
      * \param c
      */
-    void deleteCondition(const NodeId& c) { _conditionMap.erase(UA_NodeId_hash(c.ref())); }
+    void deleteCondition(const NodeId& c) {
+        _conditionMap.erase(UA_NodeId_hash(c.ref()));
+    }
 #endif
     /*!
      * \brief setConditionTwoStateVariableCallback
@@ -2317,11 +2351,11 @@ public:
      */
 #ifdef UA_ENABLE_SUBSCRIPTIONS_ALARMS_CONDITIONS
     bool setConditionTwoStateVariableCallback(const NodeId& condition,
-                                              UA_TwoStateVariableCallbackType callbackType,
-                                              bool removeBranch = false)
+            UA_TwoStateVariableCallbackType callbackType,
+            bool removeBranch = false)
     {
         ConditionPtr& c = findCondition(condition);  // conditions are bound to servers - possible for the same node id
-                                                     // to be used in different servers
+        // to be used in different servers
         if (c) {
             return c->setCallback(callbackType, removeBranch);
         }
@@ -2345,7 +2379,9 @@ public:
      * \brief UA_Server_getStatistics
      * \return
      */
-    UA_ServerStatistics getStatistics() { return UA_Server_getStatistics(server()); }
+    UA_ServerStatistics getStatistics() {
+        return UA_Server_getStatistics(server());
+    }
 
     //
     // Async Access
@@ -2449,15 +2485,17 @@ public:
      */
     bool changeRepeatedTimerInterval(UA_UInt64 callbackId, UA_Double interval_ms)
     {
-            _lastError = UA_Server_changeRepeatedCallbackInterval(server(), callbackId, interval_ms);
-            return lastOK();
+        _lastError = UA_Server_changeRepeatedCallbackInterval(server(), callbackId, interval_ms);
+        return lastOK();
     }
     /*!
      * \brief UA_Client_removeCallback
      * \param client
      * \param callbackId
      */
-    void removeTimerEvent(UA_UInt64 callbackId) { _timerMap.erase(callbackId); }
+    void removeTimerEvent(UA_UInt64 callbackId) {
+        _timerMap.erase(callbackId);
+    }
 
     //
     // Publish Subscribe Support - To be added when it is finished

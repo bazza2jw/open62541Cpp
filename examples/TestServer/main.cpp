@@ -3,6 +3,7 @@
 #include "testcontext.h"
 #include "testmethod.h"
 #include "testobject.h"
+#include <signal.h>
 using namespace std;
 //
 // example server - this exercises timers as well

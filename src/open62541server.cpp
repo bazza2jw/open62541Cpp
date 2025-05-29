@@ -831,11 +831,11 @@ void Open62541::Server::registerServerCallback(const UA_RegisteredServer* regist
         p->registerServer(registeredServer);
 }
 
-bool Open62541::Server::registerDiscovery(Client& client, const std::string& semaphoreFilePath)
+bool Open62541::Server::registerDiscovery(Client& client,const std::string& discoveryUrl, const std::string& semaphoreFilePath)
 {
-    _lastError = UA_Server_register_discovery(server(),
-                                              client.client(),
-                                              semaphoreFilePath.empty() ? nullptr : semaphoreFilePath.c_str());
+    String dsUrl(discoveryUrl);
+    String sfP(semaphoreFilePath);
+    _lastError = UA_Server_registerDiscovery(server(),UA_Client_getConfig(client.client()), dsUrl, sfP);
     return lastOK();
 }
 
@@ -843,37 +843,10 @@ bool Open62541::Server::registerDiscovery(Client& client, const std::string& sem
     \brief unregisterDiscovery
     \return  true on success
 */
-bool Open62541::Server::unregisterDiscovery(Client& client)
+bool Open62541::Server::unregisterDiscovery(Client& client,const std::string& discoveryUrl)
 {
-    _lastError = UA_Server_unregister_discovery(server(), client.client());
+    String dsUrl(discoveryUrl);
+    _lastError =  UA_Server_deregisterDiscovery(server(), UA_Client_getConfig(client.client()), dsUrl);
     return lastOK();
 }
 
-/*!
-    \brief addPeriodicServerRegister
-    \param discoveryServerUrl
-    \param intervalMs
-    \param delayFirstRegisterMs
-    \param periodicCallbackId
-    \return true on success
-*/
-bool Open62541::Server::addPeriodicServerRegister(
-    const std::string& discoveryServerUrl,  // url must persist - that is be static
-    Client& client,
-    UA_UInt64& periodicCallbackId,
-    UA_UInt32 intervalMs,  // default to 10 minutes
-    UA_UInt32 delayFirstRegisterMs)
-{
-    _lastError = UA_Server_addPeriodicServerRegisterCallback(server(),
-                                                             client.client(),
-                                                             discoveryServerUrl.c_str(),
-                                                             intervalMs,
-                                                             delayFirstRegisterMs,
-                                                             &periodicCallbackId);
-    //
-    if (lastOK()) {
-        _discoveryList[periodicCallbackId] = discoveryServerUrl;
-    }
-    //
-    return lastOK();
-}

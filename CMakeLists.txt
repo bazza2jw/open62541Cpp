@@ -10,7 +10,7 @@ set(OPEN62541_CPP open62541cpp)
 
 ## build settings - try and match the c library version
 set(VERSION_MAJOR 1)
-set(VERSION_MINOR 2)
+set(VERSION_MINOR 4)
 set(VERSION_PATCH 0)
 
 set(PACKAGE_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
@@ -31,7 +31,7 @@ set(BUILD_EXAMPLES FALSE CACHE BOOL "Build example programs")
 
 ## --- C++17 build flags ---
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wvolatile")
 
 set(INCLUDE_INSTALL_DIR include)
 set(LIB_INSTALL_DIR lib)

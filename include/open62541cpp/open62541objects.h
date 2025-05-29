@@ -21,9 +21,11 @@
 // Backup value of UA_LOGLEVEL. IT is already defined in config.h
 // so we unset it here to avoid redefined warning, then define it again afterwards.
 #define UA_LOGLEVEL_ORIG UA_LOGLEVEL
+#define UA_ENABLE_AMALGAMATION
 #undef UA_LOGLEVEL
+#include <boost/atomic.hpp>
 #ifdef UA_ENABLE_AMALGAMATION
-#include "open62541.h"
+#include "open62541/open62541.h"
 #else
 #include "open62541/config.h"
 #include "open62541/statuscodes.h"
@@ -33,21 +35,15 @@
 #include "open62541/util.h"
 #include "open62541/client.h"
 #include "open62541/server.h"
-#include "open62541/architecture_definitions.h"
 #include "open62541/server_pubsub.h"
 #include "open62541/types_generated.h"
-#include "open62541/network_tcp.h"
 #include "open62541/client_config_default.h"
 #include "open62541/client_highlevel_async.h"
-#include "open62541/types_generated_handling.h"
-#include "open62541/architecture_functions.h"
-#include "open62541/posix/ua_architecture.h"
 #include "open62541/server_config_default.h"
 #include "open62541/client_subscriptions.h"
 #include "open62541/client_highlevel.h"
 #include "open62541/plugin/historydatabase.h"
 #include "open62541/plugin/log_syslog.h"
-#include "open62541/plugin/network.h"
 #include "open62541/plugin/historydata/history_database_default.h"
 #include "open62541/plugin/historydata/history_data_backend.h"
 #include "open62541/plugin/historydata/history_data_gathering.h"
@@ -55,14 +51,11 @@
 #include "open62541/plugin/historydata/history_data_backend_memory.h"
 #include "open62541/plugin/log.h"
 #include "open62541/plugin/nodestore.h"
-#include "open62541/plugin/pki.h"
-#include "open62541/plugin/pubsub.h"
 #include "open62541/plugin/nodestore_default.h"
 #include "open62541/plugin/log_stdout.h"
 #include "open62541/plugin/securitypolicy.h"
 #include "open62541/plugin/accesscontrol.h"
 #include "open62541/plugin/accesscontrol_default.h"
-#include "open62541/plugin/pki_default.h"
 #include "open62541/plugin/securitypolicy_default.h"
 #endif
 #undef UA_LOGLEVEL
@@ -269,6 +262,7 @@ public:
     operator const UA_String&() { return _s; }
     operator const UA_String*() { return &_s; }
     operator UA_String*() { return &_s; }
+
 
     String& operator=(const String& s)
     {
@@ -2001,7 +1995,7 @@ public:
     BrowserBase() = default;
     virtual ~BrowserBase() { _list.clear(); }
     BrowseList& list() { return _list; }
-    virtual void browse(UA_NodeId /*start*/) {}
+    virtual void browse(const NodeId &/*start*/) {}
     virtual bool browseName(NodeId& /*n*/, std::string& /*s*/, int& /*i*/) { return false; }
 
     /*!
