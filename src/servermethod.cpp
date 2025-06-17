@@ -38,15 +38,18 @@ UA_StatusCode Open62541::ServerMethod::methodCallback(UA_Server* server,
         Server* s = Server::findServer(server);
         if (s) {
             Open62541::ServerMethod* p = (Open62541::ServerMethod*)methodContext;
-            if (p->_func) {
-                return p->_func(*s, objectId, inputSize, input, outputSize, output);  // was the functor defined
+            if(NodeContext::contains(p))
+            {
+                if (p->_func) {
+                    return p->_func(*s, objectId, inputSize, input, outputSize, output);  // was the functor defined
+                }
+                ret = p->callback(*s,
+                                  objectId,
+                                  inputSize,
+                                  input,
+                                  outputSize,
+                                  output);  // adding a method allocates in/out variable space
             }
-            ret = p->callback(*s,
-                              objectId,
-                              inputSize,
-                              input,
-                              outputSize,
-                              output);  // adding a method allocates in/out variable space
         }
     }
     return ret;
