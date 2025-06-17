@@ -25,6 +25,10 @@ UA_ValueCallback Open62541::NodeContext::_valueCallback = {Open62541::NodeContex
 UA_NodeTypeLifecycle Open62541::NodeContext::_nodeTypeLifeCycle = {Open62541::NodeContext::typeConstructor,
                                                                    Open62541::NodeContext::typeDestructor};
 
+// set of valid NodeContext objects
+// it is possible for other routines external to the library to set a UA_Node context - not always valid in the global destructor
+std::set<Open62541::NodeContext *> Open62541::NodeContext::_set;
+
 //
 // Default Datavalue
 //

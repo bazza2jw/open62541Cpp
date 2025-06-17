@@ -12,6 +12,7 @@
 #ifndef NODECONTEXT_H
 #define NODECONTEXT_H
 #include <open62541cpp/open62541objects.h>
+#include <set>
 namespace Open62541 {
 /*!
     \brief The NodeContext class
@@ -25,6 +26,7 @@ class UA_EXPORT NodeContext
     static UA_DataSource _dataSource;                //!< Call back for data source operations
     static UA_ValueCallback _valueCallback;          //!< call back for value get / set
     static UA_NodeTypeLifecycle _nodeTypeLifeCycle;  //!< life cycle callback
+    static std::set<NodeContext *> _set; // is a pointer a pointer to a NodeContext object or not
 public:
     typedef std::function<bool(Server&, NodeId&, const UA_NumericRange*, UA_DataValue&)> DataFunc;
     typedef std::function<void(Server&, NodeId&, const UA_NumericRange*, const UA_DataValue*)> ValueFunc;
@@ -45,9 +47,10 @@ public:
         \brief NodeContext
         \param s
     */
-    NodeContext(const std::string& s = "")
+    NodeContext(const std::string &s = "")
         : _name(s)
     {
+        _set.insert(this);
     }
 
     /*!
@@ -57,11 +60,10 @@ public:
      * \param write
      */
     NodeContext(DataFunc read, ConstDataFunc write, const std::string& s = "")
-        : _name(s)
-        , _readData(read)
-        , _writeData(write)
+        :_name(s), _readData(read) , _writeData(write)
     {
         // Data read write node
+        _set.insert(this);
     }
 
     /*!
@@ -72,18 +74,25 @@ public:
      */
 
     NodeContext(ValueFunc read, ConstValueFunc write, const std::string& s = "")
-        : _name(s)
-        , _readValue(read)
-        , _writeValue(write)
+        : _name(s), _readValue(read) , _writeValue(write)
     {
         // Value read/write node
+        _set.insert(this);
     }
 
     /*!
      * \brief ~NodeContext
      */
-    virtual ~NodeContext() {}
+    virtual ~NodeContext()
+    {
+        _set.erase(this);
+    }
 
+    // test if context is valid
+    static bool contains(NodeContext *s)
+    {
+        return _set.find(s) != _set.end();
+    }
     // accessors
     void setReadData(DataFunc f) { _readData = f; }
     void setWriteData(ConstDataFunc f) { _writeData = f; }

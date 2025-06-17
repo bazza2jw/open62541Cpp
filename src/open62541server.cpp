@@ -50,20 +50,23 @@ void Open62541::Server::setHistoryDatabase(UA_HistoryDatabase& h)
     \return
 */
 UA_StatusCode Open62541::Server::constructor(UA_Server* server,
-                                             const UA_NodeId* /*sessionId*/,
-                                             void* /*sessionContext*/,
-                                             const UA_NodeId* nodeId,
-                                             void** nodeContext)
+        const UA_NodeId* /*sessionId*/,
+        void* /*sessionContext*/,
+        const UA_NodeId* nodeId,
+        void** nodeContext)
 {
     UA_StatusCode ret = UA_STATUSCODE_GOOD;
     if (server && nodeId && nodeContext) {
         void* p         = *nodeContext;
         NodeContext* cp = (NodeContext*)(p);
         if (cp) {
-            Server* s = Server::findServer(server);
-            if (s) {
-                NodeId n(*nodeId);
-                ret = (cp->construct(*s, n)) ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADINTERNALERROR;
+            if(Open62541::NodeContext::contains(cp))
+            {
+                Server* s = Server::findServer(server);
+                if (s) {
+                    NodeId n(*nodeId);
+                    ret = (cp->construct(*s, n)) ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADINTERNALERROR;
+                }
             }
         }
     }
@@ -86,10 +89,13 @@ void Open62541::Server::destructor(UA_Server* server,
 {
     if (server && nodeId && nodeContext) {
         NodeContext* cp = (NodeContext*)(nodeContext);
-        Server* s       = Server::findServer(server);
-        if (s) {
-            NodeId n(*nodeId);
-            cp->destruct(*s, n);
+        if(Open62541::NodeContext::contains(cp)) // context may not be a NodeContext
+        {
+            Server* s       = Server::findServer(server);
+            if (s) {
+                NodeId n(*nodeId);
+                cp->destruct(*s, n);
+            }
         }
     }
 }
@@ -107,12 +113,12 @@ void Open62541::Server::asyncOperationNotifyCallback(UA_Server* server)
 }
 
 void Open62541::Server::monitoredItemRegisterCallback(UA_Server* server,
-                                                      const UA_NodeId* sessionId,
-                                                      void* sessionContext,
-                                                      const UA_NodeId* nodeId,
-                                                      void* nodeContext,
-                                                      UA_UInt32 attibuteId,
-                                                      UA_Boolean removed)
+        const UA_NodeId* sessionId,
+        void* sessionContext,
+        const UA_NodeId* nodeId,
+        void* nodeContext,
+        UA_UInt32 attibuteId,
+        UA_Boolean removed)
 {
     Server* p = Open62541::Server::findServer(server);  // find the server
     if (p) {
@@ -121,11 +127,11 @@ void Open62541::Server::monitoredItemRegisterCallback(UA_Server* server,
 }
 
 UA_Boolean Open62541::Server::createOptionalChildCallback(UA_Server* server,
-                                                          const UA_NodeId* sessionId,
-                                                          void* sessionContext,
-                                                          const UA_NodeId* sourceNodeId,
-                                                          const UA_NodeId* targetParentNodeId,
-                                                          const UA_NodeId* referenceTypeId)
+        const UA_NodeId* sessionId,
+        void* sessionContext,
+        const UA_NodeId* sourceNodeId,
+        const UA_NodeId* targetParentNodeId,
+        const UA_NodeId* referenceTypeId)
 {
     Server* p = Open62541::Server::findServer(server);  // find the server
     if (p) {
@@ -135,12 +141,12 @@ UA_Boolean Open62541::Server::createOptionalChildCallback(UA_Server* server,
 }
 
 UA_StatusCode Open62541::Server::generateChildNodeIdCallback(UA_Server* server,
-                                                             const UA_NodeId* sessionId,
-                                                             void* sessionContext,
-                                                             const UA_NodeId* sourceNodeId,
-                                                             const UA_NodeId* targetParentNodeId,
-                                                             const UA_NodeId* referenceTypeId,
-                                                             UA_NodeId* targetNodeId)
+        const UA_NodeId* sessionId,
+        void* sessionContext,
+        const UA_NodeId* sourceNodeId,
+        const UA_NodeId* targetParentNodeId,
+        const UA_NodeId* referenceTypeId,
+        UA_NodeId* targetNodeId)
 {
     Server* p = Open62541::Server::findServer(server);  // find the server
     if (p) {
@@ -156,10 +162,10 @@ UA_StatusCode Open62541::Server::generateChildNodeIdCallback(UA_Server* server,
 
 // Access Control Callbacks
 UA_Boolean Open62541::Server::allowAddNodeHandler(UA_Server* server,
-                                                  UA_AccessControl* ac,
-                                                  const UA_NodeId* sessionId,
-                                                  void* sessionContext,
-                                                  const UA_AddNodesItem* item)
+        UA_AccessControl* ac,
+        const UA_NodeId* sessionId,
+        void* sessionContext,
+        const UA_AddNodesItem* item)
 {
     Server* p = Open62541::Server::findServer(server);  // find the server
     if (p) {
@@ -169,10 +175,10 @@ UA_Boolean Open62541::Server::allowAddNodeHandler(UA_Server* server,
 }
 
 UA_Boolean Open62541::Server::allowAddReferenceHandler(UA_Server* server,
-                                                       UA_AccessControl* ac,
-                                                       const UA_NodeId* sessionId,
-                                                       void* sessionContext,
-                                                       const UA_AddReferencesItem* item)
+        UA_AccessControl* ac,
+        const UA_NodeId* sessionId,
+        void* sessionContext,
+        const UA_AddReferencesItem* item)
 {
     Server* p = Open62541::Server::findServer(server);
     if (p) {
@@ -182,10 +188,10 @@ UA_Boolean Open62541::Server::allowAddReferenceHandler(UA_Server* server,
 }
 
 UA_Boolean Open62541::Server::allowDeleteNodeHandler(UA_Server* server,
-                                                     UA_AccessControl* ac,
-                                                     const UA_NodeId* sessionId,
-                                                     void* sessionContext,
-                                                     const UA_DeleteNodesItem* item)
+        UA_AccessControl* ac,
+        const UA_NodeId* sessionId,
+        void* sessionContext,
+        const UA_DeleteNodesItem* item)
 {
     Server* p = Open62541::Server::findServer(server);
     if (p) {
@@ -196,10 +202,10 @@ UA_Boolean Open62541::Server::allowDeleteNodeHandler(UA_Server* server,
 }
 
 UA_Boolean Open62541::Server::allowDeleteReferenceHandler(UA_Server* server,
-                                                          UA_AccessControl* ac,
-                                                          const UA_NodeId* sessionId,
-                                                          void* sessionContext,
-                                                          const UA_DeleteReferencesItem* item)
+        UA_AccessControl* ac,
+        const UA_NodeId* sessionId,
+        void* sessionContext,
+        const UA_DeleteReferencesItem* item)
 {
     Server* p = Open62541::Server::findServer(server);
     if (p) {
@@ -209,12 +215,12 @@ UA_Boolean Open62541::Server::allowDeleteReferenceHandler(UA_Server* server,
 }
 
 UA_StatusCode Open62541::Server::activateSessionHandler(UA_Server* server,
-                                                        UA_AccessControl* ac,
-                                                        const UA_EndpointDescription* endpointDescription,
-                                                        const UA_ByteString* secureChannelRemoteCertificate,
-                                                        const UA_NodeId* sessionId,
-                                                        const UA_ExtensionObject* userIdentityToken,
-                                                        void** sessionContext)
+        UA_AccessControl* ac,
+        const UA_EndpointDescription* endpointDescription,
+        const UA_ByteString* secureChannelRemoteCertificate,
+        const UA_NodeId* sessionId,
+        const UA_ExtensionObject* userIdentityToken,
+        void** sessionContext)
 {
     Server* p = Open62541::Server::findServer(server);
     if (p) {
@@ -230,9 +236,9 @@ UA_StatusCode Open62541::Server::activateSessionHandler(UA_Server* server,
 
 /* Deauthenticate a session and cleanup */
 void Open62541::Server::closeSessionHandler(UA_Server* server,
-                                            UA_AccessControl* ac,
-                                            const UA_NodeId* sessionId,
-                                            void* sessionContext)
+        UA_AccessControl* ac,
+        const UA_NodeId* sessionId,
+        void* sessionContext)
 {
     Server* p = Open62541::Server::findServer(server);
     if (p) {
@@ -242,11 +248,11 @@ void Open62541::Server::closeSessionHandler(UA_Server* server,
 
 /* Access control for all nodes*/
 UA_UInt32 Open62541::Server::getUserRightsMaskHandler(UA_Server* server,
-                                                      UA_AccessControl* ac,
-                                                      const UA_NodeId* sessionId,
-                                                      void* sessionContext,
-                                                      const UA_NodeId* nodeId,
-                                                      void* nodeContext)
+        UA_AccessControl* ac,
+        const UA_NodeId* sessionId,
+        void* sessionContext,
+        const UA_NodeId* nodeId,
+        void* nodeContext)
 {
     Server* p = Open62541::Server::findServer(server);
     if (p) {
@@ -257,11 +263,11 @@ UA_UInt32 Open62541::Server::getUserRightsMaskHandler(UA_Server* server,
 
 /* Additional access control for variable nodes */
 UA_Byte Open62541::Server::getUserAccessLevelHandler(UA_Server* server,
-                                                     UA_AccessControl* ac,
-                                                     const UA_NodeId* sessionId,
-                                                     void* sessionContext,
-                                                     const UA_NodeId* nodeId,
-                                                     void* nodeContext)
+        UA_AccessControl* ac,
+        const UA_NodeId* sessionId,
+        void* sessionContext,
+        const UA_NodeId* nodeId,
+        void* nodeContext)
 {
     Server* p = Open62541::Server::findServer(server);
     if (p) {
@@ -272,11 +278,11 @@ UA_Byte Open62541::Server::getUserAccessLevelHandler(UA_Server* server,
 
 /* Additional access control for method nodes */
 UA_Boolean Open62541::Server::getUserExecutableHandler(UA_Server* server,
-                                                       UA_AccessControl* ac,
-                                                       const UA_NodeId* sessionId,
-                                                       void* sessionContext,
-                                                       const UA_NodeId* methodId,
-                                                       void* methodContext)
+        UA_AccessControl* ac,
+        const UA_NodeId* sessionId,
+        void* sessionContext,
+        const UA_NodeId* methodId,
+        void* methodContext)
 {
     Server* p = Open62541::Server::findServer(server);
     if (p) {
@@ -288,13 +294,13 @@ UA_Boolean Open62541::Server::getUserExecutableHandler(UA_Server* server,
 /*  Additional access control for calling a method node in the context of a
     specific object */
 UA_Boolean Open62541::Server::getUserExecutableOnObjectHandler(UA_Server* server,
-                                                               UA_AccessControl* ac,
-                                                               const UA_NodeId* sessionId,
-                                                               void* sessionContext,
-                                                               const UA_NodeId* methodId,
-                                                               void* methodContext,
-                                                               const UA_NodeId* objectId,
-                                                               void* objectContext)
+        UA_AccessControl* ac,
+        const UA_NodeId* sessionId,
+        void* sessionContext,
+        const UA_NodeId* methodId,
+        void* methodContext,
+        const UA_NodeId* objectId,
+        void* objectContext)
 {
     Server* p = Open62541::Server::findServer(server);
     if (p) {
@@ -310,12 +316,12 @@ UA_Boolean Open62541::Server::getUserExecutableOnObjectHandler(UA_Server* server
 }
 /* Allow insert,replace,update of historical data */
 UA_Boolean Open62541::Server::allowHistoryUpdateUpdateDataHandler(UA_Server* server,
-                                                                  UA_AccessControl* ac,
-                                                                  const UA_NodeId* sessionId,
-                                                                  void* sessionContext,
-                                                                  const UA_NodeId* nodeId,
-                                                                  UA_PerformUpdateType performInsertReplace,
-                                                                  const UA_DataValue* value)
+        UA_AccessControl* ac,
+        const UA_NodeId* sessionId,
+        void* sessionContext,
+        const UA_NodeId* nodeId,
+        UA_PerformUpdateType performInsertReplace,
+        const UA_DataValue* value)
 {
     Server* p = Open62541::Server::findServer(server);
     if (p) {
@@ -326,34 +332,34 @@ UA_Boolean Open62541::Server::allowHistoryUpdateUpdateDataHandler(UA_Server* ser
 
 /* Allow delete of historical data */
 UA_Boolean Open62541::Server::allowHistoryUpdateDeleteRawModifiedHandler(UA_Server* server,
-                                                                         UA_AccessControl* ac,
-                                                                         const UA_NodeId* sessionId,
-                                                                         void* sessionContext,
-                                                                         const UA_NodeId* nodeId,
-                                                                         UA_DateTime startTimestamp,
-                                                                         UA_DateTime endTimestamp,
-                                                                         bool isDeleteModified)
+        UA_AccessControl* ac,
+        const UA_NodeId* sessionId,
+        void* sessionContext,
+        const UA_NodeId* nodeId,
+        UA_DateTime startTimestamp,
+        UA_DateTime endTimestamp,
+        bool isDeleteModified)
 {
     Server* p = Open62541::Server::findServer(server);
     if (p) {
         return p->allowHistoryUpdateDeleteRawModified(ac,
-                                                      sessionId,
-                                                      sessionContext,
-                                                      nodeId,
-                                                      startTimestamp,
-                                                      endTimestamp,
-                                                      isDeleteModified);
+                sessionId,
+                sessionContext,
+                nodeId,
+                startTimestamp,
+                endTimestamp,
+                isDeleteModified);
     }
     return UA_FALSE;
 }
 
 /* Allow browsing a node */
 UA_Boolean Open62541::Server::allowBrowseNodeHandler(UA_Server* server,
-                                                     UA_AccessControl* ac,
-                                                     const UA_NodeId* sessionId,
-                                                     void* sessionContext,
-                                                     const UA_NodeId* nodeId,
-                                                     void* nodeContext)
+        UA_AccessControl* ac,
+        const UA_NodeId* sessionId,
+        void* sessionContext,
+        const UA_NodeId* nodeId,
+        void* nodeContext)
 {
     Server* p = Open62541::Server::findServer(server);
     if (p) {
@@ -367,17 +373,17 @@ UA_Boolean Open62541::Server::allowBrowseNodeHandler(UA_Server* server,
  * validate that the Client of that Session is operating on behalf of the
  * same user */
 UA_Boolean Open62541::Server::allowTransferSubscriptionHandler(UA_Server* server,
-                                                               UA_AccessControl* ac,
-                                                               const UA_NodeId* oldSessionId,
-                                                               void* oldSessionContext,
-                                                               const UA_NodeId* newSessionId,
-                                                               void* newSessionContext)
+        UA_AccessControl* ac,
+        const UA_NodeId* oldSessionId,
+        void* oldSessionContext,
+        const UA_NodeId* newSessionId,
+        void* newSessionContext)
 {
     Server* p = Open62541::Server::findServer(server);
     if (p) {
         return (p->allowTransferSubscription(ac, oldSessionId, oldSessionContext, newSessionId, newSessionContext))
-                   ? UA_TRUE
-                   : UA_FALSE;
+               ? UA_TRUE
+               : UA_FALSE;
     }
     return UA_FALSE;
 }
@@ -533,7 +539,7 @@ void Open62541::Server::terminate()
     \param iterate
 */
 void Open62541::Server::start()
-{  // start the server
+{   // start the server
     if (!_running) {
         _running = true;
         if (server()) {
@@ -545,7 +551,7 @@ void Open62541::Server::start()
                     UA_Server_run_iterate(server(), true);
                 }
                 process();  // called from time to time - Only safe places to access server are in process() and
-                            // callbacks
+                // callbacks
             }
             terminate();
         }
@@ -557,7 +563,7 @@ void Open62541::Server::start()
     \brief Open62541::Server::stop
 */
 void Open62541::Server::stop()
-{  // stop the server
+{   // stop the server
     _running = false;
 }
 
@@ -732,12 +738,12 @@ bool Open62541::Server::addVariable(const NodeId& parent,
     \return true on success
 */
 bool Open62541::Server::addHistoricalVariable(const NodeId& parent,
-                                              const std::string& childName,
-                                              const Variant& value,
-                                              const NodeId& nodeId,
-                                              NodeId& newNode,
-                                              NodeContext* c,
-                                              int nameSpaceIndex)
+        const std::string& childName,
+        const Variant& value,
+        const NodeId& nodeId,
+        NodeId& newNode,
+        NodeContext* c,
+        int nameSpaceIndex)
 {
     if (nameSpaceIndex == 0)
         nameSpaceIndex = parent.nameSpaceIndex();  // inherit parent by default
@@ -810,9 +816,9 @@ bool Open62541::Server::addProperty(const NodeId& parent,
     \param data
 */
 void Open62541::Server::serverOnNetworkCallback(const UA_ServerOnNetwork* serverNetwork,
-                                                UA_Boolean isServerAnnounce,
-                                                UA_Boolean isTxtReceived,
-                                                void* data)
+        UA_Boolean isServerAnnounce,
+        UA_Boolean isTxtReceived,
+        void* data)
 {
     Server* p = (Server*)(data);
     if (p)
